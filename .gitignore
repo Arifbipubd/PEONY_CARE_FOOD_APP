@@ -28,6 +28,9 @@ ios/
 # Claude Code — local settings, not for source control
 .claude/
 
+# VS Code — local editor settings
+.vscode/
+
 # macOS
 .DS_Store
 

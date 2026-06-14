@@ -12,8 +12,8 @@ import RegisterScreen    from '../screens/shared/RegisterScreen';
 export type AuthStackParamList = {
   Splash:   undefined;
   Login:    undefined;
-  Otp:      { phone: string; purpose: 'login' | 'register' };
-  Register: { registrationToken: string };
+  Otp:      { email: string };
+  Register: { registrationToken: string; email: string; role?: 'RECEIVER' | 'DONOR' };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();

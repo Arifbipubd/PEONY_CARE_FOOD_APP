@@ -1,39 +1,68 @@
-// Auth service — OTP send/verify and role registration.
-// Mock mode: simulates OTP flow with fake data.
-// Real mode (later): swap mock returns for api.post() calls.
+import { UserRole } from '../types';
 
-export const sendOtp = async (_phone: string): Promise<void> => {
-  // MOCK: pretend OTP was sent successfully
+export const sendOtp = async (_email: string): Promise<void> => {
   await new Promise((r) => setTimeout(r, 800));
 };
 
 export const verifyOtp = async (
-  _phone: string,
-  _code: string
-): Promise<{ isNewUser: boolean; registrationToken?: string; accessToken?: string; refreshToken?: string }> => {
-  // MOCK: code "123456" = existing user, anything else = new user
+  email: string,
+  code: string,
+): Promise<{
+  isNewUser: boolean;
+  registrationToken?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  user?: { id: string; role: UserRole; phone: string };
+}> => {
   await new Promise((r) => setTimeout(r, 800));
-  if (_code === '123456') {
-    return { isNewUser: false, accessToken: 'mock-access-token', refreshToken: 'mock-refresh-token' };
-  }
-  return { isNewUser: true, registrationToken: 'mock-registration-token' };
+  void code;
+  return {
+    isNewUser: false,
+    accessToken: 'mock-access-token',
+    refreshToken: 'mock-refresh-token',
+    user: { id: 'mock-user-1', role: 'RECEIVER', phone: email },
+  };
 };
 
-export const registerReceiver = async (_displayName: string, _registrationToken: string) => {
+export const registerReceiver = async (
+  _name: string,
+  _email: string,
+  _registrationToken: string,
+): Promise<{
+  accessToken: string;
+  refreshToken: string;
+  user: { id: string; role: UserRole; phone: string };
+}> => {
   await new Promise((r) => setTimeout(r, 800));
-  return { accessToken: 'mock-access-token', refreshToken: 'mock-refresh-token' };
+  return {
+    accessToken: 'mock-access-token',
+    refreshToken: 'mock-refresh-token',
+    user: { id: 'mock-receiver-1', role: 'RECEIVER', phone: _email },
+  };
 };
 
-export const registerDonor = async (_displayName: string, _registrationToken: string) => {
+export const registerDonor = async (
+  _name: string,
+  _email: string,
+  _registrationToken: string,
+): Promise<{
+  accessToken: string;
+  refreshToken: string;
+  user: { id: string; role: UserRole; phone: string };
+}> => {
   await new Promise((r) => setTimeout(r, 800));
-  return { accessToken: 'mock-access-token', refreshToken: 'mock-refresh-token' };
+  return {
+    accessToken: 'mock-access-token',
+    refreshToken: 'mock-refresh-token',
+    user: { id: 'mock-donor-1', role: 'DONOR', phone: _email },
+  };
 };
 
-export const registerRestaurant = async (_data: object, _registrationToken: string) => {
+export const registerRestaurant = async (
+  _data: object,
+  _registrationToken: string,
+): Promise<void> => {
   await new Promise((r) => setTimeout(r, 800));
-  return { accessToken: 'mock-access-token', refreshToken: 'mock-refresh-token' };
 };
 
-export const logout = async (): Promise<void> => {
-  // MOCK: nothing to do
-};
+export const logout = async (): Promise<void> => {};
