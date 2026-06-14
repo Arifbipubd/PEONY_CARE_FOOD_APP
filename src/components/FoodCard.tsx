@@ -43,7 +43,9 @@ export default function FoodCard({ item, onPress }: FoodCardProps) {
             {formatPickupWindow(item.pickupStart, item.pickupEnd)}
           </Text>
         </View>
-        <Text style={styles.sponsor}>{sponsorLabel(item)}</Text>
+        <Text style={item.sponsorshipType === 'DIRECT' ? styles.sponsorDirect : styles.sponsorSponsored}>
+          {sponsorLabel(item)}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -97,8 +99,12 @@ const styles = StyleSheet.create({
     color: colors.accentPrimary,
     fontWeight: fontWeights.medium,
   },
-  sponsor: {
+  sponsorDirect: {
     fontSize: fontSizes.sm,
-    color: colors.accentPrimary,
+    color: colors.textMuted,
+  },
+  sponsorSponsored: {
+    fontSize: fontSizes.sm,
+    color: colors.warningYellow,
   },
 });
