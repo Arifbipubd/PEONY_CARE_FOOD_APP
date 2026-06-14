@@ -25,6 +25,9 @@ ios/
 .env.local
 .env.*.local
 
+# Claude Code — local settings, not for source control
+.claude/
+
 # macOS
 .DS_Store
 
