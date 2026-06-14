@@ -1,6 +1,7 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# Design assets — large files, not for source control
+Design Doc/
 
-# dependencies
+# Dependencies
 node_modules/
 
 # Expo
@@ -9,8 +10,9 @@ dist/
 web-build/
 expo-env.d.ts
 
-# Native
-.kotlin/
+# Native build output
+android/
+ios/
 *.orig.*
 *.jks
 *.p8
@@ -18,24 +20,18 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# Metro
-.metro-health-check*
+# Environment variables
+.env
+.env.local
+.env.*.local
 
-# debug
+# macOS
+.DS_Store
+
+# Logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
+# TypeScript
 *.tsbuildinfo
-
-# generated native folders
-/ios
-/android

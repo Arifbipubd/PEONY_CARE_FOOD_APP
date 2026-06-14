@@ -1,17 +1,19 @@
 {
   "expo": {
-    "name": "peony-care-food-app",
+    "name": "Peony Care Food App",
     "slug": "peony-care-food-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.peonycare.foodapp"
     },
     "android": {
+      "package": "com.peonycare.foodapp",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#D31B1B",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
