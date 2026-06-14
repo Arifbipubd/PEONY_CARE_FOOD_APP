@@ -1,11 +1,11 @@
 import { UserRole } from '../types';
 
-export const sendOtp = async (_phone: string): Promise<void> => {
+export const sendOtp = async (_email: string): Promise<void> => {
   await new Promise((r) => setTimeout(r, 800));
 };
 
 export const verifyOtp = async (
-  phone: string,
+  email: string,
   code: string,
 ): Promise<{
   isNewUser: boolean;
@@ -15,22 +15,19 @@ export const verifyOtp = async (
   user?: { id: string; role: UserRole; phone: string };
 }> => {
   await new Promise((r) => setTimeout(r, 800));
-  if (code === '123456') {
-    return {
-      isNewUser: false,
-      accessToken: 'mock-access-token',
-      refreshToken: 'mock-refresh-token',
-      user: { id: 'mock-user-1', role: 'RECEIVER', phone },
-    };
-  }
-  return { isNewUser: true, registrationToken: 'mock-reg-token' };
+  void code;
+  return {
+    isNewUser: false,
+    accessToken: 'mock-access-token',
+    refreshToken: 'mock-refresh-token',
+    user: { id: 'mock-user-1', role: 'RECEIVER', phone: email },
+  };
 };
 
 export const registerReceiver = async (
-  _displayName: string,
+  _name: string,
   _email: string,
   _registrationToken: string,
-  phone: string,
 ): Promise<{
   accessToken: string;
   refreshToken: string;
@@ -40,15 +37,14 @@ export const registerReceiver = async (
   return {
     accessToken: 'mock-access-token',
     refreshToken: 'mock-refresh-token',
-    user: { id: 'mock-receiver-1', role: 'RECEIVER', phone },
+    user: { id: 'mock-receiver-1', role: 'RECEIVER', phone: _email },
   };
 };
 
 export const registerDonor = async (
-  _displayName: string,
+  _name: string,
   _email: string,
   _registrationToken: string,
-  phone: string,
 ): Promise<{
   accessToken: string;
   refreshToken: string;
@@ -58,7 +54,7 @@ export const registerDonor = async (
   return {
     accessToken: 'mock-access-token',
     refreshToken: 'mock-refresh-token',
-    user: { id: 'mock-donor-1', role: 'DONOR', phone },
+    user: { id: 'mock-donor-1', role: 'DONOR', phone: _email },
   };
 };
 
