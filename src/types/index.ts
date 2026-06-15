@@ -122,10 +122,30 @@ export interface ReceiverProfile {
   id: string;
   displayName: string;
   phone: string;
+  email: string;
+  isVerified: boolean;
+  memberSince: string;
+  daysActive: number;
   totalClaims: number;
   lastClaimDate: string | null;
   lifetimeMeals: number;
   restaurantsCount: number;
+}
+
+export interface RecentPlace {
+  id: string;
+  name: string;
+  area: string;
+  address: string;
+  visitedAt: string;
+  iconColor: string;
+}
+
+export interface LocationSettings {
+  searchRadiusKm: number;
+  locationServicesEnabled: boolean;
+  saveLocationHistory: boolean;
+  recentPlaces: RecentPlace[];
 }
 
 // ─── Public Restaurant Page ───────────────────────────────────────────────────

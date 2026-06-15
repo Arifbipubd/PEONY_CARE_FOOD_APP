@@ -3,13 +3,17 @@
 // To connect the backend: delete the mock block, uncomment the api call.
 
 import {
-  FoodItem, DailyLimitStatus, Claim, ClaimHistory, ClaimHistoryItem, ReceiverProfile,
+  FoodItem, DailyLimitStatus, Claim, ClaimHistory, ClaimHistoryItem,
+  ReceiverProfile, LocationSettings, RecentPlace,
 } from '../types';
-import { ApiFoodItem, ApiFoodDetail, ApiDailyLimit, ApiClaimHistoryItem } from '../types/api';
+import {
+  ApiFoodItem, ApiFoodDetail, ApiDailyLimit, ApiClaimHistoryItem, ApiRecentPlace,
+} from '../types/api';
 import {
   MOCK_FOOD_ITEMS, MOCK_FOOD_DETAILS, MOCK_DAILY_LIMIT,
 } from '../mock/foodItems';
 import { MOCK_CLAIM_HISTORY, MOCK_RECEIVER_PROFILE } from '../mock/claimHistory';
+import { MOCK_LOCATION_SETTINGS } from '../mock/locationSettings';
 // import { api } from './api';
 
 // ─── Mappers (snake_case API → camelCase app types) ───────────────────────────
@@ -221,6 +225,39 @@ export const getFoodByRestaurant = async (restaurantId: string): Promise<FoodIte
   */
 };
 
+function mapApiRecentPlace(d: ApiRecentPlace): RecentPlace {
+  return {
+    id: d.id,
+    name: d.name,
+    area: d.area,
+    address: d.address,
+    visitedAt: d.visited_at,
+    iconColor: d.icon_color,
+  };
+}
+
+export const getLocationSettings = async (): Promise<LocationSettings> => {
+  // MOCK:
+  await new Promise((r) => setTimeout(r, 300));
+  const s = MOCK_LOCATION_SETTINGS;
+  return {
+    searchRadiusKm: s.search_radius_km,
+    locationServicesEnabled: s.location_services_enabled,
+    saveLocationHistory: s.save_location_history,
+    recentPlaces: s.recent_places.map(mapApiRecentPlace),
+  };
+  /* REAL API:
+  const res = await api.get('/receiver/location-settings/');
+  const s = res.data.data;
+  return {
+    searchRadiusKm: s.search_radius_km,
+    locationServicesEnabled: s.location_services_enabled,
+    saveLocationHistory: s.save_location_history,
+    recentPlaces: s.recent_places.map(mapApiRecentPlace),
+  };
+  */
+};
+
 export const getReceiverProfile = async (): Promise<ReceiverProfile> => {
   // MOCK:
   await new Promise((r) => setTimeout(r, 400));
@@ -229,6 +266,10 @@ export const getReceiverProfile = async (): Promise<ReceiverProfile> => {
     id: p.id,
     displayName: p.display_name,
     phone: p.phone,
+    email: p.email,
+    isVerified: p.is_verified,
+    memberSince: p.member_since,
+    daysActive: p.days_active,
     totalClaims: p.total_claims,
     lastClaimDate: p.last_claim_date,
     lifetimeMeals: p.stats.lifetime_meals,

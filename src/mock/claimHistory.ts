@@ -81,8 +81,12 @@ export const MOCK_CLAIM_HISTORY: ApiClaimHistory = {
 
 export const MOCK_RECEIVER_PROFILE = {
   id: 'receiver-profile-001',
-  display_name: 'Sarah Lim',
+  display_name: 'Sarah Mun',
   phone: '+6591234567',
+  email: 'sarah.mun@email.com',
+  is_verified: true,
+  member_since: 'Jun 2026',
+  days_active: 62,
   total_claims: 24,
   last_claim_date: '2026-06-16',
   stats: {

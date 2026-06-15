@@ -86,12 +86,32 @@ export interface ApiReceiverProfile {
   id: string;
   display_name: string;
   phone: string;
+  email: string;
+  is_verified: boolean;
+  member_since: string;
+  days_active: number;
   total_claims: number;
   last_claim_date: string | null;
   stats: {
     lifetime_meals: number;
     restaurants_count: number;
   };
+}
+
+export interface ApiRecentPlace {
+  id: string;
+  name: string;
+  area: string;
+  address: string;
+  visited_at: string;
+  icon_color: string;
+}
+
+export interface ApiLocationSettings {
+  search_radius_km: number;
+  location_services_enabled: boolean;
+  save_location_history: boolean;
+  recent_places: ApiRecentPlace[];
 }
 
 export interface ApiPublicRestaurant {
