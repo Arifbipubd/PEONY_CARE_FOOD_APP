@@ -99,6 +99,9 @@ export interface ApiPublicRestaurant {
   postal_code: string;
   latitude: number;
   longitude: number;
+  cuisine_type: string;
+  distance_km: number;
+  closes_at: string;
   opening_hours: string;
   about: string;
   photo_url: string;

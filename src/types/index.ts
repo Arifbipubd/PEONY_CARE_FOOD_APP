@@ -134,6 +134,9 @@ export interface PublicRestaurant {
   postalCode: string;
   latitude: number;
   longitude: number;
+  cuisineType: string;
+  distanceKm: number;
+  closesAt: string;
   openingHours: string;
   about: string;
   photoUrl: string;

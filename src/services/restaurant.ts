@@ -64,6 +64,9 @@ function mapApiPublicRestaurant(d: ApiPublicRestaurant): PublicRestaurant {
     postalCode: d.postal_code,
     latitude: d.latitude,
     longitude: d.longitude,
+    cuisineType: d.cuisine_type,
+    distanceKm: d.distance_km,
+    closesAt: d.closes_at,
     openingHours: d.opening_hours,
     about: d.about,
     photoUrl: d.photo_url,
@@ -153,7 +156,22 @@ export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
   */
 };
 
-// Used by ReceiverHomeScreen (nearby restaurants) and RestaurantPageScreen.
+export const getNearbyRestaurants = async (
+  _lat?: number,
+  _lng?: number,
+): Promise<PublicRestaurant[]> => {
+  // MOCK:
+  await new Promise((r) => setTimeout(r, 500));
+  return Object.values(MOCK_PUBLIC_RESTAURANTS).map(mapApiPublicRestaurant);
+  /* REAL API:
+  const res = await api.get('/restaurants/nearby/', {
+    params: { lat: _lat, lng: _lng },
+  });
+  return (res.data.data as ApiPublicRestaurant[]).map(mapApiPublicRestaurant);
+  */
+};
+
+// Used by RestaurantPageScreen.
 export const getPublicRestaurant = async (restaurantId: string): Promise<PublicRestaurant> => {
   // MOCK:
   await new Promise((r) => setTimeout(r, 400));

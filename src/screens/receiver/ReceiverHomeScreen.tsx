@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   FlatList,
@@ -15,8 +16,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useProfileStore } from '../../store/profileStore';
 import FoodCard from '../../components/FoodCard';
 import { browseFood, getDailyLimit } from '../../services/receiver';
-import { FoodItem, FoodCategory, DailyLimitStatus } from '../../types';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../../constants/theme';
+import { getNearbyRestaurants } from '../../services/restaurant';
+import { FoodItem, FoodCategory, DailyLimitStatus, PublicRestaurant } from '../../types';
+import { colors, spacing, radius, fontSizes, fontWeights, layout } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
@@ -54,17 +56,19 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const { displayName } = useProfileStore();
   const name = displayName || 'Sarah';
 
-  const [activeTab, setActiveTab]     = useState<Tab>('meals');
-  const [activeChip, setActiveChip]   = useState<FoodCategory | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [foods, setFoods]             = useState<FoodItem[]>([]);
-  const [dailyLimit, setDailyLimit]   = useState<DailyLimitStatus | null>(null);
-  const [loading, setLoading]         = useState(true);
+  const [activeTab, setActiveTab]       = useState<Tab>('meals');
+  const [activeChip, setActiveChip]     = useState<FoodCategory | null>(null);
+  const [searchQuery, setSearchQuery]   = useState('');
+  const [foods, setFoods]               = useState<FoodItem[]>([]);
+  const [restaurants, setRestaurants]   = useState<PublicRestaurant[]>([]);
+  const [dailyLimit, setDailyLimit]     = useState<DailyLimitStatus | null>(null);
+  const [loading, setLoading]           = useState(true);
 
   useEffect(() => {
-    Promise.all([browseFood(), getDailyLimit()]).then(([items, limit]) => {
+    Promise.all([browseFood(), getDailyLimit(), getNearbyRestaurants()]).then(([items, limit, rests]) => {
       setFoods(items);
       setDailyLimit(limit);
+      setRestaurants(rests);
       setLoading(false);
     });
   }, []);
@@ -133,7 +137,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
           {(['meals', 'restaurants'] as Tab[]).map((tab) => {
             const active = activeTab === tab;
             const label  = tab === 'meals' ? 'Available Meals' : 'Nearby Restaurants';
-            const count  = tab === 'meals' ? foods.length : 7;
+            const count  = tab === 'meals' ? foods.length : restaurants.length;
             return (
               <TouchableOpacity
                 key={tab}
@@ -187,9 +191,39 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
           }
         />
       ) : (
-        <View style={styles.placeholder}>
-          <Text style={styles.emptyText}>Restaurant list coming soon.</Text>
-        </View>
+        <FlatList
+          data={restaurants}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.restaurantCard}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('RestaurantPage', {
+                restaurantId: item.id,
+                distanceKm: item.distanceKm,
+              })}
+            >
+              <Image
+                source={{ uri: item.photoUrl }}
+                style={styles.restaurantCardImage}
+                resizeMode="cover"
+              />
+              <View style={styles.restaurantCardBody}>
+                <Text style={styles.restaurantCardName}>{item.name}</Text>
+                <Text style={styles.restaurantCardCuisine}>{item.cuisineType}</Text>
+                <View style={styles.restaurantCardMeta}>
+                  <View style={styles.restaurantCardMetaLeft}>
+                    <Ionicons name="location-outline" size={13} color={colors.textMuted} />
+                    <Text style={styles.restaurantCardMetaText}>{item.distanceKm.toFixed(1)} km</Text>
+                  </View>
+                  <Text style={styles.restaurantCardMetaText}>Open · until {item.closesAt}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
       )}
 
     </SafeAreaView>
@@ -339,16 +373,53 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['4xl'],
   },
 
-  // Empty / placeholder
-  placeholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   emptyText: {
     fontSize: fontSizes.md,
     color: colors.textMuted,
     textAlign: 'center',
     marginTop: spacing['2xl'],
+  },
+
+  // Restaurant cards
+  restaurantCard: {
+    borderWidth: 1,
+    borderColor: colors.borderDefault,
+    borderRadius: radius.card,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    marginBottom: spacing.md,
+  },
+  restaurantCardImage: {
+    width: '100%',
+    height: layout.cardImageHeight,
+    backgroundColor: colors.borderDefault,
+  },
+  restaurantCardBody: {
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  restaurantCardName: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
+  },
+  restaurantCardCuisine: {
+    fontSize: fontSizes.sm,
+    color: colors.textMuted,
+  },
+  restaurantCardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
+  },
+  restaurantCardMetaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  restaurantCardMetaText: {
+    fontSize: fontSizes.sm,
+    color: colors.textMuted,
   },
 });
