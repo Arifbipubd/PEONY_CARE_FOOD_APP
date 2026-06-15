@@ -205,6 +205,20 @@ export const getClaimHistory = async (): Promise<ClaimHistory> => {
   */
 };
 
+export const getFoodByRestaurant = async (restaurantId: string): Promise<FoodItem[]> => {
+  // MOCK:
+  await new Promise((r) => setTimeout(r, 400));
+  return MOCK_FOOD_ITEMS
+    .filter((f) => f.restaurant.id === restaurantId)
+    .map(mapApiFoodItem);
+  /* REAL API:
+  const res = await api.get('/receiver/donations/browse/', {
+    params: { lat: 0, lng: 0, restaurant_id: restaurantId },
+  });
+  return (res.data.data as ApiFoodItem[]).map(mapApiFoodItem);
+  */
+};
+
 export const getReceiverProfile = async (): Promise<ReceiverProfile> => {
   // MOCK:
   await new Promise((r) => setTimeout(r, 400));

@@ -15,7 +15,7 @@ import { colors, fontSizes }  from '../constants/theme';
 export type HomeStackParamList = {
   ReceiverHome: undefined;
   FoodDetail: { foodId: string };
-  RestaurantPage: { restaurantId: string };
+  RestaurantPage: { restaurantId: string; distanceKm?: number };
 };
 
 export type ScanStackParamList = {

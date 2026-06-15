@@ -69,7 +69,8 @@ export const fontWeights = {
 
 // Layout constants — shared pixel values for consistent sizing across screens
 export const layout = {
-  foodImageHeight:       260,  // hero image on Food Detail screen
+  foodImageHeight:       260,  // hero image on Food Detail / Restaurant Page screens
   cardImageHeight:       190,  // image inside browse list cards
+  restaurantFoodThumb:    64,  // square thumbnail on Restaurant Page food list
   tabBarHeight:           60,
 } as const;

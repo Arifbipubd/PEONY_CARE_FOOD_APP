@@ -107,8 +107,18 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
 
           <View style={styles.divider} />
 
-          {/* Restaurant info */}
-          <Text style={styles.restaurantName}>{food.restaurantName}</Text>
+          {/* Restaurant info — tap name to view restaurant page */}
+          <TouchableOpacity
+            style={styles.restaurantNameRow}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('RestaurantPage', {
+              restaurantId: food.restaurantId,
+              distanceKm: food.distanceKm,
+            })}
+          >
+            <Text style={styles.restaurantName}>{food.restaurantName}</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+          </TouchableOpacity>
           <Text style={styles.restaurantAddress}>{food.restaurantAddress}</Text>
           <Text style={styles.distance}>{food.distanceKm.toFixed(1)} km away</Text>
 
@@ -226,6 +236,7 @@ const styles = StyleSheet.create({
 
   divider: { height: 1, backgroundColor: colors.borderDefault },
 
+  restaurantNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   restaurantName:    { fontSize: fontSizes.md, fontWeight: fontWeights.semiBold, color: colors.textPrimary },
   restaurantAddress: { fontSize: fontSizes.sm, color: colors.textMuted },
   distance:          { fontSize: fontSizes.sm, color: colors.textMuted },
