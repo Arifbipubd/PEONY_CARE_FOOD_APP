@@ -24,50 +24,36 @@ type Props = {
   route: RouteProp<AuthStackParamList, 'Register'>;
 };
 
-// Title and footer text differ by role — everything else is identical
 const COPY = {
-  DONOR: {
-    title: 'Become a donor',
-    alreadyLabel: 'Already a donor?',
-  },
-  RECEIVER: {
-    title: 'Create your account',
-    alreadyLabel: 'Already a member?',
-  },
+  DONOR:    { title: 'Become a donor',      alreadyLabel: 'Already a donor?' },
+  RECEIVER: { title: 'Create your account', alreadyLabel: 'Already a member?' },
 } as const;
 
 export default function RegisterScreen({ navigation, route }: Props) {
-  const { registrationToken, email: prefillEmail, role = 'RECEIVER' } = route.params;
+  const { registrationToken, role = 'RECEIVER' } = route.params;
   const { setAuth } = useAuthStore();
 
-  const [name, setName]   = useState('');
-  const [email, setEmail] = useState(prefillEmail ?? '');
+  const [name, setName]       = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors]   = useState<{ name?: string; email?: string }>({});
+  const [error, setError]     = useState('');
 
   const copy = COPY[role as keyof typeof COPY] ?? COPY.RECEIVER;
 
-  function validate() {
-    const e: typeof errors = {};
-    if (!name.trim())  e.name  = 'Full name is required';
-    if (!email.trim() || !email.includes('@')) e.email = 'Enter a valid email address';
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  }
-
-  async function handleSend() {
-    if (!validate()) return;
+  async function handleCreate() {
+    if (!name.trim()) { setError('Full name is required'); return; }
     setLoading(true);
+    setError('');
     try {
-      const fn = role === 'DONOR' ? registerDonor : registerReceiver;
-      const result = await fn(name.trim(), email.trim(), registrationToken);
+      const result = role === 'DONOR'
+        ? await registerDonor(name.trim(), '', registrationToken)
+        : await registerReceiver(name.trim(), registrationToken);
       setAuth(
         result.accessToken,
         result.refreshToken,
         result.user as { id: string; phone: string; role: UserRole },
       );
-    } catch {
-      setErrors({ name: 'Registration failed. Please try again.' });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -75,7 +61,6 @@ export default function RegisterScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.screen}>
-      {/* Back arrow — plain, matches design */}
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
         <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
       </TouchableOpacity>
@@ -93,26 +78,16 @@ export default function RegisterScreen({ navigation, route }: Props) {
           <Input
             label="Full name"
             value={name}
-            onChangeText={(t) => { setName(t); setErrors((e) => ({ ...e, name: undefined })); }}
+            onChangeText={(t) => { setName(t); setError(''); }}
             placeholder="Your name"
-            error={errors.name}
+            error={error}
             leftIcon={<Ionicons name="person-outline" size={18} color={colors.textMuted} />}
-          />
-
-          {/* Email input — no icon, matches design */}
-          <Input
-            label="Email address"
-            value={email}
-            onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: undefined })); }}
-            placeholder="you@example.com"
-            keyboardType="email-address"
-            error={errors.email}
           />
         </View>
 
         <Button
-          label="Send code"
-          onPress={handleSend}
+          label="Create account"
+          onPress={handleCreate}
           loading={loading}
         />
 
@@ -123,7 +98,10 @@ export default function RegisterScreen({ navigation, route }: Props) {
 
         <Text style={styles.loginRow}>
           {copy.alreadyLabel}{' '}
-          <Text style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
+          <Text
+            style={styles.loginLink}
+            onPress={() => navigation.navigate('Login')}
+          >
             Log in
           </Text>
         </Text>
@@ -133,10 +111,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
+  screen: { flex: 1, backgroundColor: colors.surface },
   back: {
     paddingHorizontal: spacing['2xl'],
     paddingTop: spacing.lg,
@@ -156,10 +131,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     alignSelf: 'stretch',
   },
-  form: {
-    alignSelf: 'stretch',
-    gap: spacing.lg,
-  },
+  form: { alignSelf: 'stretch', gap: spacing.lg },
   terms: {
     fontSize: fontSizes.sm,
     color: colors.textMuted,

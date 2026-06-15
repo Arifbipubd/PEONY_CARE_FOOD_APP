@@ -20,7 +20,7 @@ Never assume the developer already knows a concept. If a step involves a new con
 
 ## Project Overview
 
-**Peony Care** — free meal donation app for Singaporeans in need.  
+**Peony Care** — complementary meal donation app for Singaporeans in need. **Never use the term "free meal"** — always use "complementary meal" throughout all UI text, copy, comments, and documentation.  
 **Three roles:** Receiver (claims food) · Restaurant (posts listings) · Donor (sponsors — P2)  
 **Stack:** React Native + Expo · TypeScript strict · Android  
 **Backend:** Separate Django REST project (not in this repo). All screens use mock/dummy data now. Real API is connected later by swapping service functions.

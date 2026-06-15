@@ -6,7 +6,7 @@
 //   Token + role RESTAURANT + isApproved false → show ApprovalPendingScreen
 //   Token + role RESTAURANT + isApproved true  → show RestaurantTabs
 
-import React from 'react';
+import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 
 import { useAuthStore } from '../store/authStore';
@@ -18,9 +18,12 @@ import RestaurantTabs        from './RestaurantTabs';
 import ApprovalPendingScreen from '../screens/restaurant/ApprovalPendingScreen';
 
 export default function RootNavigator() {
-  const { accessToken, user, isApproved } = useAuthStore();
+  const { accessToken, user, isApproved, isHydrated } = useAuthStore();
 
   const renderApp = () => {
+    // Wait for SecureStore tokens to load before routing
+    if (!isHydrated) return <View style={{ flex: 1 }} />;
+
     if (!accessToken || !user) return <AuthStack />;
 
     if (user.role === 'RECEIVER')   return <ReceiverTabs />;

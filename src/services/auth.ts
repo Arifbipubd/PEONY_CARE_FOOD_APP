@@ -1,11 +1,12 @@
 import { UserRole } from '../types';
+import { api } from './api';
 
-export const sendOtp = async (_email: string): Promise<void> => {
-  await new Promise((r) => setTimeout(r, 800));
+export const sendOtp = async (phone: string, purpose: 'LOGIN' | 'REGISTER'): Promise<void> => {
+  await api.post('/auth/otp/send/', { phone, purpose });
 };
 
 export const verifyOtp = async (
-  email: string,
+  phone: string,
   code: string,
 ): Promise<{
   isNewUser: boolean;
@@ -14,55 +15,91 @@ export const verifyOtp = async (
   refreshToken?: string;
   user?: { id: string; role: UserRole; phone: string };
 }> => {
-  await new Promise((r) => setTimeout(r, 800));
-  void code;
+  const res = await api.post('/auth/otp/verify/', { phone, code });
+  const data = res.data.data;
+
+  if (data.registration_token) {
+    return { isNewUser: true, registrationToken: data.registration_token };
+  }
+
   return {
     isNewUser: false,
-    accessToken: 'mock-access-token',
-    refreshToken: 'mock-refresh-token',
-    user: { id: 'mock-user-1', role: 'RECEIVER', phone: email },
+    accessToken: data.access,
+    refreshToken: data.refresh,
+    user: { id: data.user.id, role: data.user.role as UserRole, phone: data.user.phone },
   };
 };
 
 export const registerReceiver = async (
-  _name: string,
-  _email: string,
-  _registrationToken: string,
+  displayName: string,
+  registrationToken: string,
 ): Promise<{
   accessToken: string;
   refreshToken: string;
   user: { id: string; role: UserRole; phone: string };
 }> => {
-  await new Promise((r) => setTimeout(r, 800));
+  const res = await api.post(
+    '/auth/register/receiver/',
+    { display_name: displayName },
+    { headers: { 'Registration-Token': registrationToken } },
+  );
+  const data = res.data.data;
   return {
-    accessToken: 'mock-access-token',
-    refreshToken: 'mock-refresh-token',
-    user: { id: 'mock-receiver-1', role: 'RECEIVER', phone: _email },
+    accessToken: data.access,
+    refreshToken: data.refresh,
+    user: { id: data.user.id, role: data.user.role as UserRole, phone: data.user.phone },
   };
 };
 
 export const registerDonor = async (
-  _name: string,
-  _email: string,
-  _registrationToken: string,
+  displayName: string,
+  email: string,
+  registrationToken: string,
 ): Promise<{
   accessToken: string;
   refreshToken: string;
   user: { id: string; role: UserRole; phone: string };
 }> => {
-  await new Promise((r) => setTimeout(r, 800));
+  const res = await api.post(
+    '/auth/register/donor/',
+    { display_name: displayName, contact_email: email },
+    { headers: { 'Registration-Token': registrationToken } },
+  );
+  const data = res.data.data;
   return {
-    accessToken: 'mock-access-token',
-    refreshToken: 'mock-refresh-token',
-    user: { id: 'mock-donor-1', role: 'DONOR', phone: _email },
+    accessToken: data.access,
+    refreshToken: data.refresh,
+    user: { id: data.user.id, role: data.user.role as UserRole, phone: data.user.phone },
   };
 };
 
 export const registerRestaurant = async (
-  _data: object,
-  _registrationToken: string,
-): Promise<void> => {
-  await new Promise((r) => setTimeout(r, 800));
+  restaurantData: {
+    restaurant_name: string;
+    uen: string;
+    address: string;
+    contact_name: string;
+    contact_email: string;
+  },
+  registrationToken: string,
+): Promise<{
+  accessToken: string;
+  refreshToken: string;
+  user: { id: string; role: UserRole; phone: string };
+}> => {
+  const res = await api.post(
+    '/auth/register/restaurant/',
+    restaurantData,
+    { headers: { 'Registration-Token': registrationToken } },
+  );
+  const data = res.data.data;
+  return {
+    accessToken: data.access,
+    refreshToken: data.refresh,
+    user: { id: data.user.id, role: data.user.role as UserRole, phone: data.user.phone },
+  };
 };
 
-export const logout = async (): Promise<void> => {};
+export const logout = async (refreshToken: string): Promise<void> => {
+  await api.post('/auth/logout/', { refresh: refreshToken });
+};
