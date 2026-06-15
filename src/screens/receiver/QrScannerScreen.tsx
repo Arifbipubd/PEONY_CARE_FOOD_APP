@@ -125,7 +125,7 @@ export default function QrScannerScreen({ navigation }: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.devBtn}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.navigate('ScanError')}
           >
             <Text style={styles.devBtnText}>Simulate Failure</Text>
           </TouchableOpacity>

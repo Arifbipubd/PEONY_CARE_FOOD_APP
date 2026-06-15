@@ -52,6 +52,98 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+function EmptyMealsState({ onAdjustRadius }: { onAdjustRadius: () => void }) {
+  return (
+    <View style={emptyStyles.wrap}>
+      <View style={emptyStyles.iconCircle}>
+        <Ionicons name="fast-food-outline" size={44} color={colors.textMuted} />
+      </View>
+      <Text style={emptyStyles.heading}>No food nearby</Text>
+      <Text style={emptyStyles.body}>
+        There's nothing within your 5 km radius right now. New donations appear throughout the day.
+      </Text>
+      <View style={emptyStyles.tipsBox}>
+        <Text style={emptyStyles.tip}>Enable alerts to be notified when new food appears nearby.</Text>
+        <Text style={emptyStyles.tip}>Expand your search radius from settings.</Text>
+        <Text style={emptyStyles.tip}>Most donations appear between 5–8 PM.</Text>
+      </View>
+      <TouchableOpacity style={emptyStyles.primaryBtn} onPress={onAdjustRadius} activeOpacity={0.85}>
+        <Text style={emptyStyles.primaryBtnText}>Adjust search radius</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={emptyStyles.secondaryBtn} activeOpacity={0.7}>
+        <Text style={emptyStyles.secondaryBtnText}>Browse map</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const emptyStyles = StyleSheet.create({
+  wrap: {
+    alignItems: 'center',
+    paddingTop: spacing['2xl'],
+    paddingHorizontal: spacing['2xl'],
+    gap: spacing.lg,
+  },
+  iconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  heading: {
+    fontSize: fontSizes['2xl'],
+    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  body: {
+    fontSize: fontSizes.sm,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  tipsBox: {
+    width: '100%',
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: radius.card,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  tip: {
+    fontSize: fontSizes.sm,
+    color: colors.textMuted,
+    lineHeight: 20,
+  },
+  primaryBtn: {
+    width: '100%',
+    backgroundColor: colors.accentPrimary,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+  },
+  primaryBtnText: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
+    color: colors.textInverse,
+  },
+  secondaryBtn: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: colors.borderDefault,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+  },
+  secondaryBtnText: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
+  },
+});
+
 export default function ReceiverHomeScreen({ navigation }: Props) {
   const { displayName } = useProfileStore();
   const name = displayName || 'Sarah';
@@ -186,9 +278,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No meals found.</Text>
-          }
+          ListEmptyComponent={<EmptyMealsState onAdjustRadius={() => navigation.getParent()?.navigate('Profile' as never)} />}
         />
       ) : (
         <FlatList
@@ -371,13 +461,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['2xl'],
     paddingTop: spacing.lg,
     paddingBottom: spacing['4xl'],
-  },
-
-  emptyText: {
-    fontSize: fontSizes.md,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: spacing['2xl'],
   },
 
   // Restaurant cards
