@@ -12,10 +12,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { claimFood } from '../../services/receiver';
 import { colors, spacing, radius, fontSizes, fontWeights } from '../../constants/theme';
-import { ScanStackParamList } from '../../navigation/ReceiverTabs';
+import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
-  navigation: NativeStackNavigationProp<ScanStackParamList, 'QrScanner'>;
+  navigation: NativeStackNavigationProp<HomeStackParamList, 'QrScanner'>;
 };
 
 const FRAME_SIZE     = 260;
@@ -80,7 +80,7 @@ export default function QrScannerScreen({ navigation }: Props) {
         <View style={styles.topBar}>
           <TouchableOpacity
             style={styles.iconBtn}
-            onPress={() => navigation.getParent()?.navigate('Home')}
+            onPress={() => navigation.goBack()}
           >
             <Ionicons name="close" size={20} color={colors.textInverse} />
           </TouchableOpacity>
@@ -125,7 +125,7 @@ export default function QrScannerScreen({ navigation }: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.devBtn}
-            onPress={() => navigation.getParent()?.navigate('Home')}
+            onPress={() => navigation.goBack()}
           >
             <Text style={styles.devBtnText}>Simulate Failure</Text>
           </TouchableOpacity>

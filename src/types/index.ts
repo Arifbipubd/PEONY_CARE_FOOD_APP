@@ -12,6 +12,7 @@ export type FoodStatus = 'AVAILABLE' | 'PARTIALLY_CLAIMED' | 'FULLY_CLAIMED' | '
 export type FoodListStatus = 'ACTIVE' | 'PAST' | 'INACTIVE';
 
 export type ClaimStatus = 'CLAIMED';
+export type ClaimHistoryItemStatus = 'CLAIMED' | 'EXPIRED';
 
 export type SponsorshipType = 'DIRECT' | 'SPONSORED_NAMED' | 'SPONSORED_ANONYMOUS';
 
@@ -99,7 +100,9 @@ export interface ClaimHistoryItem {
   id: string;
   foodName: string;
   restaurantName: string;
-  status: ClaimStatus;
+  photoUrl: string;
+  sponsorDisplayName: string | null;
+  status: ClaimHistoryItemStatus;
   claimedAt: string;
   pickupWindow: string;
 }

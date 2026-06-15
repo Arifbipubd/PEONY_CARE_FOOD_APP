@@ -153,7 +153,7 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
         <TouchableOpacity
           style={styles.claimBtn}
           activeOpacity={0.85}
-          onPress={() => {}}
+          onPress={() => navigation.navigate('QrScanner')}
         >
           <Text style={styles.claimBtnText}>CLAIM THIS FOOD</Text>
         </TouchableOpacity>

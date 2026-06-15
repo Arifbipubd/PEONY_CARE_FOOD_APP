@@ -11,11 +11,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Claim } from '../../types';
 import { colors, spacing, radius, fontSizes, fontWeights } from '../../constants/theme';
-import { ScanStackParamList } from '../../navigation/ReceiverTabs';
+import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
-  navigation: NativeStackNavigationProp<ScanStackParamList, 'ClaimSuccess'>;
-  route: RouteProp<ScanStackParamList, 'ClaimSuccess'>;
+  navigation: NativeStackNavigationProp<HomeStackParamList, 'ClaimSuccess'>;
+  route: RouteProp<HomeStackParamList, 'ClaimSuccess'>;
 };
 
 function claimCode(claim: Claim): string {
@@ -30,7 +30,7 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
   const { claim } = route.params;
   const insets = useSafeAreaInsets();
 
-  const goHome = () => navigation.getParent()?.navigate('Home');
+  const goHome = () => navigation.navigate('ReceiverHome');
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
@@ -136,7 +136,7 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
         <TouchableOpacity
           style={styles.secondaryBtn}
           activeOpacity={0.7}
-          onPress={() => navigation.getParent()?.navigate('Profile')}
+          onPress={() => navigation.getParent()?.navigate('History')}
         >
           <Text style={styles.secondaryBtnText}>View in history</Text>
         </TouchableOpacity>

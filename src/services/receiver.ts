@@ -67,6 +67,8 @@ function mapApiClaimHistoryItem(d: ApiClaimHistoryItem): ClaimHistoryItem {
     id: d.id,
     foodName: d.food_name,
     restaurantName: d.restaurant_name,
+    photoUrl: d.photo_url,
+    sponsorDisplayName: d.sponsor_display_name,
     status: d.status as ClaimHistoryItem['status'],
     claimedAt: d.claimed_at,
     pickupWindow: d.pickup_window,

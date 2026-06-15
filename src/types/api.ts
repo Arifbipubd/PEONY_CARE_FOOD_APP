@@ -66,6 +66,8 @@ export interface ApiClaimHistoryItem {
   id: string;
   food_name: string;
   restaurant_name: string;
+  photo_url: string;
+  sponsor_display_name: string | null;
   status: string;
   claimed_at: string;
   pickup_window: string;
