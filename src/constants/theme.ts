@@ -19,8 +19,10 @@ export const colors = {
   borderDefault: '#E5E7EB',
 
   // Status
-  successGreen:  '#26A34E',
-  warningYellow: '#F59E0B',
+  successGreen:      '#26A34E',
+  successGreenLight: '#ECFDF5',
+  warningYellow:      '#F59E0B',
+  warningYellowLight: '#FFFBEB',
   errorRed:      '#D31B1B',
 } as const;
 
