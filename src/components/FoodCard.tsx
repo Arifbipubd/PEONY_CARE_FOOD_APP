@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { FoodItem } from '../types';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../constants/theme';
+import { colors, spacing, radius, fontSizes, fontWeights, layout } from '../constants/theme';
 
 interface FoodCardProps {
   item: FoodItem;
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.card,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 190,
+    height: layout.cardImageHeight,
     backgroundColor: colors.borderDefault,
   },
   content: {

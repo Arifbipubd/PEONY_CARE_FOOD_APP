@@ -11,11 +11,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useProfileStore } from '../../store/profileStore';
 import FoodCard from '../../components/FoodCard';
 import { browseFood, getDailyLimit } from '../../services/receiver';
 import { FoodItem, FoodCategory, DailyLimitStatus } from '../../types';
 import { colors, spacing, radius, fontSizes, fontWeights } from '../../constants/theme';
+import { HomeStackParamList } from '../../navigation/ReceiverTabs';
+
+type Props = {
+  navigation: NativeStackNavigationProp<HomeStackParamList, 'ReceiverHome'>;
+};
 
 type Tab = 'meals' | 'restaurants';
 
@@ -44,7 +50,7 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export default function ReceiverHomeScreen() {
+export default function ReceiverHomeScreen({ navigation }: Props) {
   const { displayName } = useProfileStore();
   const name = displayName || 'Sarah';
 
@@ -172,7 +178,7 @@ export default function ReceiverHomeScreen() {
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <FoodCard item={item} onPress={() => {}} />
+            <FoodCard item={item} onPress={() => navigation.navigate('FoodDetail', { foodId: item.id })} />
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -211,14 +217,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.pill,
-    backgroundColor: '#F4A7A7',
+    backgroundColor: colors.accentPrimary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.bold,
-    color: colors.surface,
+    color: colors.textInverse,
   },
 
   // Greeting
@@ -238,7 +244,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: colors.successGreenLight,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,

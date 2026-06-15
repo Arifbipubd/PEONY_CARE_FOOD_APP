@@ -12,10 +12,26 @@ import ReceiverProfileScreen  from '../screens/receiver/ReceiverProfileScreen';
 import LocationSettingsScreen from '../screens/receiver/LocationSettingsScreen';
 import { colors, fontSizes }  from '../constants/theme';
 
+export type HomeStackParamList = {
+  ReceiverHome: undefined;
+  FoodDetail: { foodId: string };
+  RestaurantPage: { restaurantId: string };
+};
+
+export type ScanStackParamList = {
+  QrScanner: undefined;
+  ClaimSuccess: undefined;
+};
+
+export type ProfileStackParamList = {
+  ReceiverProfile: undefined;
+  LocationSettings: undefined;
+};
+
 const Tab          = createBottomTabNavigator();
-const HomeStack    = createNativeStackNavigator();
-const ScanStack    = createNativeStackNavigator();
-const ProfileStack = createNativeStackNavigator();
+const HomeStack    = createNativeStackNavigator<HomeStackParamList>();
+const ScanStack    = createNativeStackNavigator<ScanStackParamList>();
+const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
 function HomeNavigator() {
   return (

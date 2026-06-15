@@ -15,8 +15,9 @@ export const colors = {
   textMuted:     '#6B7280',  // grey — body text, labels
   textInverse:   '#FFFFFF',  // white — text on red backgrounds
 
-  // Borders
+  // Borders & shadows
   borderDefault: '#E5E7EB',
+  shadow:        '#000000',
 
   // Status
   successGreen:      '#26A34E',
@@ -65,3 +66,10 @@ export const fontWeights = {
   semiBold:'600' as const,
   bold:    '700' as const,
 };
+
+// Layout constants — shared pixel values for consistent sizing across screens
+export const layout = {
+  foodImageHeight:       260,  // hero image on Food Detail screen
+  cardImageHeight:       190,  // image inside browse list cards
+  tabBarHeight:           60,
+} as const;
