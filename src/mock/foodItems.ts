@@ -29,6 +29,8 @@ export const MOCK_FOOD_ITEMS: ApiFoodItem[] = [
     },
     sponsorship_type: 'DIRECT',
     sponsor_display_name: null,
+    is_halal: true,
+    is_vegetarian: false,
   },
   {
     id: 'food-002',
@@ -55,6 +57,8 @@ export const MOCK_FOOD_ITEMS: ApiFoodItem[] = [
     },
     sponsorship_type: 'SPONSORED_NAMED',
     sponsor_display_name: 'John Tan',
+    is_halal: true,
+    is_vegetarian: true,
   },
   {
     id: 'food-003',
@@ -81,6 +85,8 @@ export const MOCK_FOOD_ITEMS: ApiFoodItem[] = [
     },
     sponsorship_type: 'DIRECT',
     sponsor_display_name: null,
+    is_halal: true,
+    is_vegetarian: true,
   },
   {
     id: 'food-004',
@@ -107,6 +113,8 @@ export const MOCK_FOOD_ITEMS: ApiFoodItem[] = [
     },
     sponsorship_type: 'SPONSORED_ANONYMOUS',
     sponsor_display_name: null,
+    is_halal: true,
+    is_vegetarian: true,
   },
   {
     id: 'food-005',
@@ -133,6 +141,8 @@ export const MOCK_FOOD_ITEMS: ApiFoodItem[] = [
     },
     sponsorship_type: 'DIRECT',
     sponsor_display_name: null,
+    is_halal: false,
+    is_vegetarian: false,
   },
 ];
 

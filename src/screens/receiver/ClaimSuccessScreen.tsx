@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     backgroundColor: colors.accentPrimary,
-    borderRadius: radius.pill,
+    borderRadius: radius.card,
     paddingVertical: spacing.lg,
     alignItems: 'center',
   },
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
   },
   secondaryBtn: {
-    borderRadius: radius.pill,
+    borderRadius: radius.card,
     paddingVertical: spacing.lg,
     alignItems: 'center',
   },

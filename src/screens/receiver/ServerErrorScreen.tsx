@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     backgroundColor: colors.accentPrimary,
-    borderRadius: radius.pill,
+    borderRadius: radius.card,
     paddingVertical: spacing.lg,
     alignItems: 'center',
   },
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   secondaryBtn: {
     borderWidth: 1,
     borderColor: colors.borderDefault,
-    borderRadius: radius.pill,
+    borderRadius: radius.card,
     paddingVertical: spacing.lg,
     alignItems: 'center',
   },

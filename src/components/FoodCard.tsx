@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   },
   pickup: {
     fontSize: fontSizes.sm,
-    color: colors.accentPrimary,
+    color: colors.warningYellow,
     fontWeight: fontWeights.medium,
   },
   sponsorDirect: {

@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     backgroundColor: colors.accentPrimary,
-    borderRadius: radius.pill,
+    borderRadius: radius.card,
     paddingVertical: spacing.lg,
     alignItems: 'center',
   },

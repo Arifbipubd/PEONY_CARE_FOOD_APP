@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   browseBtn: {
     width: '100%',
     backgroundColor: colors.accentPrimary,
-    borderRadius: radius.pill,
+    borderRadius: radius.card,
     paddingVertical: spacing.lg,
     alignItems: 'center',
     marginTop: spacing.md,

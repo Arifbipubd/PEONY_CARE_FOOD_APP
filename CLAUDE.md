@@ -16,6 +16,8 @@ The developer is learning React Native and Expo while building this project. **B
 
 Never assume the developer already knows a concept. If a step involves a new concept (navigation, state management, hooks, etc.) explain it in 2–3 plain sentences before the plan.
 
+**Every UI screen or component — building new, or touching existing:** Never implement or fix UI directly from memory or assumption. Always open the matching mockup (`Design Doc/Screen/...` per the table below, or a pasted image) first, produce an itemized element-by-element list (layout structure, fonts, sizes, spacing, icons, colors, copy), and cross-check each one against the current code and the authoritative tokens in `Design Doc/Design Utils/` (see Design System section below). Present that list — value observed vs. current codebase state, match or mismatch — and wait for confirmation before writing any code. Skipping this check causes hallucinated values and rework. This applies every time, not just the first time a screen is built.
+
 ---
 
 ## Project Overview
@@ -103,6 +105,8 @@ npm test -- src/screens/receiver/HomeScreen.test.tsx
 ## Design System — `src/constants/theme.ts`
 
 **Never hardcode hex values or magic numbers in components.** Always import from `theme.ts`.
+
+**Authoritative source:** `Design Doc/Design Utils/` contains the real design-system export from the design tool (Figma-equivalent) — `token_map.png` (value → semantic name for colors), `Typhography.png` (font family/size/weight/letter-spacing per text style), `Icons.png`, `Shadows.png`, `Buttons.png`, `Grid & spacing.png`, etc. `theme.ts` must stay in sync with these. When adding or changing any token, check the matching file in `Design Doc/Design Utils/` first — don't guess values.
 
 **Semantic color tokens:**
 ```ts
@@ -218,6 +222,19 @@ Persist `useAuthStore` to `AsyncStorage` (user meta) and `expo-secure-store` (to
 
 ---
 
+## App Store / Play Store Submission Risk
+
+Before adding any new native dependency, permission, payment flow, or third-party SDK, flag the App Store / Play Store rejection risk to the developer **before** implementing — don't just add it and find out later. Watch for:
+
+- **New permissions** (camera, location, notifications) — each needs a clear, honest usage-description string and must only be requested at the moment it's actually needed (not on app launch "just in case").
+- **Donation/payment flows** — Apple restricts in-app monetary transactions and charity solicitation (Review Guideline 3.2). Since Donor "sponsor a meal" (P2) involves money, confirm the payment approach (PayNow, card, etc.) won't be treated as a digital good requiring Apple's IAP before building it.
+- **Phone-OTP auth** — reviewers cannot receive real SMS codes. A working demo/test account or bypass path will be needed for store review, or the submission will stall.
+- **No placeholder content** — Lorem-ipsum text, dead buttons, or "coming soon" screens reaching a build submitted for review are a common rejection reason.
+- **Native module compatibility** — any new native dependency must work with the current Expo SDK version and shouldn't request capabilities (background location, background audio, etc.) the app doesn't actually use.
+- **Privacy disclosure** — location, phone number, and camera usage must be accurately declared in the App Store's "App Privacy" and Play Store's "Data Safety" forms before submission; flag when a new feature changes what data is collected.
+
+---
+
 ## Phase Scope
 
 **P1 — Build now:** Phone OTP auth · Browse & search food · Filter by category/radius · Food detail · QR scan → instant claim · All claim error screens · Restaurant post/manage listings · Read-only claims board · Donor home + credit preference · In-app notifications · All role profiles
@@ -233,6 +250,7 @@ Always read the relevant mockup PNG **before** planning or coding any screen. Fi
 | Screen | Mockup file |
 |--------|-------------|
 | Splash | `Donor/1-1-Splash@1x.jpg` |
+| Choose Role | `1-2-Choose-Role@1x.jpg` (top-level `Screen/` folder, not under Donor/Receiver) |
 | Login | `Donor/1-3-Login@1x.jpg` |
 | OTP | `Donor/1-4-Otp@1x.jpg` |
 | Register — Donor | `Donor/1-2-Register-Donor@1x.jpg` |
