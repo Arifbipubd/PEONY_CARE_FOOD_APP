@@ -10,10 +10,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { AuthStackParamList } from '../../navigation/AuthStack';
+import { AuthStackParamList, PendingRegistration } from '../../navigation/AuthStack';
 import Button from '../../components/Button';
-import { verifyOtp, sendOtp } from '../../services/auth';
+import {
+  verifyOtp,
+  sendOtp,
+  registerReceiver,
+  registerDonor,
+  registerRestaurant,
+} from '../../services/auth';
 import { useAuthStore } from '../../store/authStore';
+import { UserRole } from '../../types';
 import LogoBadge from '../../components/LogoBadge';
 import { colors, spacing, fontSizes, fontWeights, radius } from '../../constants/theme';
 
@@ -25,15 +32,37 @@ type Props = {
 const CODE_LENGTH    = 6;
 const RESEND_SECONDS = 30;
 
+async function autoRegister(
+  pending: PendingRegistration,
+  token: string,
+): Promise<{ accessToken: string; refreshToken: string; user: { id: string; phone: string; role: UserRole } }> {
+  if (pending.role === 'RECEIVER') return registerReceiver(pending.displayName, token);
+  if (pending.role === 'DONOR')    return registerDonor(pending.displayName, pending.email, token);
+  return registerRestaurant(
+    {
+      restaurant_name: pending.restaurantName,
+      uen:             pending.uen,
+      address:         pending.address,
+      contact_name:    pending.contactName,
+      contact_email:   pending.email,
+    },
+    token,
+  );
+}
+
 export default function OtpScreen({ navigation, route }: Props) {
-  const { email } = route.params;
+  const { phone, purpose, pendingRegistration } = route.params;
   const { setAuth } = useAuthStore();
 
-  const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(''));
+  const [code, setCode]       = useState('');
+  const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [seconds, setSeconds] = useState(RESEND_SECONDS);
-  const inputRefs = useRef<Array<TextInput | null>>(Array(CODE_LENGTH).fill(null));
+  const inputRef = useRef<TextInput>(null);
+
+  // The box that shows the cursor: next empty slot, capped at last box
+  const activeIndex = Math.min(code.length, CODE_LENGTH - 1);
 
   useEffect(() => {
     if (seconds <= 0) return;
@@ -41,40 +70,27 @@ export default function OtpScreen({ navigation, route }: Props) {
     return () => clearTimeout(t);
   }, [seconds]);
 
-  function handleChange(text: string, index: number) {
-    const char = text.replace(/\D/g, '').slice(-1);
-    const next = [...digits];
-    next[index] = char;
-    setDigits(next);
-    setError('');
-    if (char && index < CODE_LENGTH - 1) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  }
-
-  function handleKeyPress(key: string, index: number) {
-    if (key === 'Backspace' && !digits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  }
-
   async function handleVerify() {
-    const code = digits.join('');
     if (code.length < CODE_LENGTH) { setError('Enter all 6 digits'); return; }
     setLoading(true);
     setError('');
     try {
-      const result = await verifyOtp(email, code);
+      const result = await verifyOtp(phone, code);
+
       if (!result.isNewUser && result.accessToken && result.refreshToken && result.user) {
         setAuth(result.accessToken, result.refreshToken, result.user);
-      } else if (result.isNewUser && result.registrationToken) {
-        navigation.navigate('Register', {
-          registrationToken: result.registrationToken,
-          email,
-        });
+        return;
       }
-    } catch {
-      setError('Invalid code. Please try again.');
+
+      if (result.isNewUser && result.registrationToken && pendingRegistration) {
+        const reg = await autoRegister(pendingRegistration, result.registrationToken);
+        setAuth(reg.accessToken, reg.refreshToken, reg.user as { id: string; phone: string; role: UserRole });
+        return;
+      }
+
+      setError('Unexpected response. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Invalid code. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -82,10 +98,14 @@ export default function OtpScreen({ navigation, route }: Props) {
 
   async function handleResend() {
     if (seconds > 0) return;
-    await sendOtp(email);
-    setSeconds(RESEND_SECONDS);
-    setDigits(Array(CODE_LENGTH).fill(''));
-    inputRefs.current[0]?.focus();
+    try {
+      await sendOtp(phone, purpose);
+      setSeconds(RESEND_SECONDS);
+      setCode('');
+      inputRef.current?.focus();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to resend. Try again.');
+    }
   }
 
   const formatTime = (s: number) =>
@@ -100,27 +120,47 @@ export default function OtpScreen({ navigation, route }: Props) {
       <View style={styles.body}>
         <LogoBadge size={80} />
 
-        <Text style={styles.title}>Check your inbox</Text>
+        <Text style={styles.title}>Welcome back</Text>
         <Text style={styles.subtitle}>
-          Sent to <Text style={styles.emailBold}>{email}</Text>
+          Code sent to <Text style={styles.phoneBold}>{phone}</Text>
         </Text>
 
-        <View style={styles.codeRow}>
-          {digits.map((d, i) => (
-            <TextInput
-              key={i}
-              ref={(el) => { inputRefs.current[i] = el; }}
-              value={d}
-              onChangeText={(t) => handleChange(t, i)}
-              onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
-              keyboardType="number-pad"
-              maxLength={1}
-              style={[styles.digitBox, d ? styles.digitBoxFilled : null]}
-              caretHidden
-              selectTextOnFocus
-            />
-          ))}
-        </View>
+        {/* Tap anywhere on the row to bring up the keyboard */}
+        <TouchableOpacity
+          style={styles.codeRow}
+          activeOpacity={1}
+          onPress={() => inputRef.current?.focus()}
+        >
+          {Array(CODE_LENGTH).fill(null).map((_, i) => {
+            const char = code[i];
+            const isActive = focused && i === activeIndex;
+            return (
+              <View
+                key={i}
+                style={[
+                  styles.digitBox,
+                  isActive ? styles.digitBoxActive : null,
+                ]}
+              >
+                <Text style={styles.digitText}>{char ?? ''}</Text>
+              </View>
+            );
+          })}
+        </TouchableOpacity>
+
+        {/* Single hidden input — captures all typing and backspaces */}
+        <TextInput
+          ref={inputRef}
+          value={code}
+          onChangeText={(t) => { setCode(t.replace(/\D/g, '').slice(0, CODE_LENGTH)); setError(''); }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          keyboardType="number-pad"
+          maxLength={CODE_LENGTH}
+          style={styles.hiddenInput}
+          caretHidden
+          autoFocus
+        />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -134,11 +174,12 @@ export default function OtpScreen({ navigation, route }: Props) {
         </TouchableOpacity>
 
         <Button
-          label="Verify & continue"
+          label="Sign in"
           onPress={handleVerify}
           loading={loading}
-          disabled={digits.join('').length < CODE_LENGTH}
+          disabled={code.length < CODE_LENGTH}
           style={styles.btn}
+          rightIcon={<Ionicons name="arrow-forward" size={20} color={colors.textInverse} />}
         />
       </View>
     </SafeAreaView>
@@ -168,7 +209,7 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.md,
     color: colors.textMuted,
   },
-  emailBold: {
+  phoneBold: {
     color: colors.textPrimary,
     fontWeight: fontWeights.semiBold,
   },
@@ -182,14 +223,24 @@ const styles = StyleSheet.create({
     borderRadius: radius.input,
     borderWidth: 1.5,
     borderColor: colors.borderDefault,
-    textAlign: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+  digitBoxActive: {
+    borderColor: colors.accentPrimary,
+    backgroundColor: colors.accentLight,
+  },
+  digitText: {
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
     color: colors.textPrimary,
-    backgroundColor: colors.surface,
   },
-  digitBoxFilled: {
-    borderColor: colors.accentPrimary,
+  hiddenInput: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
   },
   error: {
     fontSize: fontSizes.sm,
@@ -207,7 +258,5 @@ const styles = StyleSheet.create({
   resendDisabled: {
     color: colors.textMuted,
   },
-  btn: {
-    width: '100%',
-  },
+  btn: { width: '100%' },
 });
