@@ -37,12 +37,6 @@ function formatPickupFull(start: string, end: string): string {
   return `Today, ${fmt(start)} — ${fmt(end)}`;
 }
 
-function sponsorLabel(item: FoodItem): string {
-  if (item.sponsorshipType === 'SPONSORED_NAMED')
-    return `Sponsored by ${item.sponsorDisplayName ?? ''}`;
-  if (item.sponsorshipType === 'SPONSORED_ANONYMOUS') return 'Sponsored anonymously';
-  return 'Direct Donation';
-}
 
 export default function FoodDetailScreen({ navigation, route }: Props) {
   const { foodId } = route.params;
@@ -94,7 +88,7 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
           <View style={styles.titleRow}>
             <Text style={styles.title} numberOfLines={2}>{food.name}</Text>
             <View style={styles.leftBadge}>
-              <Text style={styles.leftBadgeText}>{food.quantityAvailable} left</Text>
+              <Text style={styles.leftBadgeText}>{food.quantityAvailable} of {food.quantityOriginal} left</Text>
             </View>
           </View>
 
@@ -108,41 +102,82 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
           <View style={styles.divider} />
 
           {/* Restaurant info — tap name to view restaurant page */}
-          <TouchableOpacity
-            style={styles.restaurantNameRow}
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate('RestaurantPage', {
-              restaurantId: food.restaurantId,
-              distanceKm: food.distanceKm,
-            })}
-          >
-            <Text style={styles.restaurantName}>{food.restaurantName}</Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
-          </TouchableOpacity>
-          <Text style={styles.restaurantAddress}>{food.restaurantAddress}</Text>
-          <Text style={styles.distance}>{food.distanceKm.toFixed(1)} km away</Text>
+          <View style={styles.restaurantBlock}>
+            <TouchableOpacity
+              style={styles.restaurantNameRow}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate('RestaurantPage', {
+                restaurantId: food.restaurantId,
+                distanceKm: food.distanceKm,
+              })}
+            >
+              <Ionicons name="storefront-outline" size={16} color={colors.accentPrimary} />
+              <Text style={styles.restaurantName}>{food.restaurantName}</Text>
+            </TouchableOpacity>
+            <View style={styles.infoRow}>
+              <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+              <Text style={styles.restaurantAddress}>{food.restaurantAddress}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Ionicons name="navigate-outline" size={14} color={colors.textMuted} />
+              <Text style={styles.distance}>{food.distanceKm.toFixed(1)} km away</Text>
+            </View>
+          </View>
 
           <View style={styles.divider} />
 
           {/* Pickup window */}
-          <Text style={styles.pickupTime}>
-            {formatPickupFull(food.pickupStart, food.pickupEnd)}
-          </Text>
+          <View style={styles.infoRow}>
+            <Ionicons name="time-outline" size={16} color={colors.pickupOrange} />
+            <Text style={styles.pickupTime}>
+              {formatPickupFull(food.pickupStart, food.pickupEnd)}
+            </Text>
+          </View>
 
           <View style={styles.divider} />
 
           {/* About */}
           <Text style={styles.sectionLabel}>ABOUT</Text>
           <Text style={styles.description}>{food.description}</Text>
-          <Text style={styles.sponsorLink}>{sponsorLabel(food)}</Text>
+          {food.sponsorshipType === 'DIRECT' ? (
+            <View style={styles.infoRow}>
+              <Ionicons name="heart-outline" size={14} color={colors.warningYellow} />
+              <Text style={styles.sponsorLink}>Direct Donation</Text>
+            </View>
+          ) : (
+            <View style={styles.sponsorCard}>
+              {food.sponsorshipType === 'SPONSORED_NAMED' ? (
+                <View style={styles.sponsorAvatarNamed}>
+                  <Text style={styles.sponsorAvatarText}>
+                    {(food.sponsorDisplayName ?? '').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.sponsorAvatarAnon}>
+                  <Ionicons name="person-outline" size={18} color={colors.textPrimary} />
+                </View>
+              )}
+              <View style={styles.sponsorTextBlock}>
+                <Text style={styles.sponsorByLabel}>Sponsored by</Text>
+                <Text style={styles.sponsorName}>
+                  {food.sponsorshipType === 'SPONSORED_NAMED'
+                    ? (food.sponsorDisplayName ?? '')
+                    : 'Anonymous donor'}
+                </Text>
+              </View>
+              <Ionicons name="heart" size={18} color={colors.warningYellow} />
+            </View>
+          )}
 
           {/* Claimed progress */}
-          <View style={styles.progressRow}>
-            <Text style={styles.progressLabel}>{claimed} of {food.quantityOriginal} claimed</Text>
-            <Text style={styles.progressLabel}>{pct}%</Text>
-          </View>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${pct}%` as `${number}%` }]} />
+          <View style={styles.progressBlock}>
+            <View style={styles.progressRow}>
+              <Text style={styles.progressLabel}>{claimed} of {food.quantityOriginal}</Text>
+              <Text style={styles.progressLabel}>{pct}%</Text>
+            </View>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${pct}%` as `${number}%` }]} />
+            </View>
           </View>
 
         </View>
@@ -236,14 +271,16 @@ const styles = StyleSheet.create({
 
   divider: { height: 1, backgroundColor: colors.borderDefault },
 
+  restaurantBlock:   { gap: spacing.sm },
   restaurantNameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  infoRow:           { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   restaurantName:    { fontSize: fontSizes.md, fontWeight: fontWeights.semiBold, color: colors.textPrimary },
   restaurantAddress: { fontSize: fontSizes.sm, color: colors.textMuted },
   distance:          { fontSize: fontSizes.sm, color: colors.textMuted },
 
   pickupTime: {
     fontSize: fontSizes.md,
-    color: colors.accentPrimary,
+    color: colors.pickupOrange,
     fontWeight: fontWeights.semiBold,
   },
 
@@ -263,6 +300,47 @@ const styles = StyleSheet.create({
     color: colors.accentPrimary,
   },
 
+  sponsorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  sponsorAvatarNamed: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.pill,
+    backgroundColor: colors.goldLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sponsorAvatarAnon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sponsorAvatarText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: colors.goldDark,
+  },
+  sponsorTextBlock: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  sponsorByLabel: {
+    fontSize: fontSizes.xs,
+    color: colors.textMuted,
+  },
+  sponsorName: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semiBold,
+    color: colors.textPrimary,
+  },
+
+  progressBlock: { gap: spacing.xs },
   progressRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -289,7 +367,7 @@ const styles = StyleSheet.create({
   },
   claimBtn: {
     backgroundColor: colors.accentPrimary,
-    borderRadius: radius.pill,
+    borderRadius: radius.card,
     paddingVertical: spacing.lg,
     alignItems: 'center',
   },

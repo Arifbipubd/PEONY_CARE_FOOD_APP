@@ -17,6 +17,7 @@ import Input from '../../components/Input';
 import LogoBadge from '../../components/LogoBadge';
 import { sendOtp } from '../../services/auth';
 import { colors, spacing, fontSizes, fontWeights } from '../../constants/theme';
+import SgFlag from '../../components/SgFlag';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'ReceiverRegister'>;
@@ -79,13 +80,18 @@ export default function ReceiverRegisterScreen({ navigation }: Props) {
               leftIcon={<Ionicons name="person-outline" size={18} color={colors.textMuted} />}
             />
             <Input
-              label="Phone number"
+              label="Mobile number"
               value={phone}
               onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
               placeholder="91234567"
               keyboardType="number-pad"
               error={error}
-              leftIcon={<Text style={styles.prefix}>+65</Text>}
+              leftSection={
+                <>
+                  <SgFlag size={24} />
+                  <Text style={styles.prefix}>+65</Text>
+                </>
+              }
             />
           </View>
 
@@ -94,6 +100,7 @@ export default function ReceiverRegisterScreen({ navigation }: Props) {
             onPress={handleSend}
             loading={loading}
             disabled={!canSubmit}
+            rightIcon={<Ionicons name="arrow-forward" size={20} color={colors.textInverse} />}
           />
 
           <Text style={styles.terms}>
@@ -141,7 +148,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontWeight: fontWeights.medium,
   },
-  terms: {
+  terms: {  
     fontSize: fontSizes.sm,
     color: colors.textMuted,
     textAlign: 'center',
