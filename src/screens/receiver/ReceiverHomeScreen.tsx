@@ -14,9 +14,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useProfileStore } from '../../store/profileStore';
+import { useNotificationStore } from '../../store/notificationStore';
 import FoodCard from '../../components/FoodCard';
-import { browseFood, getDailyLimit } from '../../services/receiver';
+import FilterSheet, { FilterState, DEFAULT_FILTERS, matchesFilters } from '../../components/FilterSheet';
+import { browseFood, getDailyLimit, getReceiverProfile } from '../../services/receiver';
 import { getNearbyRestaurants } from '../../services/restaurant';
+import { getNotifications } from '../../services/notifications';
 import { FoodItem, FoodCategory, DailyLimitStatus, PublicRestaurant } from '../../types';
 import { colors, spacing, radius, fontSizes, fontWeights, layout } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
@@ -120,7 +123,7 @@ const emptyStyles = StyleSheet.create({
   primaryBtn: {
     width: '100%',
     backgroundColor: colors.accentPrimary,
-    borderRadius: radius.pill,
+    borderRadius: radius.card,
     paddingVertical: spacing.lg,
     alignItems: 'center',
   },
@@ -133,7 +136,7 @@ const emptyStyles = StyleSheet.create({
     width: '100%',
     borderWidth: 1,
     borderColor: colors.borderDefault,
-    borderRadius: radius.pill,
+    borderRadius: radius.card,
     paddingVertical: spacing.lg,
     alignItems: 'center',
   },
@@ -145,11 +148,14 @@ const emptyStyles = StyleSheet.create({
 });
 
 export default function ReceiverHomeScreen({ navigation }: Props) {
-  const { displayName } = useProfileStore();
+  const { displayName, setProfile } = useProfileStore();
+  const { unreadCount, setNotifications } = useNotificationStore();
   const name = displayName || 'Sarah';
+  const firstName = name.split(' ')[0];
 
   const [activeTab, setActiveTab]       = useState<Tab>('meals');
-  const [activeChip, setActiveChip]     = useState<FoodCategory | null>(null);
+  const [filters, setFilters]           = useState<FilterState>(DEFAULT_FILTERS);
+  const [filterSheetVisible, setFilterSheetVisible] = useState(false);
   const [searchQuery, setSearchQuery]   = useState('');
   const [foods, setFoods]               = useState<FoodItem[]>([]);
   const [restaurants, setRestaurants]   = useState<PublicRestaurant[]>([]);
@@ -157,16 +163,24 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const [loading, setLoading]           = useState(true);
 
   useEffect(() => {
-    Promise.all([browseFood(), getDailyLimit(), getNearbyRestaurants()]).then(([items, limit, rests]) => {
+    Promise.all([
+      browseFood(),
+      getDailyLimit(),
+      getNearbyRestaurants(),
+      getReceiverProfile(),
+      getNotifications(),
+    ]).then(([items, limit, rests, profile, notifications]) => {
       setFoods(items);
       setDailyLimit(limit);
       setRestaurants(rests);
+      setProfile({ displayName: profile.displayName });
+      setNotifications(notifications);
       setLoading(false);
     });
   }, []);
 
   const filtered = foods.filter((f) => {
-    if (activeChip && f.category !== activeChip) return false;
+    if (!matchesFilters(f, filters)) return false;
     if (searchQuery.trim() && !f.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
@@ -190,14 +204,19 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{getInitials(name)}</Text>
           </View>
-          <TouchableOpacity hitSlop={8}>
-            <Ionicons name="notifications-outline" size={24} color={colors.textPrimary} />
+          <TouchableOpacity
+            style={styles.bellButton}
+            hitSlop={8}
+            onPress={() => navigation.getParent()?.navigate('Alerts' as never)}
+          >
+            <Ionicons name="notifications" size={20} color={colors.textPrimary} />
+            {unreadCount > 0 && <View style={styles.bellDot} />}
           </TouchableOpacity>
         </View>
 
         {/* Greeting */}
         <Text style={styles.greeting}>{getGreeting()}</Text>
-        <Text style={styles.userName}>{name}</Text>
+        <Text style={styles.userName}>{firstName}</Text>
 
         {/* Claims badge */}
         {dailyLimit && (
@@ -209,17 +228,23 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
           </View>
         )}
 
-        {/* Search bar */}
-        <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={18} color={colors.textMuted} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search food or restaurant..."
-            placeholderTextColor={colors.textMuted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          <TouchableOpacity hitSlop={8}>
+        {/* Search bar + filter button */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search-outline" size={18} color={colors.textMuted} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search food or restaurant..."
+              placeholderTextColor={colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+          <TouchableOpacity
+            style={styles.filterButton}
+            hitSlop={8}
+            onPress={() => setFilterSheetVisible(true)}
+          >
             <Ionicons name="options-outline" size={20} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
@@ -251,12 +276,12 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
             contentContainerStyle={styles.chipsRow}
           >
             {CHIPS.map((c) => {
-              const active = activeChip === c.value;
+              const active = filters.category === c.value;
               return (
                 <TouchableOpacity
                   key={c.label}
                   style={[styles.chip, active && styles.chipActive]}
-                  onPress={() => setActiveChip(c.value)}
+                  onPress={() => setFilters((f) => ({ ...f, category: c.value }))}
                 >
                   <Text style={[styles.chipText, active && styles.chipTextActive]}>
                     {c.label}
@@ -316,6 +341,14 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
         />
       )}
 
+      <FilterSheet
+        visible={filterSheetVisible}
+        onClose={() => setFilterSheetVisible(false)}
+        foods={foods}
+        value={filters}
+        onApply={setFilters}
+      />
+
     </SafeAreaView>
   );
 }
@@ -341,14 +374,33 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.pill,
-    backgroundColor: colors.accentPrimary,
+    backgroundColor: colors.avatarBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.bold,
-    color: colors.textInverse,
+    color: colors.accentPrimary,
+  },
+  bellButton: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bellDot: {
+    position: 'absolute',
+    top: 8,
+    right: 9,
+    width: 8,
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentPrimary,
+    borderWidth: 1,
+    borderColor: colors.surfaceSecondary,
   },
 
   // Greeting
@@ -381,7 +433,13 @@ const styles = StyleSheet.create({
   },
 
   // Search
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   searchBar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surfaceSecondary,
@@ -395,6 +453,14 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.md,
     color: colors.textPrimary,
     padding: 0,
+  },
+  filterButton: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.input,
+    backgroundColor: colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Tabs
