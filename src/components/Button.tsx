@@ -2,6 +2,7 @@ import React from 'react';
 import {
   TouchableOpacity,
   Text,
+  View,
   ActivityIndicator,
   StyleSheet,
   ViewStyle,
@@ -15,6 +16,7 @@ interface ButtonProps {
   disabled?: boolean;
   loading?: boolean;
   style?: ViewStyle;
+  rightIcon?: React.ReactNode;
 }
 
 export default function Button({
@@ -24,6 +26,7 @@ export default function Button({
   disabled = false,
   loading = false,
   style,
+  rightIcon,
 }: ButtonProps) {
   const isPrimary = variant === 'primary';
 
@@ -41,6 +44,13 @@ export default function Button({
     >
       {loading ? (
         <ActivityIndicator color={isPrimary ? colors.textInverse : colors.accentPrimary} />
+      ) : rightIcon ? (
+        <View style={styles.labelRow}>
+          <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelOutline]}>
+            {label}
+          </Text>
+          {rightIcon}
+        </View>
       ) : (
         <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelOutline]}>
           {label}
@@ -53,10 +63,11 @@ export default function Button({
 const styles = StyleSheet.create({
   base: {
     height: 56,
-    borderRadius: radius.pill,
+    borderRadius: radius.card,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing['2xl'],
+    alignSelf: 'stretch',
   },
   primary: {
     backgroundColor: colors.accentPrimary,
@@ -68,6 +79,11 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.5,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   label: {
     fontSize: fontSizes.md,

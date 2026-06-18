@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -19,24 +20,31 @@ import { colors, spacing, fontSizes, fontWeights } from '../../constants/theme';
 import SgFlag from '../../components/SgFlag';
 
 type Props = {
-  navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+  navigation: NativeStackNavigationProp<AuthStackParamList, 'ReceiverRegister'>;
 };
 
-export default function LoginScreen({ navigation }: Props) {
-  const [phone, setPhone]     = useState('');
+export default function ReceiverRegisterScreen({ navigation }: Props) {
+  const [name, setName]     = useState('');
+  const [phone, setPhone]   = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [error, setError]   = useState('');
 
   const cleaned = phone.trim().replace(/\s/g, '');
+  const canSubmit = name.trim().length > 0 && cleaned.length >= 8;
 
   async function handleSend() {
+    if (!name.trim()) { setError('Full name is required'); return; }
     if (cleaned.length < 8) { setError('Enter a valid phone number'); return; }
     setError('');
     setLoading(true);
     try {
       const fullPhone = `+65${cleaned}`;
-      await sendOtp(fullPhone, 'LOGIN');
-      navigation.navigate('Otp', { phone: fullPhone, purpose: 'LOGIN' });
+      await sendOtp(fullPhone, 'REGISTER');
+      navigation.navigate('Otp', {
+        phone: fullPhone,
+        purpose: 'REGISTER',
+        pendingRegistration: { role: 'RECEIVER', displayName: name.trim() },
+      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to send code. Try again.');
     } finally {
@@ -54,47 +62,59 @@ export default function LoginScreen({ navigation }: Props) {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.body}>
-          <View style={styles.logoWrap}>
-            <LogoBadge size={80} />
+        <ScrollView
+          contentContainerStyle={styles.body}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <LogoBadge size={80} />
+
+          <Text style={styles.title}>Create your account</Text>
+
+          <View style={styles.form}>
+            <Input
+              label="Full name"
+              value={name}
+              onChangeText={(t) => { setName(t); setError(''); }}
+              placeholder="Sarah Mun"
+              leftIcon={<Ionicons name="person-outline" size={18} color={colors.textMuted} />}
+            />
+            <Input
+              label="Mobile number"
+              value={phone}
+              onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
+              placeholder="91234567"
+              keyboardType="number-pad"
+              error={error}
+              leftSection={
+                <>
+                  <SgFlag size={24} />
+                  <Text style={styles.prefix}>+65</Text>
+                </>
+              }
+            />
           </View>
-
-          <Text style={styles.title}>Welcome back</Text>
-
-          <Input
-            label="Mobile number"
-            value={phone}
-            onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
-            placeholder="91234567"
-            keyboardType="number-pad"
-            error={error}
-            leftSection={
-              <>
-                <SgFlag size={24} />
-                <Text style={styles.prefix}>+65</Text>
-              </>
-            }
-          />
 
           <Button
             label="Send code"
             onPress={handleSend}
             loading={loading}
-            disabled={cleaned.length < 8}
-            style={styles.btn}
+            disabled={!canSubmit}
             rightIcon={<Ionicons name="arrow-forward" size={20} color={colors.textInverse} />}
           />
 
-          <Text style={styles.switchRow}>
-            New here?{' '}
-            <Text
-              style={styles.switchLink}
-              onPress={() => navigation.navigate('ChooseRole')}
-            >
-              Sign up
+          <Text style={styles.terms}>
+            By signing up you agree to our{' '}
+            <Text style={styles.termsLink}>Terms & Privacy</Text>.
+          </Text>
+
+          <Text style={styles.loginRow}>
+            Already a member?{' '}
+            <Text style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
+              Log in
             </Text>
           </Text>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -102,36 +122,47 @@ export default function LoginScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
+  flex: { flex: 1 },
   back: {
     paddingHorizontal: spacing['2xl'],
     paddingTop: spacing.lg,
     paddingBottom: spacing.md,
   },
-  flex: { flex: 1 },
   body: {
     paddingHorizontal: spacing['2xl'],
-    paddingTop: spacing['2xl'],
+    paddingTop: spacing.lg,
+    paddingBottom: spacing['4xl'],
     gap: spacing['2xl'],
+    alignItems: 'center',
   },
-  logoWrap: { alignItems: 'center' },
   title: {
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
     color: colors.textPrimary,
     textAlign: 'center',
+    alignSelf: 'stretch',
   },
+  form: { alignSelf: 'stretch', gap: spacing.lg },
   prefix: {
     fontSize: fontSizes.md,
     color: colors.textMuted,
     fontWeight: fontWeights.medium,
   },
-  btn: { marginTop: spacing.xs },
-  switchRow: {
+  terms: {  
     fontSize: fontSizes.sm,
     color: colors.textMuted,
     textAlign: 'center',
   },
-  switchLink: {
+  termsLink: {
+    color: colors.accentPrimary,
+    fontWeight: fontWeights.medium,
+  },
+  loginRow: {
+    fontSize: fontSizes.sm,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  loginLink: {
     color: colors.accentPrimary,
     fontWeight: fontWeights.semiBold,
   },

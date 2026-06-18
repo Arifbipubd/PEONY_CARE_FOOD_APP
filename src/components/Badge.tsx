@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderRadius: radius.badge,
+    borderRadius: radius.pill,
     alignSelf: 'flex-start',
   },
   statusText: {
