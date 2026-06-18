@@ -42,6 +42,8 @@ function mapApiFoodItem(d: ApiFoodItem): FoodItem {
     distanceKm: d.distance_km,
     sponsorshipType: d.sponsorship_type as FoodItem['sponsorshipType'],
     sponsorDisplayName: d.sponsor_display_name,
+    isHalal: d.is_halal,
+    isVegetarian: d.is_vegetarian,
   };
 }
 

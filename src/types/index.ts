@@ -66,6 +66,8 @@ export interface FoodItem {
   distanceKm: number;
   sponsorshipType: SponsorshipType;
   sponsorDisplayName: string | null;
+  isHalal: boolean;
+  isVegetarian: boolean;
   claimProgress?: ClaimProgress; // only present in food detail response
 }
 

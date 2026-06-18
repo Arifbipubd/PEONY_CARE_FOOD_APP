@@ -29,6 +29,8 @@ export interface ApiFoodItem {
   restaurant: ApiRestaurantRef;
   sponsorship_type: string;
   sponsor_display_name: string | null;
+  is_halal: boolean;
+  is_vegetarian: boolean;
 }
 
 export interface ApiClaimProgress {

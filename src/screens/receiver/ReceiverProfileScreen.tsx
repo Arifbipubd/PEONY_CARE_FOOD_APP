@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 1,
     borderColor: colors.borderDefault,
-    borderRadius: radius.pill,
+    borderRadius: radius.card,
     paddingVertical: spacing.lg,
     alignItems: 'center',
     marginTop: spacing.sm,
