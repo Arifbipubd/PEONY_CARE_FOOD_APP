@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -61,18 +62,50 @@ export default function QrScannerScreen({ navigation }: Props) {
     }
   };
 
+  if (!permission?.granted) {
+    const canAskAgain = permission?.canAskAgain ?? true;
+    return (
+      <View style={styles.screen}>
+        <View style={[styles.overlay, { paddingTop: insets.top + spacing.md }]}>
+          <View style={styles.topBar}>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
+              <Ionicons name="close" size={20} color={colors.textInverse} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ flex: 1 }} />
+
+          <View style={styles.permissionIconCircle}>
+            <Ionicons name="camera-outline" size={40} color={colors.textInverse} />
+          </View>
+          <Text style={styles.permissionHeading}>Camera access needed</Text>
+          <Text style={styles.permissionBody}>
+            Peony Care needs your camera to scan the claim QR code at the counter.
+          </Text>
+          <TouchableOpacity
+            style={styles.permissionBtn}
+            activeOpacity={0.85}
+            onPress={() => (canAskAgain ? requestPermission() : Linking.openSettings())}
+          >
+            <Text style={styles.permissionBtnText}>
+              {canAskAgain ? 'Grant camera access' : 'Open settings'}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={{ flex: 1 }} />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.screen}>
-      {permission?.granted ? (
-        <CameraView
-          style={StyleSheet.absoluteFill}
-          enableTorch={torch}
-          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          onBarcodeScanned={scanned ? undefined : ({ data }) => handleScan(data)}
-        />
-      ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: '#0A0A0A' }]} />
-      )}
+      <CameraView
+        style={StyleSheet.absoluteFill}
+        enableTorch={torch}
+        barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+        onBarcodeScanned={scanned ? undefined : ({ data }) => handleScan(data)}
+      />
 
       <View style={[styles.overlay, { paddingTop: insets.top + spacing.md }]}>
 
@@ -138,6 +171,42 @@ export default function QrScannerScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#0A0A0A' },
+
+  permissionIconCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  permissionHeading: {
+    fontSize: fontSizes['2xl'],
+    fontWeight: fontWeights.bold,
+    color: colors.textInverse,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  permissionBody: {
+    fontSize: fontSizes.sm,
+    color: 'rgba(255,255,255,0.65)',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: spacing.xl,
+  },
+  permissionBtn: {
+    backgroundColor: colors.accentPrimary,
+    borderRadius: radius.card,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing['3xl'],
+    alignItems: 'center',
+  },
+  permissionBtnText: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
+    color: colors.textInverse,
+  },
 
   overlay: {
     ...StyleSheet.absoluteFillObject,

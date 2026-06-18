@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import { colors, spacing, fontSizes, fontWeights, radius } from '../../constants/theme';
 
@@ -14,31 +14,28 @@ const ROLES = [
     key: 'RESTAURANT' as const,
     title: 'Restaurant Donor',
     subtitle: 'Share surplus food from your business',
-    iconBg: colors.accentLight,
+    iconBg: colors.avatarBg,
     iconColor: colors.accentPrimary,
-    iconName: 'storefront-outline' as const,
+    renderIcon: (color: string) => <Ionicons name="storefront" size={24} color={color} />,
     screen: 'RestaurantRegister' as const,
-    showChevron: true,
   },
   {
     key: 'DONOR' as const,
     title: 'Individual Donor',
     subtitle: 'Sponsor meals for those in need',
-    iconBg: colors.warningYellowLight,
-    iconColor: colors.warningYellow,
-    iconName: 'heart-outline' as const,
+    iconBg: colors.goldLight,
+    iconColor: colors.goldDark,
+    renderIcon: (color: string) => <MaterialCommunityIcons name="hand-heart" size={24} color={color} />,
     screen: 'DonorRegister' as const,
-    showChevron: false,
   },
   {
     key: 'RECEIVER' as const,
     title: 'Receiver',
     subtitle: 'Find complimentary food near you',
-    iconBg: colors.successGreenLight,
+    iconBg: colors.mintLight,
     iconColor: colors.successGreen,
-    iconName: 'person-outline' as const,
+    renderIcon: (color: string) => <Ionicons name="restaurant" size={24} color={color} />,
     screen: 'ReceiverRegister' as const,
-    showChevron: false,
   },
 ] as const;
 
@@ -62,15 +59,13 @@ export default function ChooseRoleScreen({ navigation }: Props) {
               activeOpacity={0.7}
             >
               <View style={[styles.iconBox, { backgroundColor: role.iconBg }]}>
-                <Ionicons name={role.iconName} size={24} color={role.iconColor} />
+                {role.renderIcon(role.iconColor)}
               </View>
               <View style={styles.cardText}>
                 <Text style={styles.cardTitle}>{role.title}</Text>
                 <Text style={styles.cardSubtitle}>{role.subtitle}</Text>
               </View>
-              {role.showChevron && (
-                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-              )}
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </TouchableOpacity>
           ))}
         </View>
