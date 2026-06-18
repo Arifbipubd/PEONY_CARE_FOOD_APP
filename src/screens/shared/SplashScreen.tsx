@@ -1,4 +1,3 @@
-import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,7 +18,7 @@ export default function SplashScreen({ navigation }: Props) {
         <LogoBadge size={96} />
         <Text style={styles.title}>{'Peony\nCare'}</Text>
         <Text style={styles.subtitle}>
-          {'Free meals for Singaporeans in need —\nfrom generous restaurants and donors nearby.'}
+          {'Complementary meals for Singaporeans in need —\nfrom generous restaurants and donors nearby.'}
         </Text>
         <View style={styles.badgeWrap}>
           <StatusBadge label="HUMAN FOR HUMANITY" color="red" />
@@ -27,7 +26,10 @@ export default function SplashScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.footer}>
-        <Button label="Get started" onPress={() => navigation.navigate('Login')} />
+        <Button
+          label="Get started"
+          onPress={() => navigation.navigate('ChooseRole')}
+        />
         <Button
           label="I already have an account"
           variant="outline"
@@ -40,18 +42,12 @@ export default function SplashScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
+  screen: { flex: 1, backgroundColor: colors.surface },
   body: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing['2xl'],
-  },
-  logo: {
-    marginBottom: spacing['2xl'],
   },
   title: {
     fontSize: fontSizes['4xl'],
@@ -68,15 +64,11 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: spacing.xl,
   },
-  badgeWrap: {
-    alignItems: 'center',
-  },
+  badgeWrap: { alignItems: 'center' },
   footer: {
     paddingHorizontal: spacing['2xl'],
     paddingBottom: spacing['2xl'],
     gap: spacing.md,
   },
-  secondBtn: {
-    marginTop: spacing.xs,
-  },
+  secondBtn: { marginTop: spacing.xs },
 });

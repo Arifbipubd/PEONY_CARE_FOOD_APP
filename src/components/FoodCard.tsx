@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { FoodItem } from '../types';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../constants/theme';
+import { colors, spacing, radius, fontSizes, fontWeights, layout } from '../constants/theme';
 
 interface FoodCardProps {
   item: FoodItem;
@@ -43,7 +43,9 @@ export default function FoodCard({ item, onPress }: FoodCardProps) {
             {formatPickupWindow(item.pickupStart, item.pickupEnd)}
           </Text>
         </View>
-        <Text style={styles.sponsor}>{sponsorLabel(item)}</Text>
+        <Text style={item.sponsorshipType === 'DIRECT' ? styles.sponsorDirect : styles.sponsorSponsored}>
+          {sponsorLabel(item)}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -54,7 +56,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.card,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -63,7 +65,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 190,
+    height: layout.cardImageHeight,
     backgroundColor: colors.borderDefault,
   },
   content: {
@@ -94,11 +96,15 @@ const styles = StyleSheet.create({
   },
   pickup: {
     fontSize: fontSizes.sm,
-    color: colors.accentPrimary,
+    color: colors.warningYellow,
     fontWeight: fontWeights.medium,
   },
-  sponsor: {
+  sponsorDirect: {
     fontSize: fontSizes.sm,
-    color: colors.accentPrimary,
+    color: colors.textMuted,
+  },
+  sponsorSponsored: {
+    fontSize: fontSizes.sm,
+    color: colors.warningYellow,
   },
 });
