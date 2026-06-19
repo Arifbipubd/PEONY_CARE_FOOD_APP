@@ -16,6 +16,7 @@ import Input from '../../components/Input';
 import LogoBadge from '../../components/LogoBadge';
 import { sendOtp } from '../../services/auth';
 import { colors, spacing, fontSizes, fontWeights } from '../../constants/theme';
+import SgFlag from '../../components/SgFlag';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'>;
@@ -61,13 +62,18 @@ export default function LoginScreen({ navigation }: Props) {
           <Text style={styles.title}>Welcome back</Text>
 
           <Input
-            label="Phone number"
+            label="Mobile number"
             value={phone}
             onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
             placeholder="91234567"
             keyboardType="number-pad"
             error={error}
-            leftIcon={<Text style={styles.prefix}>+65</Text>}
+            leftSection={
+              <>
+                <SgFlag size={24} />
+                <Text style={styles.prefix}>+65</Text>
+              </>
+            }
           />
 
           <Button
@@ -76,6 +82,7 @@ export default function LoginScreen({ navigation }: Props) {
             loading={loading}
             disabled={cleaned.length < 8}
             style={styles.btn}
+            rightIcon={<Ionicons name="arrow-forward" size={20} color={colors.textInverse} />}
           />
 
           <Text style={styles.switchRow}>

@@ -19,6 +19,7 @@ interface InputProps {
   secureTextEntry?: boolean;
   editable?: boolean;
   leftIcon?: React.ReactNode;
+  leftSection?: React.ReactNode;
   maxLength?: number;
   style?: ViewStyle;
 }
@@ -33,6 +34,7 @@ export default function Input({
   secureTextEntry = false,
   editable = true,
   leftIcon,
+  leftSection,
   maxLength,
   style,
 }: InputProps) {
@@ -44,12 +46,20 @@ export default function Input({
       <View
         style={[
           styles.inputRow,
+          leftSection ? styles.inputRowWithSection : null,
           focused && styles.inputFocused,
           !!error && styles.inputError,
           !editable && styles.inputDisabled,
         ]}
       >
-        {leftIcon ? <View style={styles.iconWrapper}>{leftIcon}</View> : null}
+        {leftSection ? (
+          <>
+            <View style={styles.leftSectionWrapper}>{leftSection}</View>
+            <View style={styles.sectionDivider} />
+          </>
+        ) : leftIcon ? (
+          <View style={styles.iconWrapper}>{leftIcon}</View>
+        ) : null}
         <TextInput
           value={value}
           onChangeText={onChangeText}
@@ -87,6 +97,10 @@ const styles = StyleSheet.create({
     borderColor: colors.borderDefault,
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.lg,
+    overflow: 'hidden',
+  },
+  inputRowWithSection: {
+    paddingLeft: 0,
   },
   inputFocused: {
     borderColor: colors.accentPrimary,
@@ -98,6 +112,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
   },
   iconWrapper: {
+    marginRight: spacing.md,
+  },
+  leftSectionWrapper: {
+    paddingHorizontal: spacing.md,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceSecondary,
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  sectionDivider: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: colors.borderDefault,
     marginRight: spacing.md,
   },
   input: {

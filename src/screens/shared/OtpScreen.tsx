@@ -120,7 +120,7 @@ export default function OtpScreen({ navigation, route }: Props) {
       <View style={styles.body}>
         <LogoBadge size={80} />
 
-        <Text style={styles.title}>Check your messages</Text>
+        <Text style={styles.title}>Welcome back</Text>
         <Text style={styles.subtitle}>
           Code sent to <Text style={styles.phoneBold}>{phone}</Text>
         </Text>
@@ -139,7 +139,6 @@ export default function OtpScreen({ navigation, route }: Props) {
                 key={i}
                 style={[
                   styles.digitBox,
-                  char ? styles.digitBoxFilled : null,
                   isActive ? styles.digitBoxActive : null,
                 ]}
               >
@@ -175,11 +174,12 @@ export default function OtpScreen({ navigation, route }: Props) {
         </TouchableOpacity>
 
         <Button
-          label="Verify & continue"
+          label="Sign in"
           onPress={handleVerify}
           loading={loading}
           disabled={code.length < CODE_LENGTH}
           style={styles.btn}
+          rightIcon={<Ionicons name="arrow-forward" size={20} color={colors.textInverse} />}
         />
       </View>
     </SafeAreaView>
@@ -226,9 +226,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surface,
-  },
-  digitBoxFilled: {
-    borderColor: colors.accentPrimary,
   },
   digitBoxActive: {
     borderColor: colors.accentPrimary,
