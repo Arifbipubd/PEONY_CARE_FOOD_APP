@@ -7,7 +7,7 @@ import {
   KeyboardTypeOptions,
   ViewStyle,
 } from 'react-native';
-import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies } from '../constants/theme';
+import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, layout } from '../constants/theme';
 
 interface InputProps {
   label?: string;
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: fontFamilies.semiBold,
-    fontSize: 12,
+    fontSize: fontSizes['12'],
     fontWeight: fontWeights.semiBold,
     color: colors.textMuted,
   },
@@ -98,12 +98,12 @@ const styles = StyleSheet.create({
     margin: -3,
   },
   focusRingActive: {
-    borderColor: 'rgba(200, 16, 46, 0.1)',
+    borderColor: colors.accentFocusShadow,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 52,
+    height: layout.inputHeight,
     borderRadius: radius.input,
     borderWidth: 1.5,
     borderColor: colors.borderDefault,
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontFamily: fontFamilies.regular,
-    fontSize: 14,
+    fontSize: fontSizes['14'],
     color: colors.textPrimary,
     paddingVertical: 0,
   },

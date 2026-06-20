@@ -7,7 +7,7 @@ import {
   StyleSheet,
   ViewStyle,
 } from 'react-native';
-import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings } from '../constants/theme';
+import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, layout } from '../constants/theme';
 
 interface ButtonProps {
   label: string;
@@ -64,7 +64,7 @@ export default function Button({
 
 const styles = StyleSheet.create({
   base: {
-    height: 54,
+    height: layout.buttonHeight,
     borderRadius: radius.card,
     alignItems: 'center',
     justifyContent: 'center',
@@ -99,8 +99,8 @@ const styles = StyleSheet.create({
     letterSpacing: letterSpacings.button,
   },
   labelSm: {
-    fontSize: 14,
-    letterSpacing: 0.28,
+    fontSize: fontSizes['14'],
+    letterSpacing: letterSpacings.buttonSm,
   },
   labelPrimary: {
     color: colors.textInverse,

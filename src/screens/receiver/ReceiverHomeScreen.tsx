@@ -21,7 +21,7 @@ import { browseFood, getDailyLimit, getReceiverProfile } from '../../services/re
 import { getNearbyRestaurants } from '../../services/restaurant';
 import { getNotifications } from '../../services/notifications';
 import { FoodItem, FoodCategory, DailyLimitStatus, PublicRestaurant } from '../../types';
-import { colors, spacing, radius, fontSizes, fontWeights, layout } from '../../constants/theme';
+import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, layout } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
@@ -38,22 +38,6 @@ const CHIPS: { label: string; value: FoodCategory | null }[] = [
   { label: 'Snacks',  value: 'SNACKS' },
 ];
 
-function getGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
 
 function EmptyMealsState({ onAdjustRadius }: { onAdjustRadius: () => void }) {
   return (
@@ -199,11 +183,9 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
       {/* ── Fixed top section ── */}
       <View style={styles.top}>
 
-        {/* Avatar + Bell */}
+        {/* Greeting + Bell */}
         <View style={styles.headerRow}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials(name)}</Text>
-          </View>
+          <Text style={styles.greeting}>Hi, {firstName} 👋</Text>
           <TouchableOpacity
             style={styles.bellButton}
             hitSlop={8}
@@ -213,10 +195,6 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
             {unreadCount > 0 && <View style={styles.bellDot} />}
           </TouchableOpacity>
         </View>
-
-        {/* Greeting */}
-        <Text style={styles.greeting}>{getGreeting()}</Text>
-        <Text style={styles.userName}>{firstName}</Text>
 
         {/* Claims badge */}
         {dailyLimit && (
@@ -370,18 +348,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.pill,
-    backgroundColor: colors.avatarBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: fontSizes.sm,
+  greeting: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.xl,
     fontWeight: fontWeights.bold,
-    color: colors.accentPrimary,
+    letterSpacing: letterSpacings.bodyBold,
+    color: colors.textPrimary,
   },
   bellButton: {
     width: 40,
@@ -403,18 +375,6 @@ const styles = StyleSheet.create({
     borderColor: colors.surfaceSecondary,
   },
 
-  // Greeting
-  greeting: {
-    fontSize: fontSizes.sm,
-    color: colors.textMuted,
-    marginTop: spacing.xs,
-  },
-  userName: {
-    fontSize: fontSizes['3xl'],
-    fontWeight: fontWeights.bold,
-    color: colors.textPrimary,
-  },
-
   // Claims badge
   claimsBadge: {
     flexDirection: 'row',
@@ -422,14 +382,15 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     backgroundColor: colors.successGreenLight,
     borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    gap: spacing.xs,
+    paddingHorizontal: 12,  // component-specific, not in spacing scale
+    paddingVertical: 5,     // component-specific, not in spacing scale
+    gap: 4,                 // component-specific, not in spacing scale
   },
   claimsText: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    fontWeight: fontWeights.semiBold,
     color: colors.successGreen,
-    fontWeight: fontWeights.medium,
   },
 
   // Search
@@ -442,21 +403,22 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceSecondary,
+    backgroundColor: colors.surfaceTertiary,
     borderRadius: radius.input,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
+    paddingHorizontal: 16,  // component-specific, not in spacing scale
+    height: layout.actionButtonSize,
+    gap: spacing.md,
   },
   searchInput: {
     flex: 1,
-    fontSize: fontSizes.md,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['16'],
     color: colors.textPrimary,
     padding: 0,
   },
   filterButton: {
-    width: 40,
-    height: 40,
+    width: layout.actionButtonSize,
+    height: layout.actionButtonSize,
     borderRadius: radius.input,
     backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
@@ -472,22 +434,29 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingBottom: spacing.sm,
+    paddingTop: spacing.md,
+    paddingBottom: 12,   // component-specific, not in spacing scale
+    paddingHorizontal: 4, // component-specific, not in spacing scale
     gap: spacing.xs,
+    marginBottom: -1,
   },
   tabActive: {
-    borderBottomWidth: 2,
+    borderBottomWidth: 2.5,
     borderBottomColor: colors.accentPrimary,
   },
   tabLabel: {
+    fontFamily: fontFamilies.regular,
     fontSize: fontSizes.sm,
+    fontWeight: fontWeights.regular,
     color: colors.textMuted,
-    fontWeight: fontWeights.medium,
   },
   tabLabelActive: {
+    fontFamily: fontFamilies.semiBold,
+    fontWeight: fontWeights.semiBold,
     color: colors.accentPrimary,
   },
   tabCount: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xl,
     fontWeight: fontWeights.bold,
     color: colors.textMuted,
