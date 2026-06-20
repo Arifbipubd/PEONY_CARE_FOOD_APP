@@ -13,6 +13,7 @@ interface ButtonProps {
   label: string;
   onPress: () => void;
   variant?: 'primary' | 'outline';
+  size?: 'sm';
   disabled?: boolean;
   loading?: boolean;
   style?: ViewStyle;
@@ -23,6 +24,7 @@ export default function Button({
   label,
   onPress,
   variant = 'primary',
+  size,
   disabled = false,
   loading = false,
   style,
@@ -46,13 +48,13 @@ export default function Button({
         <ActivityIndicator color={isPrimary ? colors.textInverse : colors.accentPrimary} />
       ) : rightIcon ? (
         <View style={styles.labelRow}>
-          <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelOutline]}>
+          <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelOutline, size === 'sm' && styles.labelSm]}>
             {label}
           </Text>
           {rightIcon}
         </View>
       ) : (
-        <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelOutline]}>
+        <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelOutline, size === 'sm' && styles.labelSm]}>
           {label}
         </Text>
       )}
@@ -95,6 +97,10 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.md,
     fontWeight: fontWeights.bold,
     letterSpacing: letterSpacings.button,
+  },
+  labelSm: {
+    fontSize: 14,
+    letterSpacing: 0.28,
   },
   labelPrimary: {
     color: colors.textInverse,
