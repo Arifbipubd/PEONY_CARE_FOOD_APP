@@ -83,8 +83,9 @@ export const fontFamilies = {
 } as const;
 
 export const lineHeights = {
-  heading: 50.4,  // Heading/Bold (48px font)
-  body:    21,    // Body text (14px font)
+  heading:    50.4,  // Heading/Bold (48px font)
+  subheading: 26.4,  // Subheading/Bold (24px font)
+  body:       21,    // Body text (14px font)
 } as const;
 
 export const letterSpacings = {

@@ -7,7 +7,7 @@ import {
   KeyboardTypeOptions,
   ViewStyle,
 } from 'react-native';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../constants/theme';
+import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies } from '../constants/theme';
 
 interface InputProps {
   label?: string;
@@ -43,36 +43,38 @@ export default function Input({
   return (
     <View style={[styles.wrapper, style]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View
-        style={[
-          styles.inputRow,
-          leftSection ? styles.inputRowWithSection : null,
-          focused && styles.inputFocused,
-          !!error && styles.inputError,
-          !editable && styles.inputDisabled,
-        ]}
-      >
-        {leftSection ? (
-          <>
-            <View style={styles.leftSectionWrapper}>{leftSection}</View>
-            <View style={styles.sectionDivider} />
-          </>
-        ) : leftIcon ? (
-          <View style={styles.iconWrapper}>{leftIcon}</View>
-        ) : null}
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={colors.textMuted}
-          keyboardType={keyboardType}
-          secureTextEntry={secureTextEntry}
-          editable={editable}
-          maxLength={maxLength}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          style={styles.input}
-        />
+      <View style={[styles.focusRing, focused && !error && styles.focusRingActive]}>
+        <View
+          style={[
+            styles.inputRow,
+            leftSection ? styles.inputRowWithSection : null,
+            focused && styles.inputFocused,
+            !!error && styles.inputError,
+            !editable && styles.inputDisabled,
+          ]}
+        >
+          {leftSection ? (
+            <>
+              <View style={styles.leftSectionWrapper}>{leftSection}</View>
+              <View style={styles.sectionDivider} />
+            </>
+          ) : leftIcon ? (
+            <View style={styles.iconWrapper}>{leftIcon}</View>
+          ) : null}
+          <TextInput
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={placeholder}
+            placeholderTextColor={colors.textMuted}
+            keyboardType={keyboardType}
+            secureTextEntry={secureTextEntry}
+            editable={editable}
+            maxLength={maxLength}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            style={styles.input}
+          />
+        </View>
       </View>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
@@ -81,12 +83,22 @@ export default function Input({
 
 const styles = StyleSheet.create({
   wrapper: {
-    gap: spacing.sm,
+    gap: 8,
   },
   label: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.semiBold,
+    fontSize: 12,
+    fontWeight: fontWeights.semiBold,
     color: colors.textMuted,
-    fontWeight: fontWeights.medium,
+  },
+  focusRing: {
+    borderRadius: radius.input + 3,
+    borderWidth: 3,
+    borderColor: 'transparent',
+    margin: -3,
+  },
+  focusRingActive: {
+    borderColor: 'rgba(200, 16, 46, 0.1)',
   },
   inputRow: {
     flexDirection: 'row',
@@ -131,7 +143,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: fontSizes.md,
+    fontFamily: fontFamilies.regular,
+    fontSize: 14,
     color: colors.textPrimary,
     paddingVertical: 0,
   },
