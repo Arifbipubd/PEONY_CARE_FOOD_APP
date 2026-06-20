@@ -2,28 +2,33 @@ import React from 'react';
 import {
   TouchableOpacity,
   Text,
+  View,
   ActivityIndicator,
   StyleSheet,
   ViewStyle,
 } from 'react-native';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../constants/theme';
+import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, layout } from '../constants/theme';
 
 interface ButtonProps {
   label: string;
   onPress: () => void;
   variant?: 'primary' | 'outline';
+  size?: 'sm';
   disabled?: boolean;
   loading?: boolean;
   style?: ViewStyle;
+  rightIcon?: React.ReactNode;
 }
 
 export default function Button({
   label,
   onPress,
   variant = 'primary',
+  size,
   disabled = false,
   loading = false,
   style,
+  rightIcon,
 }: ButtonProps) {
   const isPrimary = variant === 'primary';
 
@@ -41,8 +46,15 @@ export default function Button({
     >
       {loading ? (
         <ActivityIndicator color={isPrimary ? colors.textInverse : colors.accentPrimary} />
+      ) : rightIcon ? (
+        <View style={styles.labelRow}>
+          <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelOutline, size === 'sm' && styles.labelSm]}>
+            {label}
+          </Text>
+          {rightIcon}
+        </View>
       ) : (
-        <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelOutline]}>
+        <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelOutline, size === 'sm' && styles.labelSm]}>
           {label}
         </Text>
       )}
@@ -52,14 +64,20 @@ export default function Button({
 
 const styles = StyleSheet.create({
   base: {
-    height: 56,
-    borderRadius: radius.pill,
+    height: layout.buttonHeight,
+    borderRadius: radius.card,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing['2xl'],
+    alignSelf: 'stretch',
   },
   primary: {
     backgroundColor: colors.accentPrimary,
+    shadowColor: colors.accentPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 6,
   },
   outline: {
     backgroundColor: colors.surface,
@@ -69,9 +87,20 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.5,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   label: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.semiBold,
+    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.button,
+  },
+  labelSm: {
+    fontSize: fontSizes['14'],
+    letterSpacing: letterSpacings.buttonSm,
   },
   labelPrimary: {
     color: colors.textInverse,

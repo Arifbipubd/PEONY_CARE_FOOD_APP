@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../constants/theme';
+import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings } from '../constants/theme';
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 // Small pill showing availability: "2 left", "Available", "Expired", etc.
@@ -15,7 +15,7 @@ const BG: Record<BadgeColor, string> = {
 };
 
 const FG: Record<BadgeColor, string> = {
-  red:    colors.accentPrimary,
+  red:    colors.accentDark,    // red/700 (#9B0D22) — Figma slogan text color
   green:  colors.successGreen,
   yellow: colors.warningYellow,
   grey:   colors.textMuted,
@@ -24,11 +24,13 @@ const FG: Record<BadgeColor, string> = {
 interface StatusBadgeProps {
   label: string;
   color?: BadgeColor;
+  icon?: React.ReactNode;
 }
 
-export function StatusBadge({ label, color = 'red' }: StatusBadgeProps) {
+export function StatusBadge({ label, color = 'red', icon }: StatusBadgeProps) {
   return (
     <View style={[styles.statusBadge, { backgroundColor: BG[color] }]}>
+      {icon}
       <Text style={[styles.statusText, { color: FG[color] }]}>{label}</Text>
     </View>
   );
@@ -60,14 +62,19 @@ export function CategoryChip({ label, active = false, onPress }: CategoryChipPro
 
 const styles = StyleSheet.create({
   statusBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.badge,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: 16,        // Figma: 16px
+    paddingVertical: 8,           // Figma: 8px
+    borderRadius: radius.pill,
     alignSelf: 'flex-start',
   },
   statusText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semiBold,
+    fontFamily: fontFamilies.bold,
+    fontSize: 12,                 // Figma: 12px
+    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.slogan,  // 0.96px
   },
   chip: {
     paddingHorizontal: spacing.lg,

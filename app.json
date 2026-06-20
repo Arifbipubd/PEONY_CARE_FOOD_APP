@@ -18,10 +18,28 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Peony Care needs camera access to scan claim QR codes."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "7303ed9e-0243-4ce6-b3d8-4c75bd5509f7"
+      }
     }
   }
 }

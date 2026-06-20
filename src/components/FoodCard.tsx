@@ -1,11 +1,16 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { FoodItem } from '../types';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../constants/theme';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { FoodItem, FoodCategory } from '../types';
+import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, layout } from '../constants/theme';
 
 interface FoodCardProps {
   item: FoodItem;
   onPress: () => void;
+}
+
+function formatCategory(cat: FoodCategory): string {
+  return cat.charAt(0) + cat.slice(1).toLowerCase();
 }
 
 function formatPickupWindow(start: string, end: string): string {
@@ -15,7 +20,7 @@ function formatPickupWindow(start: string, end: string): string {
       minute: '2-digit',
       hour12: true,
     });
-  return `Pickup: ${fmt(start)} – ${fmt(end)}`;
+  return `Pickup ${fmt(start)} – ${fmt(end)}`;
 }
 
 function sponsorLabel(item: FoodItem): string {
@@ -25,36 +30,69 @@ function sponsorLabel(item: FoodItem): string {
   return 'Direct from restaurant';
 }
 
-export default function FoodCard({ item, onPress }: FoodCardProps) {
+const FoodCard = React.memo(function FoodCard({ item, onPress }: FoodCardProps) {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={styles.card}>
-      <Image source={{ uri: item.photoUrl }} style={styles.image} resizeMode="cover" />
-      <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={styles.restaurant} numberOfLines={1}>
-          {item.restaurantName}
-        </Text>
-        <View style={styles.metaRow}>
-          <Text style={styles.distance}>{item.distanceKm.toFixed(1)} km</Text>
-          <Text style={styles.dot}>  ·  </Text>
-          <Text style={styles.pickup}>
-            {formatPickupWindow(item.pickupStart, item.pickupEnd)}
-          </Text>
+
+      {/* Image + overlaid badges */}
+      <View>
+        <Image source={{ uri: item.photoUrl }} style={styles.image} resizeMode="cover" />
+        <View style={styles.imageBadges}>
+          <View style={styles.badgeCategory}>
+            <Text style={styles.badgeCategoryText}>{formatCategory(item.category)}</Text>
+          </View>
+          <View style={styles.badgeQty}>
+            <Text style={styles.badgeQtyText}>{item.quantityAvailable} left</Text>
+          </View>
         </View>
-        <Text style={styles.sponsor}>{sponsorLabel(item)}</Text>
       </View>
+
+      {/* Card body */}
+      <View style={styles.content}>
+        <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
+
+        <View style={styles.restaurantRow}>
+          <Ionicons name="storefront-outline" size={12} color={colors.textMuted} />
+          <Text style={styles.restaurantText} numberOfLines={1}>{item.restaurantName}</Text>
+        </View>
+
+        <View style={styles.metaRow}>
+          <View style={styles.metaItem}>
+            <Ionicons name="navigate" size={12} color={colors.textMuted} />
+            <Text style={styles.metaText}>{item.distanceKm.toFixed(1)} km</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Ionicons name="time" size={12} color={colors.pickupOrange} />
+            <Text style={styles.pickupText}>
+              {formatPickupWindow(item.pickupStart, item.pickupEnd)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.sponsorRow}>
+          {item.sponsorshipType === 'DIRECT' ? (
+            <Ionicons name="storefront-outline" size={12} color={colors.textMuted} />
+          ) : item.sponsorshipType === 'SPONSORED_NAMED' ? (
+            <MaterialCommunityIcons name="hand-heart" size={12} color={colors.warningYellow} />
+          ) : (
+            <Ionicons name="heart" size={12} color={colors.warningYellow} />
+          )}
+          <Text style={styles.sponsorText}>{sponsorLabel(item)}</Text>
+        </View>
+      </View>
+
     </TouchableOpacity>
   );
-}
+});
+
+export default FoodCard;
 
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.card,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -63,42 +101,108 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 190,
+    height: layout.cardImageHeight,
     backgroundColor: colors.borderDefault,
+  },
+  imageBadges: {
+    position: 'absolute',
+    top: spacing.md,
+    left: spacing.md,
+    right: spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  badgeCategory: {
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,  // component-specific, not in spacing scale
+    paddingVertical: 5,     // component-specific, not in spacing scale
+  },
+  badgeCategoryText: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes.xs,       // 11px
+    fontWeight: fontWeights.semiBold,
+    letterSpacing: 0.22,          // component-specific, not in letterSpacings scale
+    color: colors.textInverse,
+  },
+  badgeQty: {
+    backgroundColor: colors.accentPrimary,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,  // component-specific, not in spacing scale
+    paddingVertical: 5,     // component-specific, not in spacing scale
+    shadowColor: colors.accentPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  badgeQtyText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.xs,       // 11px
+    fontWeight: fontWeights.bold,
+    color: colors.textInverse,
   },
   content: {
     padding: spacing.lg,
-    gap: spacing.xs,
   },
   title: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes.md,       // 15px
+    fontWeight: fontWeights.semiBold,
+    letterSpacing: -0.225,        // component-specific, not in letterSpacings scale
     color: colors.textPrimary,
   },
-  restaurant: {
-    fontSize: fontSizes.sm,
+  restaurantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,                       // component-specific, not in spacing scale
+    marginTop: 4,                 // component-specific, not in spacing scale
+  },
+  restaurantText: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes.sm,       // 13px
+    fontWeight: fontWeights.regular,
     color: colors.textMuted,
+    flex: 1,
+    includeFontPadding: false,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,                       // component-specific, not in spacing scale
     marginTop: spacing.xs,
   },
-  distance: {
-    fontSize: fontSizes.sm,
-    color: colors.textMuted,
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,                       // component-specific, not in spacing scale
   },
-  dot: {
-    fontSize: fontSizes.sm,
+  metaText: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],    // 12px
+    fontWeight: fontWeights.regular,
     color: colors.textMuted,
+    includeFontPadding: false,
   },
-  pickup: {
-    fontSize: fontSizes.sm,
-    color: colors.accentPrimary,
+  pickupText: {
+    fontFamily: fontFamilies.medium,
+    fontSize: fontSizes['12'],    // 12px
     fontWeight: fontWeights.medium,
+    color: colors.pickupOrange,
+    includeFontPadding: false,
   },
-  sponsor: {
-    fontSize: fontSizes.sm,
-    color: colors.accentPrimary,
+  sponsorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,                       // component-specific, not in spacing scale
+    marginTop: 8,                 // component-specific, not in spacing scale
+  },
+  sponsorText: {
+    fontFamily: fontFamilies.medium,
+    fontSize: fontSizes['12'],    // 12px
+    fontWeight: fontWeights.medium,
+    color: colors.textMuted,
+    includeFontPadding: false,
   },
 });

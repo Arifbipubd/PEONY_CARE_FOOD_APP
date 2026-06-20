@@ -16,28 +16,29 @@ import Input from '../../components/Input';
 import LogoBadge from '../../components/LogoBadge';
 import { sendOtp } from '../../services/auth';
 import { colors, spacing, fontSizes, fontWeights } from '../../constants/theme';
+import SgFlag from '../../components/SgFlag';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 };
 
 export default function LoginScreen({ navigation }: Props) {
-  const [email, setEmail] = useState('');
+  const [phone, setPhone]     = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError]     = useState('');
+
+  const cleaned = phone.trim().replace(/\s/g, '');
 
   async function handleSend() {
-    if (!email.trim() || !email.includes('@')) {
-      setError('Enter a valid email address');
-      return;
-    }
+    if (cleaned.length < 8) { setError('Enter a valid phone number'); return; }
     setError('');
     setLoading(true);
     try {
-      await sendOtp(email.trim());
-      navigation.navigate('Otp', { email: email.trim() });
-    } catch {
-      setError('Failed to send code. Try again.');
+      const fullPhone = `+65${cleaned}`;
+      await sendOtp(fullPhone, 'LOGIN');
+      navigation.navigate('Otp', { phone: fullPhone, purpose: 'LOGIN' });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to send code. Try again.');
     } finally {
       setLoading(false);
     }
@@ -45,7 +46,6 @@ export default function LoginScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.screen}>
-      {/* Back arrow — plain, matches design */}
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
         <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
       </TouchableOpacity>
@@ -62,31 +62,34 @@ export default function LoginScreen({ navigation }: Props) {
           <Text style={styles.title}>Welcome back</Text>
 
           <Input
-            label="Email address"
-            value={email}
-            onChangeText={(t) => { setEmail(t); setError(''); }}
-            placeholder="you@example.com"
-            keyboardType="email-address"
+            label="Mobile number"
+            value={phone}
+            onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
+            placeholder="91234567"
+            keyboardType="number-pad"
             error={error}
-            leftIcon={<Ionicons name="mail-outline" size={18} color={colors.textMuted} />}
+            leftSection={
+              <>
+                <SgFlag size={24} />
+                <Text style={styles.prefix}>+65</Text>
+              </>
+            }
           />
 
           <Button
             label="Send code"
             onPress={handleSend}
             loading={loading}
-            disabled={!email.includes('@')}
+            disabled={cleaned.length < 8}
             style={styles.btn}
+            rightIcon={<Ionicons name="arrow-forward" size={20} color={colors.textInverse} />}
           />
 
-          <Text style={styles.signupRow}>
+          <Text style={styles.switchRow}>
             New here?{' '}
             <Text
-              style={styles.signupLink}
-              onPress={() => navigation.navigate('Register', {
-                registrationToken: 'mock-reg-token',
-                email: '',
-              })}
+              style={styles.switchLink}
+              onPress={() => navigation.navigate('ChooseRole')}
             >
               Sign up
             </Text>
@@ -98,41 +101,37 @@ export default function LoginScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
+  screen: { flex: 1, backgroundColor: colors.surface },
   back: {
     paddingHorizontal: spacing['2xl'],
     paddingTop: spacing.lg,
     paddingBottom: spacing.md,
   },
-  flex: {
-    flex: 1,
-  },
+  flex: { flex: 1 },
   body: {
     paddingHorizontal: spacing['2xl'],
     paddingTop: spacing['2xl'],
     gap: spacing['2xl'],
   },
+  logoWrap: { alignItems: 'center' },
   title: {
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
     color: colors.textPrimary,
     textAlign: 'center',
   },
-  logoWrap: {
-    alignItems: 'center',
+  prefix: {
+    fontSize: fontSizes.md,
+    color: colors.textPrimary,
+    fontWeight: fontWeights.medium,
   },
-  btn: {
-    marginTop: spacing.xs,
-  },
-  signupRow: {
+  btn: { marginTop: spacing.xs },
+  switchRow: {
     fontSize: fontSizes.sm,
     color: colors.textMuted,
     textAlign: 'center',
   },
-  signupLink: {
+  switchLink: {
     color: colors.accentPrimary,
     fontWeight: fontWeights.semiBold,
   },

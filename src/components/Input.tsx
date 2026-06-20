@@ -7,7 +7,7 @@ import {
   KeyboardTypeOptions,
   ViewStyle,
 } from 'react-native';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../constants/theme';
+import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, layout } from '../constants/theme';
 
 interface InputProps {
   label?: string;
@@ -19,6 +19,7 @@ interface InputProps {
   secureTextEntry?: boolean;
   editable?: boolean;
   leftIcon?: React.ReactNode;
+  leftSection?: React.ReactNode;
   maxLength?: number;
   style?: ViewStyle;
 }
@@ -33,6 +34,7 @@ export default function Input({
   secureTextEntry = false,
   editable = true,
   leftIcon,
+  leftSection,
   maxLength,
   style,
 }: InputProps) {
@@ -41,28 +43,38 @@ export default function Input({
   return (
     <View style={[styles.wrapper, style]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View
-        style={[
-          styles.inputRow,
-          focused && styles.inputFocused,
-          !!error && styles.inputError,
-          !editable && styles.inputDisabled,
-        ]}
-      >
-        {leftIcon ? <View style={styles.iconWrapper}>{leftIcon}</View> : null}
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={colors.textMuted}
-          keyboardType={keyboardType}
-          secureTextEntry={secureTextEntry}
-          editable={editable}
-          maxLength={maxLength}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          style={styles.input}
-        />
+      <View style={[styles.focusRing, focused && !error && styles.focusRingActive]}>
+        <View
+          style={[
+            styles.inputRow,
+            leftSection ? styles.inputRowWithSection : null,
+            focused && styles.inputFocused,
+            !!error && styles.inputError,
+            !editable && styles.inputDisabled,
+          ]}
+        >
+          {leftSection ? (
+            <>
+              <View style={styles.leftSectionWrapper}>{leftSection}</View>
+              <View style={styles.sectionDivider} />
+            </>
+          ) : leftIcon ? (
+            <View style={styles.iconWrapper}>{leftIcon}</View>
+          ) : null}
+          <TextInput
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={placeholder}
+            placeholderTextColor={colors.textMuted}
+            keyboardType={keyboardType}
+            secureTextEntry={secureTextEntry}
+            editable={editable}
+            maxLength={maxLength}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            style={styles.input}
+          />
+        </View>
       </View>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
@@ -71,22 +83,36 @@ export default function Input({
 
 const styles = StyleSheet.create({
   wrapper: {
-    gap: spacing.sm,
+    gap: 8,
   },
   label: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    fontWeight: fontWeights.semiBold,
     color: colors.textMuted,
-    fontWeight: fontWeights.medium,
+  },
+  focusRing: {
+    borderRadius: radius.input + 3,
+    borderWidth: 3,
+    borderColor: 'transparent',
+    margin: -3,
+  },
+  focusRingActive: {
+    borderColor: colors.accentFocusShadow,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 52,
+    height: layout.inputHeight,
     borderRadius: radius.input,
     borderWidth: 1.5,
     borderColor: colors.borderDefault,
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.lg,
+    overflow: 'hidden',
+  },
+  inputRowWithSection: {
+    paddingLeft: 0,
   },
   inputFocused: {
     borderColor: colors.accentPrimary,
@@ -100,9 +126,25 @@ const styles = StyleSheet.create({
   iconWrapper: {
     marginRight: spacing.md,
   },
+  leftSectionWrapper: {
+    paddingHorizontal: spacing.md,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceSecondary,
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  sectionDivider: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: colors.borderDefault,
+    marginRight: spacing.md,
+  },
   input: {
     flex: 1,
-    fontSize: fontSizes.md,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
     color: colors.textPrimary,
     paddingVertical: 0,
   },
