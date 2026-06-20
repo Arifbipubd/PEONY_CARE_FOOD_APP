@@ -1,9 +1,9 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../../navigation/AuthStack';
-import { colors, spacing, fontSizes, fontWeights, radius } from '../../constants/theme';
+import { colors, spacing, fontSizes, fontWeights, fontFamilies, letterSpacings, lineHeights, radius } from '../../constants/theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'ChooseRole'>;
@@ -52,11 +52,10 @@ export default function ChooseRoleScreen({ navigation }: Props) {
 
         <View style={styles.cards}>
           {ROLES.map((role) => (
-            <TouchableOpacity
+            <Pressable
               key={role.key}
-              style={styles.card}
+              style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
               onPress={() => navigation.navigate(role.screen)}
-              activeOpacity={0.7}
             >
               <View style={[styles.iconBox, { backgroundColor: role.iconBg }]}>
                 {role.renderIcon(role.iconColor)}
@@ -66,7 +65,7 @@ export default function ChooseRoleScreen({ navigation }: Props) {
                 <Text style={styles.cardSubtitle}>{role.subtitle}</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
 
@@ -97,28 +96,35 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
   },
   title: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: fontSizes.md,
+    fontFamily: fontFamilies.regular,
+    fontSize: 14,
+    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     marginBottom: spacing['3xl'],
   },
   cards: {
-    gap: spacing.lg,
+    gap: 12,
   },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: radius.card,
+    borderRadius: 16,
     borderWidth: 1.5,
     borderColor: colors.borderDefault,
     backgroundColor: colors.surface,
-    padding: spacing.lg,
-    gap: spacing.lg,
+    padding: 16,
+    gap: 16,
+  },
+  cardPressed: {
+    borderColor: colors.accentPrimary,
   },
   iconBox: {
     width: 48,
@@ -129,24 +135,27 @@ const styles = StyleSheet.create({
   },
   cardText: { flex: 1 },
   cardTitle: {
-    fontSize: fontSizes.md,
+    fontFamily: fontFamilies.semiBold,
+    fontSize: 16,
     fontWeight: fontWeights.semiBold,
     color: colors.textPrimary,
     marginBottom: spacing.xs,
   },
   cardSubtitle: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.regular,
+    fontSize: 14,
     color: colors.textMuted,
-    lineHeight: 18,
+    lineHeight: lineHeights.body,
   },
   loginRow: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.regular,
+    fontSize: 14,
     color: colors.textMuted,
     textAlign: 'center',
     marginTop: spacing['3xl'],
   },
   loginLink: {
     color: colors.accentPrimary,
-    fontWeight: fontWeights.semiBold,
+    fontWeight: fontWeights.bold,
   },
 });
