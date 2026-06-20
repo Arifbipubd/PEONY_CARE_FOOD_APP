@@ -4,7 +4,8 @@
 export const colors = {
   // Brand
   accentPrimary: '#C8102E',  // red/600 — buttons, links, active tab (verified against Design Doc/Design Utils/token_map.png + mockup pixel samples)
-  accentLight:   '#FEF2F2',  // light red tint — chip / badge backgrounds
+  accentLight:   '#FFF0F2',  // light red tint — chip / badge backgrounds (design-system "white" primitive)
+  accentDark:    '#9B0D22',  // red/700 — slogan badge text, darker accent
 
   // Surfaces
   surface:       '#FFFFFF',  // screen and card background
@@ -63,14 +64,34 @@ export const radius = {
 } as const;
 
 export const fontSizes = {
-  xs:   11,
-  sm:   13,
-  md:   15,
-  lg:   17,
-  xl:   20,
+  xs:    11,
+  sm:    13,
+  md:    15,
+  lg:    17,
+  xl:    20,
   '2xl': 24,
   '3xl': 28,
   '4xl': 32,
+  '5xl': 48,  // Heading/Bold — splash title, large display text
+} as const;
+
+export const fontFamilies = {
+  regular:  'Poppins_400Regular',
+  medium:   'Poppins_500Medium',
+  semiBold: 'Poppins_600SemiBold',
+  bold:     'Poppins_700Bold',
+} as const;
+
+export const lineHeights = {
+  heading: 50.4,  // Heading/Bold (48px font)
+  body:    21,    // Body text (14px font)
+} as const;
+
+export const letterSpacings = {
+  heading:    -1.68,  // Heading/Bold (48px)
+  subheading:  -0.6,  // Subheading/Bold (24px)
+  button:      0.3,   // Button labels
+  slogan:      0.96,  // Slogan / badge chip
 } as const;
 
 export const fontWeights = {
