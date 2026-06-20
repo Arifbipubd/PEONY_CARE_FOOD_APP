@@ -16,6 +16,19 @@ The developer is learning React Native and Expo while building this project. **B
 
 Never assume the developer already knows a concept. If a step involves a new concept (navigation, state management, hooks, etc.) explain it in 2–3 plain sentences before the plan.
 
+**Every task must be optimised by default.** This applies to every piece of code written or changed:
+
+- **React components:** Use `React.memo` on any component that receives props and doesn't need to re-render on every parent update. Use `useCallback` for event handlers passed as props. Use `useMemo` for derived values that are expensive to compute.
+- **Lists:** Always use `FlatList` or `SectionList` — never `ScrollView` with `.map()` for data-driven lists. Set `keyExtractor`, `removeClippedSubviews`, `maxToRenderPerBatch`, and `windowSize` on every FlatList.
+- **Images:** Always use appropriate `resizeMode`. Compress any new image asset before adding it to `assets/`.
+- **Imports:** Only import what is used. No wildcard imports (`import * as`). Prefer named imports so tree-shaking works.
+- **State:** Keep state as local as possible. Only lift to Zustand when truly shared across screens. Never store derived values in state — compute them inline or with `useMemo`.
+- **StyleSheet:** Always use `StyleSheet.create({})` — never inline style objects (`style={{ ... }}`), as inline objects are re-created on every render.
+- **Build (APK):** The `eas.json` preview profile targets `arm64` only. Do not add architectures without a clear reason — it doubles/triples the binary size.
+- **Async:** Avoid redundant `await`/`async` wrappers on functions that simply return a value. Chain Promises only when needed.
+
+Before implementing any feature, briefly note which of these optimisations apply and confirm they are included in the plan.
+
 **Every UI screen or component — building new, or touching existing:** Never implement or fix UI directly from memory or assumption. Always open the matching mockup (`Design Doc/Screen/...` per the table below, or a pasted image) first, produce an itemized element-by-element list (layout structure, fonts, sizes, spacing, icons, colors, copy), and cross-check each one against the current code and the authoritative tokens in `Design Doc/Design Utils/` (see Design System section below). Present that list — value observed vs. current codebase state, match or mismatch — and wait for confirmation before writing any code. Skipping this check causes hallucinated values and rework. This applies every time, not just the first time a screen is built.
 
 ---

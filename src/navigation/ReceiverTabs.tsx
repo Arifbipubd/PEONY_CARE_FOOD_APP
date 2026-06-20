@@ -41,17 +41,17 @@ export type ProfileStackParamList = {
   LocationSettings: undefined;
 };
 
-const Tab           = createBottomTabNavigator();
-const HomeStack     = createNativeStackNavigator<HomeStackParamList>();
-const HistoryStack  = createNativeStackNavigator<HistoryStackParamList>();
-const ProfileStack  = createNativeStackNavigator<ProfileStackParamList>();
+const Tab          = createBottomTabNavigator();
+const HomeStack    = createNativeStackNavigator<HomeStackParamList>();
+const HistoryStack = createNativeStackNavigator<HistoryStackParamList>();
+const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
 function HomeNavigator() {
   return (
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
-      <HomeStack.Screen name="ReceiverHome"   component={ReceiverHomeScreen} />
-      <HomeStack.Screen name="FoodDetail"     component={FoodDetailScreen} />
-      <HomeStack.Screen name="RestaurantPage" component={RestaurantPageScreen} />
+      <HomeStack.Screen name="ReceiverHome"    component={ReceiverHomeScreen} />
+      <HomeStack.Screen name="FoodDetail"      component={FoodDetailScreen} />
+      <HomeStack.Screen name="RestaurantPage"  component={RestaurantPageScreen} />
       <HomeStack.Screen name="QrScanner"       component={QrScannerScreen} />
       <HomeStack.Screen name="ClaimSuccess"    component={ClaimSuccessScreen} />
       <HomeStack.Screen name="FoodUnavailable" component={FoodUnavailableScreen} />
@@ -81,10 +81,10 @@ function ProfileNavigator() {
 }
 
 const TAB_ICONS = {
-  Home:    { active: 'home'            as const, inactive: 'home-outline'            as const },
-  History: { active: 'time'            as const, inactive: 'time-outline'            as const },
-  Alerts:  { active: 'notifications'  as const, inactive: 'notifications-outline'   as const },
-  Profile: { active: 'person-circle'  as const, inactive: 'person-circle-outline'   as const },
+  Home:    { active: 'home'           as const, inactive: 'home-outline'           as const },
+  History: { active: 'time'           as const, inactive: 'time-outline'           as const },
+  Alerts:  { active: 'notifications'  as const, inactive: 'notifications-outline'  as const },
+  Profile: { active: 'person-circle'  as const, inactive: 'person-circle-outline'  as const },
 };
 
 export default function ReceiverTabs() {

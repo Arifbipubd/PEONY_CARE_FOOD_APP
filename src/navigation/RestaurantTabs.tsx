@@ -25,11 +25,11 @@ function ManageNavigator() {
 }
 
 const TAB_ICONS = {
-  Home:    { active: 'home'              as const, inactive: 'home-outline'          as const },
-  Manage:  { active: 'restaurant'        as const, inactive: 'restaurant-outline'    as const },
-  Claims:  { active: 'receipt'           as const, inactive: 'receipt-outline'       as const },
-  Alerts:  { active: 'notifications'     as const, inactive: 'notifications-outline' as const },
-  Profile: { active: 'person-circle'     as const, inactive: 'person-circle-outline' as const },
+  Home:    { active: 'home'          as const, inactive: 'home-outline'          as const },
+  Manage:  { active: 'restaurant'   as const, inactive: 'restaurant-outline'    as const },
+  Claims:  { active: 'receipt'      as const, inactive: 'receipt-outline'       as const },
+  Alerts:  { active: 'notifications' as const, inactive: 'notifications-outline' as const },
+  Profile: { active: 'person-circle' as const, inactive: 'person-circle-outline' as const },
 };
 
 export default function RestaurantTabs() {

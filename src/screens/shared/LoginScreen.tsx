@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   },
   prefix: {
     fontSize: fontSizes.md,
-    color: colors.textMuted,
+    color: colors.textPrimary,
     fontWeight: fontWeights.medium,
   },
   btn: { marginTop: spacing.xs },
