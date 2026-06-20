@@ -114,7 +114,7 @@ export const fontWeights = {
 // Layout constants — shared pixel values for consistent sizing across screens
 export const layout = {
   foodImageHeight:       260,  // hero image on Food Detail / Restaurant Page screens
-  cardImageHeight:       190,  // image inside browse list cards
+  cardImageHeight:       170,  // image inside food listing cards (verified against Figma)
   restaurantFoodThumb:    64,  // square thumbnail on Restaurant Page food list
   tabBarHeight:           60,
   inputHeight:            52,  // text input row height (Input component)
