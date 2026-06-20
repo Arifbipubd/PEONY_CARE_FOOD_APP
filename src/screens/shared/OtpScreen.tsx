@@ -22,7 +22,7 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { UserRole } from '../../types';
 import LogoBadge from '../../components/LogoBadge';
-import { colors, spacing, fontSizes, fontWeights, radius } from '../../constants/theme';
+import { colors, spacing, fontSizes, fontWeights, fontFamilies, lineHeights, letterSpacings, radius } from '../../constants/theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Otp'>;
@@ -120,9 +120,9 @@ export default function OtpScreen({ navigation, route }: Props) {
       <View style={styles.body}>
         <LogoBadge size={80} />
 
-        <Text style={styles.title}>Welcome back</Text>
+        <Text style={styles.title}>Check your inbox</Text>
         <Text style={styles.subtitle}>
-          Code sent to <Text style={styles.phoneBold}>{phone}</Text>
+          Sent to <Text style={styles.phoneBold}>{phone}</Text>
         </Text>
 
         {/* Tap anywhere on the row to bring up the keyboard */}
@@ -174,12 +174,11 @@ export default function OtpScreen({ navigation, route }: Props) {
         </TouchableOpacity>
 
         <Button
-          label="Sign in"
+          label="Verify & continue"
           onPress={handleVerify}
           loading={loading}
           disabled={code.length < CODE_LENGTH}
-          style={styles.btn}
-          rightIcon={<Ionicons name="arrow-forward" size={20} color={colors.textInverse} />}
+          size="sm"
         />
       </View>
     </SafeAreaView>
@@ -201,25 +200,31 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   title: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
+    lineHeight: lineHeights.subheading,
+    letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
   },
   subtitle: {
-    fontSize: fontSizes.md,
+    fontFamily: fontFamilies.regular,
+    fontSize: 14,
+    fontWeight: fontWeights.regular,
     color: colors.textMuted,
   },
   phoneBold: {
-    color: colors.textPrimary,
+    fontFamily: fontFamilies.semiBold,
     fontWeight: fontWeights.semiBold,
+    color: colors.textPrimary,
   },
   codeRow: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
   digitBox: {
-    width: 48,
-    height: 58,
+    width: 52,
+    height: 56,
     borderRadius: radius.input,
     borderWidth: 1.5,
     borderColor: colors.borderDefault,
@@ -229,9 +234,10 @@ const styles = StyleSheet.create({
   },
   digitBoxActive: {
     borderColor: colors.accentPrimary,
-    backgroundColor: colors.accentLight,
+    backgroundColor: colors.surface,
   },
   digitText: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
     color: colors.textPrimary,
@@ -247,16 +253,17 @@ const styles = StyleSheet.create({
     color: colors.errorRed,
   },
   resendText: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.regular,
+    fontSize: 12,
     color: colors.textMuted,
     textAlign: 'center',
   },
   resendLink: {
-    color: colors.accentPrimary,
+    fontFamily: fontFamilies.semiBold,
     fontWeight: fontWeights.semiBold,
+    color: colors.accentPrimary,
   },
   resendDisabled: {
     color: colors.textMuted,
   },
-  btn: { width: '100%' },
 });
