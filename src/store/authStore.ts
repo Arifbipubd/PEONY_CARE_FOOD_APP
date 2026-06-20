@@ -3,7 +3,6 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import * as SecureStore from 'expo-secure-store';
 import { AuthUser } from '../types';
 
-// Custom storage adapter that wraps expo-secure-store for Zustand persist
 const secureStorage = createJSONStorage(() => ({
   getItem:    (key: string) => SecureStore.getItemAsync(key),
   setItem:    (key: string, value: string) => SecureStore.setItemAsync(key, value),
@@ -42,7 +41,6 @@ export const useAuthStore = create<AuthStore>()(
     {
       name: 'peony-auth',
       storage: secureStorage,
-      // Never persist isHydrated — it must always start false on cold start
       partialize: (state) => ({
         accessToken:  state.accessToken,
         refreshToken: state.refreshToken,

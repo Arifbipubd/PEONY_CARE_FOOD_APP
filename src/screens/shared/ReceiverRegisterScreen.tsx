@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   form: { alignSelf: 'stretch', gap: spacing.lg },
   prefix: {
     fontSize: fontSizes.md,
-    color: colors.textMuted,
+    color: colors.textPrimary,
     fontWeight: fontWeights.medium,
   },
   terms: {  
