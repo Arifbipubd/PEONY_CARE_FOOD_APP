@@ -16,7 +16,7 @@ import Button from '../../components/Button';
 import Input from '../../components/Input';
 import LogoBadge from '../../components/LogoBadge';
 import { sendOtp } from '../../services/auth';
-import { colors, spacing, fontSizes, fontWeights } from '../../constants/theme';
+import { colors, spacing, fontSizes, fontWeights, fontFamilies, lineHeights, letterSpacings } from '../../constants/theme';
 import SgFlag from '../../components/SgFlag';
 
 type Props = {
@@ -100,6 +100,7 @@ export default function ReceiverRegisterScreen({ navigation }: Props) {
             onPress={handleSend}
             loading={loading}
             disabled={!canSubmit}
+            size="sm"
             rightIcon={<Ionicons name="arrow-forward" size={20} color={colors.textInverse} />}
           />
 
@@ -136,34 +137,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
+    lineHeight: lineHeights.subheading,
+    letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
     textAlign: 'center',
     alignSelf: 'stretch',
   },
   form: { alignSelf: 'stretch', gap: spacing.lg },
   prefix: {
-    fontSize: fontSizes.md,
+    fontFamily: fontFamilies.regular,
+    fontSize: 14,
+    fontWeight: fontWeights.regular,
     color: colors.textPrimary,
-    fontWeight: fontWeights.medium,
   },
-  terms: {  
-    fontSize: fontSizes.sm,
+  terms: {
+    fontFamily: fontFamilies.regular,
+    fontSize: 14,
+    fontWeight: fontWeights.regular,
+    lineHeight: lineHeights.body,
     color: colors.textMuted,
     textAlign: 'center',
   },
   termsLink: {
+    fontFamily: fontFamilies.semiBold,
+    fontWeight: fontWeights.semiBold,
     color: colors.accentPrimary,
-    fontWeight: fontWeights.medium,
   },
   loginRow: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.regular,
+    fontSize: 14,
+    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     textAlign: 'center',
   },
   loginLink: {
-    color: colors.accentPrimary,
+    fontFamily: fontFamilies.semiBold,
     fontWeight: fontWeights.semiBold,
+    color: colors.accentPrimary,
   },
 });
