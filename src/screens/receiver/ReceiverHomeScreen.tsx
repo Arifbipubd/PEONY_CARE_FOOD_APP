@@ -21,7 +21,7 @@ import { browseFood, getDailyLimit, getReceiverProfile } from '../../services/re
 import { getNearbyRestaurants } from '../../services/restaurant';
 import { getNotifications } from '../../services/notifications';
 import { FoodItem, FoodCategory, DailyLimitStatus, PublicRestaurant } from '../../types';
-import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, layout } from '../../constants/theme';
+import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, lineHeights, layout } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
@@ -43,22 +43,15 @@ function EmptyMealsState({ onAdjustRadius }: { onAdjustRadius: () => void }) {
   return (
     <View style={emptyStyles.wrap}>
       <View style={emptyStyles.iconCircle}>
-        <Ionicons name="fast-food-outline" size={44} color={colors.textMuted} />
+        <Ionicons name="restaurant-outline" size={44} color={colors.textMuted} />
       </View>
-      <Text style={emptyStyles.heading}>No food nearby</Text>
+      <Text style={emptyStyles.heading}>No meals nearby</Text>
       <Text style={emptyStyles.body}>
-        There's nothing within your 5 km radius right now. New donations appear throughout the day.
+        Restaurants post surplus food throughout the day. Check back soon.
       </Text>
-      <View style={emptyStyles.tipsBox}>
-        <Text style={emptyStyles.tip}>Enable alerts to be notified when new food appears nearby.</Text>
-        <Text style={emptyStyles.tip}>Expand your search radius from settings.</Text>
-        <Text style={emptyStyles.tip}>Most donations appear between 5–8 PM.</Text>
-      </View>
-      <TouchableOpacity style={emptyStyles.primaryBtn} onPress={onAdjustRadius} activeOpacity={0.85}>
-        <Text style={emptyStyles.primaryBtnText}>Adjust search radius</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={emptyStyles.secondaryBtn} activeOpacity={0.7}>
-        <Text style={emptyStyles.secondaryBtnText}>Browse map</Text>
+      <TouchableOpacity style={emptyStyles.ctaBtn} onPress={onAdjustRadius} activeOpacity={0.85}>
+        <Ionicons name="navigate" size={16} color={colors.accentPrimary} />
+        <Text style={emptyStyles.ctaBtnText}>Widen search radius</Text>
       </TouchableOpacity>
     </View>
   );
@@ -67,67 +60,51 @@ function EmptyMealsState({ onAdjustRadius }: { onAdjustRadius: () => void }) {
 const emptyStyles = StyleSheet.create({
   wrap: {
     alignItems: 'center',
-    paddingTop: spacing['2xl'],
+    paddingTop: spacing['4xl'],
     paddingHorizontal: spacing['2xl'],
-    gap: spacing.lg,
   },
   iconCircle: {
-    width: 100,
-    height: 100,
+    width: 96,
+    height: 96,
     borderRadius: radius.pill,
     backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 20,   // component-specific, not in spacing scale
   },
   heading: {
-    fontSize: fontSizes['2xl'],
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.lg,       // 17px
     fontWeight: fontWeights.bold,
+    letterSpacing: -0.425,        // component-specific, not in letterSpacings scale
     color: colors.textPrimary,
     textAlign: 'center',
+    marginBottom: 8,              // component-specific, not in spacing scale
   },
   body: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],    // 14px
+    fontWeight: fontWeights.regular,
+    lineHeight: lineHeights.body, // 21px
     color: colors.textMuted,
     textAlign: 'center',
-    lineHeight: 22,
+    maxWidth: 280,
+    marginBottom: 24,             // component-specific, not in spacing scale
   },
-  tipsBox: {
-    width: '100%',
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: radius.card,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  tip: {
-    fontSize: fontSizes.sm,
-    color: colors.textMuted,
-    lineHeight: 20,
-  },
-  primaryBtn: {
-    width: '100%',
-    backgroundColor: colors.accentPrimary,
-    borderRadius: radius.card,
-    paddingVertical: spacing.lg,
+  ctaBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,                       // component-specific, not in spacing scale
+    backgroundColor: colors.avatarBg,  // #FFE0E5 — light red tint
+    borderRadius: radius.pill,
+    paddingHorizontal: 22,        // component-specific, not in spacing scale
+    paddingVertical: 12,          // component-specific, not in spacing scale
   },
-  primaryBtnText: {
-    fontSize: fontSizes.md,
+  ctaBtnText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['14'],    // 14px
     fontWeight: fontWeights.bold,
-    color: colors.textInverse,
-  },
-  secondaryBtn: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: colors.borderDefault,
-    borderRadius: radius.card,
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-  },
-  secondaryBtnText: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
-    color: colors.textPrimary,
+    color: colors.accentPrimary,
   },
 });
 
