@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Slider from '@react-native-community/slider';
 import BottomSheet from './BottomSheet';
 import { FoodItem, FoodCategory } from '../types';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../constants/theme';
+import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies } from '../constants/theme';
 
 export type ShowOnlyFilters = {
   sponsored: boolean;
@@ -100,7 +100,7 @@ export default function FilterSheet({ visible, onClose, foods, value, onApply }:
       </View>
 
       <View style={styles.distanceHeader}>
-        <Text style={styles.sectionLabel}>DISTANCE</Text>
+        <Text style={[styles.sectionLabel, styles.distanceSectionLabel]}>DISTANCE</Text>
         <Text style={styles.distanceValue}>{draft.maxDistanceKm} km</Text>
       </View>
       <Slider
@@ -109,9 +109,9 @@ export default function FilterSheet({ visible, onClose, foods, value, onApply }:
         maximumValue={20}
         step={1}
         value={draft.maxDistanceKm}
-        minimumTrackTintColor={colors.accentPrimary}
+        minimumTrackTintColor={colors.sliderBlue}
         maximumTrackTintColor={colors.borderDefault}
-        thumbTintColor={colors.accentPrimary}
+        thumbTintColor={colors.sliderBlue}
         onValueChange={(v) => setDraft((d) => ({ ...d, maxDistanceKm: v }))}
       />
 
@@ -158,22 +158,29 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   title: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xl,
     fontWeight: fontWeights.bold,
+    letterSpacing: -0.5,      // component-specific
     color: colors.textPrimary,
   },
   reset: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    fontWeight: fontWeights.semiBold,
     color: colors.accentPrimary,
   },
 
   sectionLabel: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.medium,
+    fontWeight: fontWeights.bold,
+    letterSpacing: 0.88,      // component-specific
     color: colors.textMuted,
-    letterSpacing: 0.5,
-    marginBottom: spacing.md,
+    marginBottom: 12,         // component-specific
+  },
+  distanceSectionLabel: {
+    marginBottom: 0,
   },
 
   chipsWrap: {
@@ -183,21 +190,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   chip: {
-    borderRadius: radius.chip,
-    borderWidth: 1,
-    borderColor: colors.borderDefault,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    paddingHorizontal: 14,    // component-specific
+    paddingVertical: 8,       // component-specific
     backgroundColor: colors.surfaceSecondary,
   },
   chipActive: {
     backgroundColor: colors.textPrimary,
-    borderColor: colors.textPrimary,
   },
   chipText: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    fontWeight: fontWeights.semiBold,
     color: colors.textPrimary,
-    fontWeight: fontWeights.medium,
   },
   chipTextActive: {
     color: colors.textInverse,
@@ -207,16 +212,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,         // component-specific — matches slider margin-top in Figma
   },
   distanceValue: {
-    fontSize: fontSizes.md,
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.xl,
     fontWeight: fontWeights.bold,
+    letterSpacing: -0.5,      // component-specific
     color: colors.textPrimary,
-    marginBottom: spacing.md,
   },
   slider: {
-    width: '100%',
-    height: 36,
+    height: 16,               // component-specific — matches Figma slider height
     marginBottom: spacing.xl,
   },
 
@@ -226,26 +232,36 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     flex: 1,
-    borderRadius: radius.card,
+    height: 50,               // component-specific
+    borderRadius: radius.input,
     backgroundColor: colors.surfaceSecondary,
-    paddingVertical: spacing.lg,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelBtnText: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['14'],
+    fontWeight: fontWeights.semiBold,
     color: colors.textPrimary,
   },
   applyBtn: {
     flex: 1.6,
-    borderRadius: radius.card,
+    height: 50,               // component-specific
+    borderRadius: radius.input,
     backgroundColor: colors.accentPrimary,
-    paddingVertical: spacing.lg,
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.accentPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 6,
   },
   applyBtnText: {
-    fontSize: fontSizes.md,
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['14'],
     fontWeight: fontWeights.bold,
+    letterSpacing: 0.28,      // component-specific
     color: colors.textInverse,
   },
 });

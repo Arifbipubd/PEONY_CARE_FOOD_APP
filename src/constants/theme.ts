@@ -43,6 +43,9 @@ export const colors = {
 
   // Mint (receiver icon background — verified against Choose-Role@2x.png)
   mintLight: '#DCFCE7',  // green/100
+
+  // Slider track (blue/500 from design system — verified against prototype.design-system.json)
+  sliderBlue: '#2563EB',
 } as const;
 
 export const spacing = {
