@@ -8,8 +8,9 @@ export const colors = {
   accentDark:    '#9B0D22',  // red/700 — slogan badge text, darker accent
 
   // Surfaces
-  surface:       '#FFFFFF',  // screen and card background
-  surfaceSecondary: '#F5F5F5', // neutral gray for inner sections (verified against design-system.json)
+  surface:          '#FFFFFF',   // screen and card background
+  surfaceSecondary: '#F5F5F5',   // neutral gray for inner sections (verified against design-system.json)
+  surfaceTertiary:  '#FAFAFA',   // subtle off-white surface (search bar background)
 
   // Text
   textPrimary:   '#1A1A2E',  // dark navy — headings
@@ -29,6 +30,9 @@ export const colors = {
   warningYellow:      '#F59E0B',
   warningYellowLight: '#FFFBEB',
   errorRed:      '#D31B1B',
+
+  // Input focus ring (shadow/5 from design system)
+  accentFocusShadow: 'rgba(200, 16, 46, 0.08)',
 
   // Avatar (initials badge)
   avatarBg:   '#FFE0E5',  // red/100 — avatar circle background, role-icon backgrounds
@@ -64,15 +68,18 @@ export const radius = {
 } as const;
 
 export const fontSizes = {
-  xs:    11,
-  sm:    13,
-  md:    15,
-  lg:    17,
-  xl:    20,
-  '2xl': 24,
+  xs:    11,   // Caption/Bold-Medium-Regular 11px
+  '12':  12,   // Caption/Bold-Medium-Regular 12px
+  sm:    13,   // Caption/Bold-Regular-Medium 13px
+  '14':  14,   // Caption/Bold-Medium 14px
+  md:    15,   // Caption/Bold-Medium 15px
+  '16':  16,   // Body/Regular-Bold 16px
+  lg:    17,   // Body/Bold 17px
+  xl:    20,   // Body/Bold 20px
+  '2xl': 24,   // Subheading/Bold 24px
   '3xl': 28,
   '4xl': 32,
-  '5xl': 48,  // Heading/Bold — splash title, large display text
+  '5xl': 48,   // Heading/Bold — splash title, large display text
 } as const;
 
 export const fontFamilies = {
@@ -91,7 +98,9 @@ export const lineHeights = {
 export const letterSpacings = {
   heading:    -1.68,  // Heading/Bold (48px)
   subheading:  -0.6,  // Subheading/Bold (24px)
-  button:      0.3,   // Button labels
+  bodyBold:   -0.5,   // Body/Bold (20px) — section headings, home greeting
+  button:      0.3,   // Button labels (Caption/Bold 15px)
+  buttonSm:    0.28,  // Small button labels (Caption/Bold 14px)
   slogan:      0.96,  // Slogan / badge chip
 } as const;
 
@@ -108,4 +117,7 @@ export const layout = {
   cardImageHeight:       190,  // image inside browse list cards
   restaurantFoodThumb:    64,  // square thumbnail on Restaurant Page food list
   tabBarHeight:           60,
+  inputHeight:            52,  // text input row height (Input component)
+  buttonHeight:           54,  // primary/outline button height (Button component)
+  actionButtonSize:       48,  // 48×48 icon action buttons (filter, etc.) and search bar height
 } as const;
