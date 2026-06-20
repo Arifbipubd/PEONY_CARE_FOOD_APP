@@ -1,0 +1,21 @@
+{
+  "cli": {
+    "version": ">= 18.0.0"
+  },
+  "build": {
+    "preview": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease",
+        "withoutCredentials": false,
+        "environment": {},
+        "arch": "arm64"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  }
+}

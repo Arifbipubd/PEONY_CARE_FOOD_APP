@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.surfaceSecondary,
     flexDirection: 'row',
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   sectionDivider: {
     width: 1,
