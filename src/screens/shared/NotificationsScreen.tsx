@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,9 @@ import {
   markAllRead as apiMarkAllRead,
 } from '../../services/notifications';
 import { AppNotification } from '../../types';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../../constants/theme';
+import {
+  colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, layout,
+} from '../../constants/theme';
 
 type Props = {
   navigation: BottomTabNavigationProp<Record<string, undefined>>;
@@ -32,17 +34,17 @@ type IconConfig = {
 function getIconConfig(type: string): IconConfig {
   switch (type) {
     case 'CLAIM_CONFIRMED':
-      return { name: 'checkmark-circle', color: colors.successGreen, bg: colors.successGreenLight };
+      return { name: 'checkmark-circle',   color: colors.successGreen,  bg: colors.successGreenLight };
     case 'NEW_FOOD_NEARBY':
-      return { name: 'restaurant-outline', color: colors.accentPrimary, bg: colors.accentLight };
+      return { name: 'restaurant',         color: colors.accentPrimary, bg: colors.avatarBg };
     case 'FOOD_EXPIRING':
-      return { name: 'time-outline', color: colors.warningYellow, bg: '#FEF3C7' };
+      return { name: 'time',               color: colors.goldDark,      bg: colors.goldLight };
     case 'RESTAURANT_UPDATE':
-      return { name: 'business-outline', color: colors.textMuted, bg: colors.surfaceSecondary };
+      return { name: 'business',           color: colors.textPrimary,   bg: colors.surfaceSecondary };
     case 'SPONSOR_RECEIVED':
-      return { name: 'heart-outline', color: colors.warningYellow, bg: '#FEF9C3' };
+      return { name: 'heart',              color: colors.goldDark,      bg: colors.goldLight };
     default:
-      return { name: 'notifications-outline', color: colors.textMuted, bg: colors.surfaceSecondary };
+      return { name: 'information-circle', color: colors.textPrimary,   bg: colors.surfaceSecondary };
   }
 }
 
@@ -84,9 +86,46 @@ function buildSections(notifications: AppNotification[]) {
   }));
 }
 
+const NotifRow = memo(function NotifRow({
+  item,
+  onPress,
+}: {
+  item: AppNotification;
+  onPress: (id: string) => void;
+}) {
+  const icon   = getIconConfig(item.type);
+  const isRead = item.readAt !== null;
+  return (
+    <TouchableOpacity
+      style={styles.row}
+      activeOpacity={0.75}
+      onPress={() => onPress(item.id)}
+    >
+      <View style={[styles.iconCircle, { backgroundColor: icon.bg }]}>
+        <Ionicons name={icon.name} size={22} color={icon.color} />
+      </View>
+      <View style={styles.rowBody}>
+        <View style={styles.rowTop}>
+          <Text
+            style={[styles.rowTitle, isRead && styles.rowTitleRead]}
+            numberOfLines={1}
+          >
+            {item.title}
+          </Text>
+          <Text style={styles.rowTime}>{relTime(item.createdAt)}</Text>
+        </View>
+        <Text style={styles.rowDesc} numberOfLines={2}>{item.body}</Text>
+      </View>
+      {!isRead && <View style={styles.unreadDot} />}
+    </TouchableOpacity>
+  );
+});
+
 export default function NotificationsScreen({ navigation }: Props) {
-  const { notifications, setNotifications, markRead: storeMarkRead, markAllRead: storeMarkAllRead } =
-    useNotificationStore();
+  const {
+    notifications, setNotifications,
+    markRead: storeMarkRead, markAllRead: storeMarkAllRead,
+  } = useNotificationStore();
   const [loading, setLoading] = useState(notifications.length === 0);
 
   useEffect(() => {
@@ -111,49 +150,66 @@ export default function NotificationsScreen({ navigation }: Props) {
   if (loading) {
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Notifications</Text>
+        <View style={styles.filterRow}>
+          <TouchableOpacity onPress={() => navigation.navigate('Home' as never)} hitSlop={8}>
+            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleMarkAll} hitSlop={8}>
+            <Ionicons name="options" size={22} color={colors.textMuted} />
+          </TouchableOpacity>
         </View>
+        <Text style={styles.pageTitle}>Notifications</Text>
         <ActivityIndicator style={{ flex: 1 }} color={colors.accentPrimary} />
       </SafeAreaView>
     );
   }
 
+  // ── Empty state ──────────────────────────────────────────────────────────────
   if (notifications.length === 0) {
     return (
-      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Notifications</Text>
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <View style={styles.filterRow}>
+          <TouchableOpacity onPress={() => navigation.navigate('Home' as never)} hitSlop={8}>
+            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleMarkAll} hitSlop={8}>
+            <Ionicons name="options" size={22} color={colors.textMuted} />
+          </TouchableOpacity>
         </View>
-        <View style={styles.emptyWrap}>
-          <View style={styles.emptyCircle}>
-            <Ionicons name="notifications-outline" size={48} color={colors.textMuted} />
+        <Text style={styles.pageTitle}>Notifications</Text>
+        <View style={styles.emptyBody}>
+          <View style={styles.emptyIconCircle}>
+            <Ionicons name="notifications" size={48} color={colors.textMuted} />
           </View>
-          <Text style={styles.emptyHeading}>All caught up</Text>
-          <Text style={styles.emptyBody}>
+          <Text style={styles.emptyTitle}>All caught up</Text>
+          <Text style={styles.emptyDesc}>
             When new food appears nearby or someone claims your donation, you'll see it here.
           </Text>
           <TouchableOpacity
-            style={styles.browseBtn}
+            style={styles.emptyCta}
             activeOpacity={0.85}
             onPress={() => navigation.navigate('Home' as never)}
           >
-            <Text style={styles.browseBtnText}>Browse food</Text>
+            <Text style={styles.emptyCtaText}>Browse food</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
+  // ── Filled state ─────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
 
-      <View style={styles.header}>
-        <Text style={styles.title}>Notifications</Text>
+      <View style={styles.filterRow}>
+        <TouchableOpacity onPress={() => navigation.navigate('Home' as never)} hitSlop={8}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={handleMarkAll} hitSlop={8}>
-          <Ionicons name="options-outline" size={22} color={colors.textMuted} />
+          <Ionicons name="options" size={22} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
+      <Text style={styles.pageTitle}>Notifications</Text>
 
       <SectionList
         sections={sections}
@@ -161,38 +217,13 @@ export default function NotificationsScreen({ navigation }: Props) {
         renderSectionHeader={({ section: { title } }) => (
           <Text style={styles.sectionHeader}>{title}</Text>
         )}
-        renderItem={({ item }) => {
-          const icon = getIconConfig(item.type);
-          const isRead = item.readAt !== null;
-          return (
-            <TouchableOpacity
-              style={[styles.row, isRead && styles.rowRead]}
-              activeOpacity={0.75}
-              onPress={() => handleTap(item.id)}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: icon.bg }]}>
-                <Ionicons name={icon.name} size={22} color={icon.color} />
-              </View>
-              <View style={styles.rowBody}>
-                <View style={styles.rowTop}>
-                  <Text
-                    style={[styles.rowTitle, isRead && styles.rowTitleRead]}
-                    numberOfLines={1}
-                  >
-                    {item.title}
-                  </Text>
-                  <Text style={styles.rowTime}>{relTime(item.createdAt)}</Text>
-                </View>
-                <Text style={styles.rowDesc} numberOfLines={2}>
-                  {item.body}
-                </Text>
-              </View>
-              {!isRead && <View style={styles.unreadDot} />}
-            </TouchableOpacity>
-          );
-        }}
+        renderItem={({ item }) => <NotifRow item={item} onPress={handleTap} />}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        stickySectionHeadersEnabled={false}
       />
 
     </SafeAreaView>
@@ -202,44 +233,46 @@ export default function NotificationsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
 
-  header: {
+  // ── Header ───────────────────────────────────────────────────────────────────
+  filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing['2xl'],
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingVertical: spacing.md,
   },
-  title: {
-    fontSize: fontSizes['3xl'],
+  pageTitle: {
+    fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
+    paddingTop: 4,
+    paddingHorizontal: spacing['2xl'],
+    paddingBottom: 16,
   },
 
-  // List
-  listContent: {
-    paddingBottom: spacing['4xl'],
-  },
+  // ── Section header ───────────────────────────────────────────────────────────
   sectionHeader: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['12'],
     fontWeight: fontWeights.medium,
+    fontFamily: fontFamilies.medium,
     color: colors.textMuted,
-    paddingHorizontal: spacing['2xl'],
     paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
   },
 
-  // Row
+  // ── Notification row ─────────────────────────────────────────────────────────
+  listContent: {
+    paddingHorizontal: 20,
+    paddingBottom: spacing['4xl'],
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing['2xl'],
-    paddingVertical: spacing.lg,
-    gap: spacing.md,
-    backgroundColor: colors.surface,
-  },
-  rowRead: {
-    opacity: 0.6,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    gap: spacing.lg,
   },
   iconCircle: {
     width: 44,
@@ -249,10 +282,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  rowBody: {
-    flex: 1,
-    gap: spacing.xs,
-  },
+  rowBody: { flex: 1 },
   rowTop: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -261,23 +291,30 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     flex: 1,
-    fontSize: fontSizes.md,
+    fontSize: fontSizes['14'],
     fontWeight: fontWeights.semiBold,
+    fontFamily: fontFamilies.semiBold,
+    letterSpacing: -0.21,
     color: colors.textPrimary,
   },
   rowTitleRead: {
     fontWeight: fontWeights.regular,
+    fontFamily: fontFamilies.regular,
   },
   rowTime: {
-    fontSize: fontSizes.xs,
+    fontSize: fontSizes['12'],
+    fontWeight: fontWeights.medium,
+    fontFamily: fontFamilies.medium,
     color: colors.textMuted,
-    marginTop: 2,
     flexShrink: 0,
+    marginTop: 2,
   },
   rowDesc: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['12'],
+    fontWeight: fontWeights.regular,
+    fontFamily: fontFamilies.regular,
     color: colors.textMuted,
-    lineHeight: 19,
+    marginTop: 2,
   },
   unreadDot: {
     width: 8,
@@ -287,46 +324,61 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
 
-  // Empty state
-  emptyWrap: {
+  // ── Empty state ───────────────────────────────────────────────────────────────
+  emptyBody: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing['2xl'],
-    gap: spacing.lg,
   },
-  emptyCircle: {
-    width: 100,
-    height: 100,
+  emptyIconCircle: {
+    width: 120,
+    height: 120,
     borderRadius: radius.pill,
     backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing['2xl'],
   },
-  emptyHeading: {
+  emptyTitle: {
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
     textAlign: 'center',
+    marginBottom: 10,
   },
-  emptyBody: {
-    fontSize: fontSizes.sm,
+  emptyDesc: {
+    fontSize: fontSizes['14'],
+    fontWeight: fontWeights.regular,
+    fontFamily: fontFamilies.regular,
+    lineHeight: 21,
     color: colors.textMuted,
     textAlign: 'center',
-    lineHeight: 22,
+    paddingHorizontal: 12,
   },
-  browseBtn: {
-    width: '100%',
+  emptyCta: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     backgroundColor: colors.accentPrimary,
     borderRadius: radius.card,
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-    marginTop: spacing.md,
+    height: layout.buttonHeight,
+    marginTop: spacing['2xl'],
+    marginHorizontal: 20,
+    shadowColor: colors.accentPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  browseBtnText: {
+  emptyCtaText: {
     fontSize: fontSizes.md,
     fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: letterSpacings.button,
     color: colors.textInverse,
   },
 });
