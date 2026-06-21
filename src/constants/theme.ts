@@ -39,6 +39,7 @@ export const colors = {
 
   // Gold (donor "hand-heart" icon — verified against Choose-Role@2x.png)
   goldLight: '#FFF3D0',  // yellow/200
+  goldMid:   '#D4AF37',  // yellow/500 — donor avatar bg, anon heart icon (verified against FoodDetail Figma CSS)
   goldDark:  '#B8941E',  // yellow/600
 
   // Mint (receiver icon background — verified against Choose-Role@2x.png)
