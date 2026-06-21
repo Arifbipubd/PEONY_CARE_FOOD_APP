@@ -131,6 +131,7 @@ export interface ApiPublicRestaurant {
   photo_url: string;
   is_verified: boolean;
   total_food_shared: number;
+  meal_count: number;
 }
 
 export interface ApiRestaurantDonation {
