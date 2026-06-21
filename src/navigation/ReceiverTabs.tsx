@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Claim } from '../types';
 import ReceiverHomeScreen     from '../screens/receiver/ReceiverHomeScreen';
@@ -82,7 +83,6 @@ function ProfileNavigator() {
 
 const TAB_ICONS = {
   Home:    { active: 'home'           as const, inactive: 'home-outline'           as const },
-  History: { active: 'time'           as const, inactive: 'time-outline'           as const },
   Alerts:  { active: 'notifications'  as const, inactive: 'notifications-outline'  as const },
   Profile: { active: 'person-circle'  as const, inactive: 'person-circle-outline'  as const },
 };
@@ -97,6 +97,9 @@ export default function ReceiverTabs() {
         tabBarLabelStyle: { fontSize: fontSizes.xs },
         tabBarStyle: { borderTopColor: colors.borderDefault },
         tabBarIcon: ({ focused, color, size }) => {
+          if (route.name === 'History') {
+            return <MaterialCommunityIcons name="history" size={size} color={color} />;
+          }
           const icons = TAB_ICONS[route.name as keyof typeof TAB_ICONS];
           if (!icons) return null;
           return <Ionicons name={focused ? icons.active : icons.inactive} size={size} color={color} />;
