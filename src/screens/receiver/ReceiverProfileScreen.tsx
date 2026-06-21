@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import {
   View,
   Text,
@@ -11,11 +11,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthStore } from '../../store/authStore';
+import { useNotificationStore } from '../../store/notificationStore';
 import { logout } from '../../services/auth';
 import { getReceiverProfile } from '../../services/receiver';
 import { ReceiverProfile } from '../../types';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../../constants/theme';
+import {
+  colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, lineHeights,
+} from '../../constants/theme';
 import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
+import SgFlag from '../../components/SgFlag';
 
 type Props = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'ReceiverProfile'>;
@@ -30,6 +34,14 @@ function initials(name: string): string {
     .slice(0, 2);
 }
 
+function formatSGPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('65') && digits.length === 10) {
+    return `+65 ${digits.slice(2, 6)} ${digits.slice(6)}`;
+  }
+  return phone;
+}
+
 type MenuRow = {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   iconBg: string;
@@ -41,6 +53,7 @@ type MenuRow = {
 
 export default function ReceiverProfileScreen({ navigation }: Props) {
   const { refreshToken, clearAuth } = useAuthStore();
+  const { unreadCount } = useNotificationStore();
   const [profile, setProfile] = useState<ReceiverProfile | null>(null);
   const [loading, setLoading]   = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -73,40 +86,33 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
 
   const accountRows: MenuRow[] = [
     {
-      icon: 'location-outline',
-      iconBg: colors.accentLight,
+      icon: 'location',
+      iconBg: colors.avatarBg,
       iconColor: colors.accentPrimary,
       label: 'Location settings',
       subtitle: '5 km radius · Joo Chiat',
       onPress: () => navigation.navigate('LocationSettings'),
     },
     {
-      icon: 'notifications-outline',
-      iconBg: '#FEF9E7',
+      icon: 'notifications',
+      iconBg: colors.goldLight,
       iconColor: colors.warningYellow,
       label: 'Notifications',
       subtitle: '3 channels enabled',
-      onPress: () => {},
-    },
-    {
-      icon: 'lock-closed-outline',
-      iconBg: colors.surfaceSecondary,
-      iconColor: colors.textMuted,
-      label: 'Change password',
       onPress: () => {},
     },
   ];
 
   const supportRows: MenuRow[] = [
     {
-      icon: 'help-circle-outline',
+      icon: 'help-circle',
       iconBg: colors.surfaceSecondary,
       iconColor: colors.textMuted,
       label: 'Help & FAQ',
       onPress: () => {},
     },
     {
-      icon: 'document-text-outline',
+      icon: 'document-text',
       iconBg: colors.surfaceSecondary,
       iconColor: colors.textMuted,
       label: 'Terms & Privacy',
@@ -126,32 +132,35 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <TouchableOpacity
+          style={styles.notifBtn}
           onPress={() => navigation.getParent()?.navigate('Alerts')}
           hitSlop={8}
         >
-          <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
+          <Ionicons name="notifications" size={20} color={colors.textPrimary} />
+          {unreadCount > 0 && <View style={styles.notifDot} />}
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* Avatar */}
-        <View style={styles.avatarCircle}>
-          <Text style={styles.avatarText}>{initials(profile.displayName)}</Text>
+        <View style={styles.avatarWrapper}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarText}>{initials(profile.displayName)}</Text>
+          </View>
+          <View style={styles.cameraBtn}>
+            <Ionicons name="camera" size={15} color={colors.textInverse} />
+          </View>
         </View>
 
+        {/* Name */}
         <Text style={styles.name}>{profile.displayName}</Text>
-        <Text style={styles.email}>{profile.email}</Text>
 
-        {/* Verified badge */}
-        {profile.isVerified && (
-          <View style={styles.verifiedBadge}>
-            <Ionicons name="checkmark-circle" size={14} color={colors.accentPrimary} />
-            <Text style={styles.verifiedText}>
-              Verified · Member since {profile.memberSince}
-            </Text>
-          </View>
-        )}
+        {/* Phone row */}
+        <View style={styles.phoneRow}>
+          <SgFlag size={16} />
+          <Text style={styles.phone}>{formatSGPhone(profile.phone)}</Text>
+        </View>
 
         {/* Stats */}
         <View style={styles.statsRow}>
@@ -199,6 +208,12 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
           ))}
         </View>
 
+        {/* Member since pill */}
+        <View style={styles.memberPill}>
+          <Ionicons name="calendar-outline" size={14} color={colors.accentPrimary} />
+          <Text style={styles.memberText}>Member since {profile.memberSince}</Text>
+        </View>
+
         {/* Log out */}
         <TouchableOpacity
           style={styles.logoutBtn}
@@ -206,10 +221,14 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
           disabled={loggingOut}
           activeOpacity={0.7}
         >
-          {loggingOut
-            ? <ActivityIndicator color={colors.accentPrimary} />
-            : <Text style={styles.logoutText}>Log out</Text>
-          }
+          {loggingOut ? (
+            <ActivityIndicator color={colors.errorRed} />
+          ) : (
+            <>
+              <Ionicons name="log-out-outline" size={18} color={colors.errorRed} />
+              <Text style={styles.logoutText}>Log out</Text>
+            </>
+          )}
         </TouchableOpacity>
 
       </ScrollView>
@@ -217,7 +236,7 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
   );
 }
 
-function MenuRowItem({ row, isLast }: { row: MenuRow; isLast: boolean }) {
+const MenuRowItem = memo(function MenuRowItem({ row, isLast }: { row: MenuRow; isLast: boolean }) {
   return (
     <TouchableOpacity
       style={[styles.menuRow, isLast && styles.menuRowLast]}
@@ -233,9 +252,10 @@ function MenuRowItem({ row, isLast }: { row: MenuRow; isLast: boolean }) {
           <Text style={styles.menuSubtitle}>{row.subtitle}</Text>
         )}
       </View>
+      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
@@ -247,60 +267,89 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing['2xl'],
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderDefault,
+  },
+  notifBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notifDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentPrimary,
   },
 
   scroll: {
-    paddingHorizontal: spacing['2xl'],
+    paddingHorizontal: 16,
     paddingTop: spacing['2xl'],
     paddingBottom: spacing['4xl'],
     alignItems: 'center',
   },
 
-  avatarCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+  // ── Avatar ───────────────────────────────────────────────────────────────────
+  avatarWrapper: {
+    position: 'relative',
     marginBottom: spacing.lg,
   },
+  avatarCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: radius.pill,
+    backgroundColor: colors.avatarBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   avatarText: {
-    fontSize: fontSizes['2xl'],
+    fontSize: fontSizes.xl,
     fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: 0.4,
     color: colors.accentPrimary,
   },
+  cameraBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentPrimary,
+    borderWidth: 3,
+    borderColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
+  // ── Name / phone ─────────────────────────────────────────────────────────────
   name: {
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
-    marginBottom: spacing.xs,
   },
-  email: {
-    fontSize: fontSizes.sm,
-    color: colors.textMuted,
-    marginBottom: spacing.md,
-  },
-
-  verifiedBadge: {
+  phoneRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.accentLight,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    gap: 6,
+    marginTop: 4,
     marginBottom: spacing['2xl'],
   },
-  verifiedText: {
-    fontSize: fontSizes.sm,
-    color: colors.accentPrimary,
-    fontWeight: fontWeights.medium,
+  phone: {
+    fontSize: fontSizes['14'],
+    fontWeight: fontWeights.regular,
+    fontFamily: fontFamilies.regular,
+    color: colors.textMuted,
   },
 
+  // ── Stats ─────────────────────────────────────────────────────────────────────
   statsRow: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -311,33 +360,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.surfaceSecondary,
     borderRadius: radius.card,
-    paddingVertical: spacing.lg,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
     alignItems: 'center',
-    gap: spacing.xs,
   },
   statNumber: {
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    lineHeight: lineHeights.subheading,
+    letterSpacing: -0.84,
   },
   statLabel: {
     fontSize: fontSizes.xs,
-    color: colors.textMuted,
     fontWeight: fontWeights.semiBold,
-    letterSpacing: 0.5,
+    fontFamily: fontFamilies.semiBold,
+    color: colors.textMuted,
+    letterSpacing: 0.88,
+    marginTop: 4,
   },
 
+  // ── Section title ─────────────────────────────────────────────────────────────
   sectionLabel: {
     alignSelf: 'flex-start',
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: -0.425,
     color: colors.textPrimary,
     marginBottom: spacing.md,
   },
 
+  // ── Menu card ─────────────────────────────────────────────────────────────────
   menuCard: {
     width: '100%',
-    borderWidth: 1,
-    borderColor: colors.borderDefault,
+    backgroundColor: colors.surfaceTertiary,
     borderRadius: radius.card,
     overflow: 'hidden',
     marginBottom: spacing['2xl'],
@@ -345,8 +402,9 @@ const styles = StyleSheet.create({
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.lg,
-    gap: spacing.md,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderDefault,
   },
@@ -354,35 +412,64 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   menuIcon: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-  menuText: { flex: 1, gap: spacing.xs },
+  menuText: { flex: 1 },
   menuLabel: {
-    fontSize: fontSizes.md,
+    fontSize: fontSizes['14'],
     fontWeight: fontWeights.semiBold,
+    fontFamily: fontFamilies.semiBold,
+    letterSpacing: -0.21,
     color: colors.textPrimary,
   },
   menuSubtitle: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['12'],
+    fontWeight: fontWeights.regular,
+    fontFamily: fontFamilies.regular,
     color: colors.textMuted,
+    marginTop: 2,
   },
 
+  // ── Member since pill ─────────────────────────────────────────────────────────
+  memberPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.avatarBg,
+    borderRadius: radius.pill,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    marginTop: 14,
+  },
+  memberText: {
+    fontSize: fontSizes['12'],
+    fontWeight: fontWeights.semiBold,
+    fontFamily: fontFamilies.semiBold,
+    color: colors.accentPrimary,
+  },
+
+  // ── Logout ────────────────────────────────────────────────────────────────────
   logoutBtn: {
     width: '100%',
-    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 52,
+    borderWidth: 1.5,
     borderColor: colors.borderDefault,
     borderRadius: radius.card,
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-    marginTop: spacing.sm,
+    marginTop: spacing['2xl'],
   },
   logoutText: {
-    fontSize: fontSizes.md,
+    fontSize: fontSizes['16'],
     fontWeight: fontWeights.semiBold,
-    color: colors.accentPrimary,
+    fontFamily: fontFamilies.semiBold,
+    color: colors.errorRed,
   },
 });
