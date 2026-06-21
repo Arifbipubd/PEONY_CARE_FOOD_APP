@@ -10,11 +10,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getClaimHistory, getReceiverProfile } from '../../services/receiver';
 import { ClaimHistory, ClaimHistoryItem, ReceiverProfile } from '../../types';
-import { colors, spacing, radius, fontSizes, fontWeights, layout } from '../../constants/theme';
+import {
+  colors, spacing, radius, fontSizes, fontFamilies, fontWeights, letterSpacings, layout,
+} from '../../constants/theme';
 import { HistoryStackParamList } from '../../navigation/ReceiverTabs';
+import { useNotificationStore } from '../../store/notificationStore';
 
 type Props = {
   navigation: NativeStackNavigationProp<HistoryStackParamList, 'ReceiverHistory'>;
@@ -50,6 +54,7 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
   const [history, setHistory] = useState<ClaimHistory | null>(null);
   const [profile, setProfile] = useState<ReceiverProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { unreadCount } = useNotificationStore();
 
   useEffect(() => {
     Promise.all([getClaimHistory(), getReceiverProfile()]).then(([h, p]) => {
@@ -73,16 +78,52 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
     data:  g.claims,
   }));
 
+  // ── Empty state ──────────────────────────────────────────────────────────────
+  if (sections.length === 0) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.getParent()?.navigate('Home')} hitSlop={8}>
+            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.emptyPageTitle}>Claim history</Text>
+        <View style={styles.emptyBody}>
+          <View style={styles.emptyIconCircle}>
+            <MaterialCommunityIcons name="history" size={40} color={colors.textMuted} />
+          </View>
+          <Text style={styles.emptyTitle}>No claims yet</Text>
+          <Text style={styles.emptyDesc}>
+            Your claimed meals will appear here. Start by browsing complimentary food near you.
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyCta}
+            onPress={() => navigation.getParent()?.navigate('Home')}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="restaurant" size={18} color={colors.textInverse} />
+            <Text style={styles.emptyCtaText}>Find food nearby</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Filled state ─────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.getParent()?.navigate('Home')} hitSlop={8}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.getParent()?.navigate('Alerts')} hitSlop={8}>
-          <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.notifBtn}
+          onPress={() => navigation.getParent()?.navigate('Alerts')}
+          hitSlop={8}
+        >
+          <Ionicons name="notifications-outline" size={20} color={colors.textPrimary} />
+          {unreadCount > 0 && <View style={styles.notifDot} />}
         </TouchableOpacity>
       </View>
 
@@ -91,6 +132,9 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         stickySectionHeadersEnabled={false}
+        removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={5}
         ListHeaderComponent={
           <View style={styles.stats}>
             <Text style={styles.lifetimeLabel}>Lifetime</Text>
@@ -142,10 +186,95 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing['2xl'],
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderDefault,
   },
 
+  notifBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notifDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentPrimary,
+  },
+
+  // ── Empty state ──────────────────────────────────────────────────────────────
+  emptyPageTitle: {
+    fontSize: fontSizes['2xl'],
+    fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: letterSpacings.subheading,
+    color: colors.textPrimary,
+    paddingTop: 4,
+    paddingHorizontal: spacing['2xl'],
+    paddingBottom: 16,
+  },
+  emptyBody: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyIconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing['2xl'],
+  },
+  emptyTitle: {
+    fontSize: fontSizes['2xl'],
+    fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: letterSpacings.subheading,
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  emptyDesc: {
+    fontSize: fontSizes['14'],
+    fontWeight: fontWeights.regular,
+    fontFamily: fontFamilies.regular,
+    lineHeight: 21,
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingHorizontal: spacing['2xl'],
+  },
+  emptyCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.accentPrimary,
+    borderRadius: radius.card,
+    height: layout.buttonHeight,
+    marginTop: 16,
+    marginHorizontal: 20,
+    alignSelf: 'stretch',
+    shadowColor: colors.accentPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  emptyCtaText: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: letterSpacings.button,
+    color: colors.textInverse,
+  },
+
+  // ── Filled state ─────────────────────────────────────────────────────────────
   stats: {
     paddingHorizontal: spacing['2xl'],
     paddingTop: spacing['2xl'],
@@ -153,24 +282,33 @@ const styles = StyleSheet.create({
   },
   lifetimeLabel: {
     fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    fontFamily: fontFamilies.medium,
     color: colors.textMuted,
+    marginBottom: spacing.sm,
   },
   heading: {
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
-    marginBottom: spacing.lg,
+    marginBottom: 12,
   },
   bigNumber: {
-    fontSize: 52,
+    fontSize: fontSizes['5xl'],
     fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    lineHeight: fontSizes['5xl'],
+    letterSpacing: letterSpacings.heading,
     color: colors.textPrimary,
-    lineHeight: 58,
   },
   statsSubtitle: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['14'],
+    fontWeight: fontWeights.regular,
+    fontFamily: fontFamilies.regular,
     color: colors.textMuted,
-    marginTop: spacing.xs,
+    marginTop: 10,
   },
 
   sectionHeader: {
@@ -182,12 +320,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
   },
   sectionTitle: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['12'],
+    fontWeight: fontWeights.medium,
+    fontFamily: fontFamilies.medium,
     color: colors.textMuted,
-    fontWeight: fontWeights.semiBold,
   },
   sectionCount: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['12'],
+    fontWeight: fontWeights.semiBold,
+    fontFamily: fontFamilies.semiBold,
     color: colors.textMuted,
   },
 
@@ -195,31 +336,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing['2xl'],
-    paddingVertical: spacing.md,
-    gap: spacing.md,
+    paddingVertical: 14,
+    gap: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderDefault,
   },
   thumb: {
-    width: layout.restaurantFoodThumb,
-    height: layout.restaurantFoodThumb,
-    borderRadius: radius.sm,
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
     backgroundColor: colors.borderDefault,
   },
-  rowText: { flex: 1, gap: spacing.xs },
+  rowText: { flex: 1 },
   foodName: {
-    fontSize: fontSizes.md,
+    fontSize: fontSizes['14'],
     fontWeight: fontWeights.semiBold,
+    fontFamily: fontFamilies.semiBold,
+    letterSpacing: -0.21,
     color: colors.textPrimary,
   },
   subtitle: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['12'],
+    fontWeight: fontWeights.regular,
+    fontFamily: fontFamilies.regular,
     color: colors.textMuted,
+    marginTop: 2,
   },
 
   status: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semiBold,
+    fontSize: fontSizes['14'],
+    fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: -0.21,
   },
   collected: { color: colors.successGreen },
   expired:   { color: colors.textMuted },
