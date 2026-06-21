@@ -291,20 +291,30 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
                 distanceKm: item.distanceKm,
               })}
             >
-              <Image
-                source={{ uri: item.photoUrl }}
-                style={styles.restaurantCardImage}
-                resizeMode="cover"
-              />
+              <View>
+                <Image
+                  source={{ uri: item.photoUrl }}
+                  style={styles.restaurantCardImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.restaurantCardBadgeWrap}>
+                  <View style={styles.restaurantCardBadge}>
+                    <Text style={styles.restaurantCardBadgeText}>{item.mealCount} meals</Text>
+                  </View>
+                </View>
+              </View>
               <View style={styles.restaurantCardBody}>
                 <Text style={styles.restaurantCardName}>{item.name}</Text>
                 <Text style={styles.restaurantCardCuisine}>{item.cuisineType}</Text>
                 <View style={styles.restaurantCardMeta}>
-                  <View style={styles.restaurantCardMetaLeft}>
-                    <Ionicons name="location-outline" size={13} color={colors.textMuted} />
+                  <View style={styles.restaurantCardMetaItem}>
+                    <Ionicons name="navigate" size={12} color={colors.textMuted} />
                     <Text style={styles.restaurantCardMetaText}>{item.distanceKm.toFixed(1)} km</Text>
                   </View>
-                  <Text style={styles.restaurantCardMetaText}>Open · until {item.closesAt}</Text>
+                  <View style={styles.restaurantCardMetaItem}>
+                    <Ionicons name="time" size={12} color={colors.textMuted} />
+                    <Text style={styles.restaurantCardMetaText}>Open · until {item.closesAt}</Text>
+                  </View>
                 </View>
               </View>
             </TouchableOpacity>
@@ -505,35 +515,63 @@ const styles = StyleSheet.create({
   },
   restaurantCardImage: {
     width: '100%',
-    height: layout.cardImageHeight,
+    height: 140,              // component-specific — Figma: 140px (food cards are 170px)
     backgroundColor: colors.borderDefault,
+  },
+  restaurantCardBadgeWrap: {
+    position: 'absolute',
+    top: spacing.md,
+    right: spacing.md,
+  },
+  restaurantCardBadge: {
+    backgroundColor: colors.accentPrimary,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,    // component-specific
+    paddingVertical: 5,       // component-specific
+    shadowColor: colors.accentPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  restaurantCardBadgeText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.xs,       // 11px
+    fontWeight: fontWeights.bold,
+    color: colors.textInverse,
   },
   restaurantCardBody: {
     padding: spacing.md,
-    gap: spacing.xs,
+    gap: 4,                   // component-specific — cuisine margin-top: 4px in Figma
   },
   restaurantCardName: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes.md,       // 15px
+    fontWeight: fontWeights.semiBold,
+    letterSpacing: -0.225,        // component-specific
     color: colors.textPrimary,
   },
   restaurantCardCuisine: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes.sm,       // 13px
+    fontWeight: fontWeights.regular,
     color: colors.textMuted,
   },
   restaurantCardMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.xs,
+    gap: 8,                   // component-specific — items left-aligned with gap
   },
-  restaurantCardMetaLeft: {
+  restaurantCardMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 4,                   // component-specific
   },
   restaurantCardMetaText: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],    // 12px
+    fontWeight: fontWeights.regular,
     color: colors.textMuted,
+    includeFontPadding: false,
   },
 });

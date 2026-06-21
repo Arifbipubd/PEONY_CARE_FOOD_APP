@@ -167,6 +167,7 @@ export interface PublicRestaurant {
   photoUrl: string;
   isVerified: boolean;
   totalFoodShared: number;
+  mealCount: number;
 }
 
 // ─── Restaurant-side types ────────────────────────────────────────────────────
