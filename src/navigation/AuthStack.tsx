@@ -5,8 +5,9 @@ import LoginScreen              from '../screens/shared/LoginScreen';
 import OtpScreen                from '../screens/shared/OtpScreen';
 import ChooseRoleScreen         from '../screens/shared/ChooseRoleScreen';
 import ReceiverRegisterScreen   from '../screens/shared/ReceiverRegisterScreen';
-import DonorRegisterScreen      from '../screens/shared/DonorRegisterScreen';
-import RestaurantRegisterScreen from '../screens/shared/RestaurantRegisterScreen';
+// import DonorRegisterScreen      from '../screens/shared/DonorRegisterScreen';
+// import RestaurantRegisterScreen from '../screens/shared/RestaurantRegisterScreen';
+import PlaceholderScreen        from '../components/PlaceholderScreen';
 
 export type PendingRegistration =
   | { role: 'RECEIVER'; displayName: string }
@@ -37,8 +38,8 @@ export default function AuthStack() {
       <Stack.Screen name="Splash"             component={SplashScreen} />
       <Stack.Screen name="ChooseRole"         component={ChooseRoleScreen} />
       <Stack.Screen name="ReceiverRegister"   component={ReceiverRegisterScreen} />
-      <Stack.Screen name="DonorRegister"      component={DonorRegisterScreen} />
-      <Stack.Screen name="RestaurantRegister" component={RestaurantRegisterScreen} />
+      <Stack.Screen name="DonorRegister"      component={PlaceholderScreen} />
+      <Stack.Screen name="RestaurantRegister" component={PlaceholderScreen} />
       <Stack.Screen name="Login"              component={LoginScreen} />
       <Stack.Screen name="Otp"               component={OtpScreen} />
     </Stack.Navigator>

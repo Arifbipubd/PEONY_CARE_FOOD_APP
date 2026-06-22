@@ -6,18 +6,19 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Claim } from '../types';
 import ReceiverHomeScreen     from '../screens/receiver/ReceiverHomeScreen';
 import FoodDetailScreen       from '../screens/receiver/FoodDetailScreen';
-import RestaurantPageScreen   from '../screens/receiver/RestaurantPageScreen';
-import QrScannerScreen        from '../screens/receiver/QrScannerScreen';
-import ClaimSuccessScreen     from '../screens/receiver/ClaimSuccessScreen';
-import FoodUnavailableScreen  from '../screens/receiver/FoodUnavailableScreen';
-import DailyLimitScreen       from '../screens/receiver/DailyLimitScreen';
-import ScanErrorScreen        from '../screens/receiver/ScanErrorScreen';
-import OfflineErrorScreen     from '../screens/receiver/OfflineErrorScreen';
-import ServerErrorScreen      from '../screens/receiver/ServerErrorScreen';
-import ReceiverHistoryScreen  from '../screens/receiver/ReceiverHistoryScreen';
-import NotificationsScreen    from '../screens/shared/NotificationsScreen';
+// import RestaurantPageScreen   from '../screens/receiver/RestaurantPageScreen';
+// import QrScannerScreen        from '../screens/receiver/QrScannerScreen';
+// import ClaimSuccessScreen     from '../screens/receiver/ClaimSuccessScreen';
+// import FoodUnavailableScreen  from '../screens/receiver/FoodUnavailableScreen';
+// import DailyLimitScreen       from '../screens/receiver/DailyLimitScreen';
+// import ScanErrorScreen        from '../screens/receiver/ScanErrorScreen';
+// import OfflineErrorScreen     from '../screens/receiver/OfflineErrorScreen';
+// import ServerErrorScreen      from '../screens/receiver/ServerErrorScreen';
+// import ReceiverHistoryScreen  from '../screens/receiver/ReceiverHistoryScreen';
+// import NotificationsScreen    from '../screens/shared/NotificationsScreen';
 import ReceiverProfileScreen  from '../screens/receiver/ReceiverProfileScreen';
 import LocationSettingsScreen from '../screens/receiver/LocationSettingsScreen';
+import PlaceholderScreen      from '../components/PlaceholderScreen';
 import { colors, fontSizes }  from '../constants/theme';
 
 export type HomeStackParamList = {
@@ -52,25 +53,25 @@ function HomeNavigator() {
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name="ReceiverHome"    component={ReceiverHomeScreen} />
       <HomeStack.Screen name="FoodDetail"      component={FoodDetailScreen} />
-      <HomeStack.Screen name="RestaurantPage"  component={RestaurantPageScreen} />
-      <HomeStack.Screen name="QrScanner"       component={QrScannerScreen} />
-      <HomeStack.Screen name="ClaimSuccess"    component={ClaimSuccessScreen} />
-      <HomeStack.Screen name="FoodUnavailable" component={FoodUnavailableScreen} />
-      <HomeStack.Screen name="DailyLimit"      component={DailyLimitScreen} />
-      <HomeStack.Screen name="ScanError"       component={ScanErrorScreen} />
-      <HomeStack.Screen name="OfflineError"    component={OfflineErrorScreen} />
-      <HomeStack.Screen name="ServerError"     component={ServerErrorScreen} />
+      <HomeStack.Screen name="RestaurantPage"  component={PlaceholderScreen} />
+      <HomeStack.Screen name="QrScanner"       component={PlaceholderScreen} />
+      <HomeStack.Screen name="ClaimSuccess"    component={PlaceholderScreen} />
+      <HomeStack.Screen name="FoodUnavailable" component={PlaceholderScreen} />
+      <HomeStack.Screen name="DailyLimit"      component={PlaceholderScreen} />
+      <HomeStack.Screen name="ScanError"       component={PlaceholderScreen} />
+      <HomeStack.Screen name="OfflineError"    component={PlaceholderScreen} />
+      <HomeStack.Screen name="ServerError"     component={PlaceholderScreen} />
     </HomeStack.Navigator>
   );
 }
 
-function HistoryNavigator() {
-  return (
-    <HistoryStack.Navigator screenOptions={{ headerShown: false }}>
-      <HistoryStack.Screen name="ReceiverHistory" component={ReceiverHistoryScreen} />
-    </HistoryStack.Navigator>
-  );
-}
+// function HistoryNavigator() {
+//   return (
+//     <HistoryStack.Navigator screenOptions={{ headerShown: false }}>
+//       <HistoryStack.Screen name="ReceiverHistory" component={ReceiverHistoryScreen} />
+//     </HistoryStack.Navigator>
+//   );
+// }
 
 function ProfileNavigator() {
   return (
@@ -107,8 +108,8 @@ export default function ReceiverTabs() {
       })}
     >
       <Tab.Screen name="Home"    component={HomeNavigator} />
-      <Tab.Screen name="History" component={HistoryNavigator} />
-      <Tab.Screen name="Alerts"  component={NotificationsScreen} />
+      <Tab.Screen name="History" component={PlaceholderScreen} />
+      <Tab.Screen name="Alerts"  component={PlaceholderScreen} />
       <Tab.Screen name="Profile" component={ProfileNavigator} />
     </Tab.Navigator>
   );
