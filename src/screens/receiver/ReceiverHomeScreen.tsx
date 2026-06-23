@@ -39,6 +39,24 @@ const CHIPS: { label: string; value: FoodCategory | null }[] = [
 ];
 
 
+function EmptyRestaurantsState({ onAdjustRadius }: { onAdjustRadius: () => void }) {
+  return (
+    <View style={emptyStyles.wrap}>
+      <View style={emptyStyles.iconCircle}>
+        <Ionicons name="storefront-outline" size={44} color={colors.textMuted} />
+      </View>
+      <Text style={emptyStyles.heading}>No restaurants nearby</Text>
+      <Text style={emptyStyles.body}>
+        Restaurants in your area will appear here. Try expanding your search radius.
+      </Text>
+      <TouchableOpacity style={emptyStyles.ctaBtn} onPress={onAdjustRadius} activeOpacity={0.85}>
+        <Ionicons name="navigate" size={16} color={colors.accentPrimary} />
+        <Text style={emptyStyles.ctaBtnText}>Widen search radius</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 function EmptyMealsState({ onAdjustRadius }: { onAdjustRadius: () => void }) {
   return (
     <View style={emptyStyles.wrap}>
@@ -293,6 +311,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={<EmptyRestaurantsState onAdjustRadius={() => navigation.getParent()?.navigate('Profile' as never)} />}
         />
       )}
 
