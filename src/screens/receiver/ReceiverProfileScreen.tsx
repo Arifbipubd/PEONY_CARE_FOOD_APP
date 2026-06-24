@@ -96,10 +96,10 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
     {
       icon: 'notifications',
       iconBg: colors.goldLight,
-      iconColor: colors.warningYellow,
+      iconColor: colors.goldDark,
       label: 'Notifications',
       subtitle: '3 channels enabled',
-      onPress: () => {},
+      onPress: () => navigation.navigate('NotificationSettings'),
     },
   ];
 
@@ -171,7 +171,7 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
             <Text style={styles.statLabel}>MEALS</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={[styles.statNumber, { color: colors.warningYellow }]}>
+            <Text style={[styles.statNumber, { color: colors.goldDark }]}>
               {profile.restaurantsCount}
             </Text>
             <Text style={styles.statLabel}>RESTAURANTS</Text>
