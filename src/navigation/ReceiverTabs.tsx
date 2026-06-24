@@ -16,8 +16,9 @@ import OfflineErrorScreen     from '../screens/receiver/OfflineErrorScreen';
 import ServerErrorScreen      from '../screens/receiver/ServerErrorScreen';
 import ReceiverHistoryScreen  from '../screens/receiver/ReceiverHistoryScreen';
 import NotificationsScreen    from '../screens/shared/NotificationsScreen';
-import ReceiverProfileScreen  from '../screens/receiver/ReceiverProfileScreen';
-import LocationSettingsScreen from '../screens/receiver/LocationSettingsScreen';
+import ReceiverProfileScreen      from '../screens/receiver/ReceiverProfileScreen';
+import LocationSettingsScreen     from '../screens/receiver/LocationSettingsScreen';
+import NotificationSettingsScreen from '../screens/receiver/NotificationSettingsScreen';
 import { colors, fontSizes }  from '../constants/theme';
 
 export type HomeStackParamList = {
@@ -38,8 +39,9 @@ export type HistoryStackParamList = {
 };
 
 export type ProfileStackParamList = {
-  ReceiverProfile:  undefined;
-  LocationSettings: undefined;
+  ReceiverProfile:      undefined;
+  LocationSettings:     undefined;
+  NotificationSettings: undefined;
 };
 
 const Tab          = createBottomTabNavigator();
@@ -75,8 +77,9 @@ function HistoryNavigator() {
 function ProfileNavigator() {
   return (
     <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
-      <ProfileStack.Screen name="ReceiverProfile"  component={ReceiverProfileScreen} />
-      <ProfileStack.Screen name="LocationSettings" component={LocationSettingsScreen} />
+      <ProfileStack.Screen name="ReceiverProfile"      component={ReceiverProfileScreen} />
+      <ProfileStack.Screen name="LocationSettings"     component={LocationSettingsScreen} />
+      <ProfileStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
     </ProfileStack.Navigator>
   );
 }
