@@ -101,7 +101,7 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
             onPress={() => navigation.getParent()?.navigate('Home')}
             activeOpacity={0.85}
           >
-            <Ionicons name="restaurant" size={18} color={colors.textInverse} />
+            <MaterialCommunityIcons name="silverware-fork-knife" size={18} color={colors.textInverse} />
             <Text style={styles.emptyCtaText}>Find food nearby</Text>
           </TouchableOpacity>
         </View>

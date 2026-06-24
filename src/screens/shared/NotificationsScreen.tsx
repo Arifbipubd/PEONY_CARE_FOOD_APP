@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useNotificationStore } from '../../store/notificationStore';
 import {
@@ -26,9 +27,10 @@ type Props = {
 };
 
 type IconConfig = {
-  name: React.ComponentProps<typeof Ionicons>['name'];
+  name: string;
   color: string;
   bg: string;
+  library?: 'mci';
 };
 
 function getIconConfig(type: string): IconConfig {
@@ -36,7 +38,7 @@ function getIconConfig(type: string): IconConfig {
     case 'CLAIM_CONFIRMED':
       return { name: 'checkmark-circle',   color: colors.successGreen,  bg: colors.successGreenLight };
     case 'NEW_FOOD_NEARBY':
-      return { name: 'restaurant',         color: colors.accentPrimary, bg: colors.avatarBg };
+      return { name: 'silverware-fork-knife', color: colors.accentPrimary, bg: colors.avatarBg, library: 'mci' as const };
     case 'FOOD_EXPIRING':
       return { name: 'time',               color: colors.goldDark,      bg: colors.goldLight };
     case 'RESTAURANT_UPDATE':
@@ -102,7 +104,10 @@ const NotifRow = memo(function NotifRow({
       onPress={() => onPress(item.id)}
     >
       <View style={[styles.iconCircle, { backgroundColor: icon.bg }]}>
-        <Ionicons name={icon.name} size={22} color={icon.color} />
+        {icon.library === 'mci'
+          ? <MaterialCommunityIcons name={icon.name as React.ComponentProps<typeof MaterialCommunityIcons>['name']} size={22} color={icon.color} />
+          : <Ionicons name={icon.name as React.ComponentProps<typeof Ionicons>['name']} size={22} color={icon.color} />
+        }
       </View>
       <View style={styles.rowBody}>
         <View style={styles.rowTop}>
