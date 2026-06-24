@@ -109,14 +109,14 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
       iconBg: colors.surfaceSecondary,
       iconColor: colors.textMuted,
       label: 'Help & FAQ',
-      onPress: () => {},
+      onPress: () => navigation.navigate('HelpFaq'),
     },
     {
       icon: 'document-text',
       iconBg: colors.surfaceSecondary,
       iconColor: colors.textMuted,
       label: 'Terms & Privacy',
-      onPress: () => {},
+      onPress: () => navigation.navigate('TermsPrivacy'),
     },
   ];
 

@@ -19,6 +19,8 @@ import NotificationsScreen    from '../screens/shared/NotificationsScreen';
 import ReceiverProfileScreen      from '../screens/receiver/ReceiverProfileScreen';
 import LocationSettingsScreen     from '../screens/receiver/LocationSettingsScreen';
 import NotificationSettingsScreen from '../screens/receiver/NotificationSettingsScreen';
+import HelpFaqScreen             from '../screens/receiver/HelpFaqScreen';
+import TermsPrivacyScreen        from '../screens/receiver/TermsPrivacyScreen';
 import { colors, fontSizes }  from '../constants/theme';
 
 export type HomeStackParamList = {
@@ -42,6 +44,8 @@ export type ProfileStackParamList = {
   ReceiverProfile:      undefined;
   LocationSettings:     undefined;
   NotificationSettings: undefined;
+  HelpFaq:              undefined;
+  TermsPrivacy:         undefined;
 };
 
 const Tab          = createBottomTabNavigator();
@@ -80,6 +84,8 @@ function ProfileNavigator() {
       <ProfileStack.Screen name="ReceiverProfile"      component={ReceiverProfileScreen} />
       <ProfileStack.Screen name="LocationSettings"     component={LocationSettingsScreen} />
       <ProfileStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
+      <ProfileStack.Screen name="HelpFaq"              component={HelpFaqScreen} />
+      <ProfileStack.Screen name="TermsPrivacy"         component={TermsPrivacyScreen} />
     </ProfileStack.Navigator>
   );
 }
