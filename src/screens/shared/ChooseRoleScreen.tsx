@@ -34,7 +34,7 @@ const ROLES = [
     subtitle: 'Find complimentary food near you',
     iconBg: colors.mintLight,
     iconColor: colors.successGreen,
-    renderIcon: (color: string) => <Ionicons name="restaurant" size={24} color={color} />,
+    renderIcon: (color: string) => <MaterialCommunityIcons name="silverware-fork-knife" size={24} color={color} />,
     screen: 'ReceiverRegister' as const,
   },
 ] as const;
