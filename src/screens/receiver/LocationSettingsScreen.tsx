@@ -6,10 +6,10 @@ import {
   ScrollView,
   Switch,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getLocationSettings } from '../../services/receiver';
 import { LocationSettings, RecentPlace } from '../../types';
@@ -28,6 +28,83 @@ function relativeDay(isoString: string): string {
   if (diffDays === 1) return 'Yesterday';
   return `${diffDays}d ago`;
 }
+
+function LocationSkeleton() {
+  const opacity = usePulse();
+  return (
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+      <View style={lSkelStyles.header}>
+        <SkeletonBox opacity={opacity} width={22} height={22} borderRadius={100} />
+        <SkeletonBox opacity={opacity} width={22} height={22} borderRadius={100} />
+      </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={lSkelStyles.scroll} scrollEnabled={false}>
+        <SkeletonBox opacity={opacity} width={100} height={13} />
+        <SkeletonBox opacity={opacity} width={200} height={28} style={lSkelStyles.heading} />
+        <View style={lSkelStyles.radiusRow}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <SkeletonBox key={i} opacity={opacity} width={44} height={36} borderRadius={100} />
+          ))}
+        </View>
+        {[0, 1].map((i) => (
+          <View key={i} style={lSkelStyles.toggleRow}>
+            <View style={lSkelStyles.toggleText}>
+              <SkeletonBox opacity={opacity} width={140} height={15} />
+              <SkeletonBox opacity={opacity} width={200} height={12} style={lSkelStyles.toggleSub} />
+            </View>
+            <SkeletonBox opacity={opacity} width={50} height={28} borderRadius={100} />
+          </View>
+        ))}
+        <SkeletonBox opacity={opacity} width={110} height={18} style={lSkelStyles.sectionLabel} />
+        {[0, 1].map((i) => (
+          <View key={i} style={lSkelStyles.placeRow}>
+            <SkeletonBox opacity={opacity} width={36} height={36} borderRadius={100} />
+            <View style={lSkelStyles.placeText}>
+              <SkeletonBox opacity={opacity} width={130} height={14} />
+              <SkeletonBox opacity={opacity} width={80} height={12} style={lSkelStyles.toggleSub} />
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const lSkelStyles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: spacing.md,
+  },
+  scroll: {
+    paddingHorizontal: spacing['2xl'],
+    paddingBottom: spacing['4xl'],
+    paddingTop: spacing.lg,
+    gap: spacing['2xl'],
+  },
+  heading: { marginTop: spacing.sm },
+  radiusRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    flexWrap: 'wrap',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+  },
+  toggleText: { flex: 1, gap: 4 },
+  toggleSub:  { marginTop: 2 },
+  sectionLabel: { marginTop: spacing.sm },
+  placeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+  placeText: { flex: 1, gap: 4 },
+});
 
 export default function LocationSettingsScreen({ navigation }: Props) {
   const [settings, setSettings] = useState<LocationSettings | null>(null);
@@ -50,11 +127,7 @@ export default function LocationSettingsScreen({ navigation }: Props) {
   }, []);
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.screen}>
-        <ActivityIndicator style={styles.loader} color={colors.accentPrimary} />
-      </SafeAreaView>
-    );
+    return <LocationSkeleton />;
   }
 
   return (
@@ -185,7 +258,6 @@ export default function LocationSettingsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
-  loader: { flex: 1 },
 
   header: {
     flexDirection: 'row',
