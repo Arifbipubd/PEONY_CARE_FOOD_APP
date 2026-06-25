@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -38,6 +38,54 @@ function formatPickupFull(start: string, end: string): string {
 }
 
 
+function DetailSkeleton() {
+  const opacity = usePulse();
+  return (
+    <View style={styles.screen}>
+      <ScrollView showsVerticalScrollIndicator={false} scrollEnabled={false}>
+        <SkeletonBox opacity={opacity} height={260} borderRadius={0} />
+        <View style={dSkelStyles.content}>
+          <View style={dSkelStyles.titleRow}>
+            <SkeletonBox opacity={opacity} height={22} style={dSkelStyles.titleFlex} />
+            <SkeletonBox opacity={opacity} width={70} height={26} borderRadius={10} />
+          </View>
+          <SkeletonBox opacity={opacity} width={80} height={26} borderRadius={22} />
+          <SkeletonBox opacity={opacity} height={14} />
+          <SkeletonBox opacity={opacity} width="80%" height={14} />
+          <SkeletonBox opacity={opacity} height={14} width="90%" />
+          <SkeletonBox opacity={opacity} height={72} borderRadius={14} style={dSkelStyles.gap} />
+          <SkeletonBox opacity={opacity} height={52} borderRadius={14} />
+        </View>
+      </ScrollView>
+      <SafeAreaView edges={['bottom']} style={dSkelStyles.bottom}>
+        <SkeletonBox opacity={opacity} height={54} borderRadius={18} />
+      </SafeAreaView>
+    </View>
+  );
+}
+
+const dSkelStyles = StyleSheet.create({
+  content: {
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing.lg,
+    gap: spacing.md,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  titleFlex: { flex: 1 },
+  gap: { marginTop: spacing.sm },
+  bottom: {
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderDefault,
+  },
+});
+
 export default function FoodDetailScreen({ navigation, route }: Props) {
   const { foodId } = route.params;
   const insets = useSafeAreaInsets();
@@ -55,11 +103,7 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
   }, [foodId]);
 
   if (loading) {
-    return (
-      <View style={styles.loaderWrap}>
-        <ActivityIndicator color={colors.accentPrimary} />
-      </View>
-    );
+    return <DetailSkeleton />;
   }
 
   if (!food) return null;
@@ -213,7 +257,6 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   screen:     { flex: 1, backgroundColor: colors.surface },
-  loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   image: {
     width: '100%',
