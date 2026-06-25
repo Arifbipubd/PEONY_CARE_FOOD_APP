@@ -8,8 +8,8 @@ import {
   FlatList,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
+import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -126,6 +126,107 @@ const emptyStyles = StyleSheet.create({
   },
 });
 
+function HomeSkeleton() {
+  const opacity = usePulse();
+  return (
+    <SafeAreaView style={styles.screen}>
+      <View style={skelStyles.top}>
+        <View style={skelStyles.headerRow}>
+          <SkeletonBox opacity={opacity} width={130} height={26} />
+          <SkeletonBox opacity={opacity} width={40} height={40} borderRadius={100} />
+        </View>
+        <SkeletonBox opacity={opacity} width={140} height={26} borderRadius={100} />
+        <View style={skelStyles.searchRow}>
+          <SkeletonBox opacity={opacity} height={48} borderRadius={14} style={skelStyles.searchFlex} />
+          <SkeletonBox opacity={opacity} width={48} height={48} borderRadius={14} />
+        </View>
+        <View style={skelStyles.tabRow}>
+          <SkeletonBox opacity={opacity} height={30} borderRadius={8} style={skelStyles.tabFlex} />
+          <SkeletonBox opacity={opacity} height={30} borderRadius={8} style={skelStyles.tabFlex} />
+        </View>
+        <View style={skelStyles.chipsRow}>
+          {[60, 56, 70, 60, 64].map((w, i) => (
+            <SkeletonBox key={i} opacity={opacity} width={w} height={30} borderRadius={22} />
+          ))}
+        </View>
+      </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={skelStyles.cards}
+        scrollEnabled={false}
+      >
+        {[0, 1, 2].map((i) => (
+          <View key={i} style={skelStyles.card}>
+            <SkeletonBox opacity={opacity} height={160} borderRadius={18} />
+            <View style={skelStyles.cardBody}>
+              <View style={skelStyles.cardTitleRow}>
+                <SkeletonBox opacity={opacity} width={160} height={16} />
+                <SkeletonBox opacity={opacity} width={60} height={22} borderRadius={10} />
+              </View>
+              <SkeletonBox opacity={opacity} width={110} height={13} style={skelStyles.cardMeta} />
+              <View style={skelStyles.cardChips}>
+                <SkeletonBox opacity={opacity} width={60} height={22} borderRadius={10} />
+                <SkeletonBox opacity={opacity} width={80} height={22} borderRadius={10} />
+              </View>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const skelStyles = StyleSheet.create({
+  top: {
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing.lg,
+    gap: spacing.md,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  searchRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  searchFlex: { flex: 1 },
+  tabRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    paddingBottom: spacing.md,
+  },
+  tabFlex: { flex: 1 },
+  chipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  cards: {
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing.lg,
+    gap: spacing.md,
+  },
+  card: { gap: 0 },
+  cardBody: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardMeta: { marginTop: 2 },
+  cardChips: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 2,
+  },
+});
+
 export default function ReceiverHomeScreen({ navigation }: Props) {
   const { displayName, setProfile } = useProfileStore();
   const { unreadCount, setNotifications } = useNotificationStore();
@@ -165,11 +266,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   });
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.screen}>
-        <ActivityIndicator style={styles.loader} color={colors.accentPrimary} />
-      </SafeAreaView>
-    );
+    return <HomeSkeleton />;
   }
 
   return (
@@ -339,7 +436,6 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
-  loader: { flex: 1 },
 
   top: {
     paddingHorizontal: spacing['2xl'],

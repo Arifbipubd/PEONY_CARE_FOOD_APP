@@ -5,9 +5,10 @@ import {
   Image,
   TouchableOpacity,
   SectionList,
+  ScrollView,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
+import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -50,6 +51,70 @@ function relativeTime(isoString: string): string {
   return date.toLocaleDateString('en-SG', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+function HistorySkeleton() {
+  const opacity = usePulse();
+  return (
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      <View style={hSkelStyles.header}>
+        <SkeletonBox opacity={opacity} width={22} height={22} borderRadius={100} />
+        <SkeletonBox opacity={opacity} width={40} height={40} borderRadius={100} />
+      </View>
+      <ScrollView showsVerticalScrollIndicator={false} scrollEnabled={false} contentContainerStyle={hSkelStyles.scroll}>
+        <SkeletonBox opacity={opacity} width={60} height={13} />
+        <SkeletonBox opacity={opacity} width={180} height={28} style={hSkelStyles.heading} />
+        <SkeletonBox opacity={opacity} width={80} height={48} style={hSkelStyles.bigNum} />
+        <SkeletonBox opacity={opacity} width={200} height={14} style={hSkelStyles.subText} />
+        <View style={hSkelStyles.sectionHeader}>
+          <SkeletonBox opacity={opacity} width={80} height={14} />
+          <SkeletonBox opacity={opacity} width={60} height={14} />
+        </View>
+        {[0, 1, 2, 3].map((i) => (
+          <View key={i} style={hSkelStyles.row}>
+            <SkeletonBox opacity={opacity} width={56} height={56} borderRadius={12} />
+            <View style={hSkelStyles.rowText}>
+              <SkeletonBox opacity={opacity} width={160} height={15} />
+              <SkeletonBox opacity={opacity} width={120} height={13} style={hSkelStyles.rowSub} />
+            </View>
+            <SkeletonBox opacity={opacity} width={60} height={22} borderRadius={10} />
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const hSkelStyles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: spacing.md,
+  },
+  scroll: {
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing['2xl'],
+    paddingBottom: spacing['4xl'],
+  },
+  heading: { marginTop: spacing.sm },
+  bigNum:  { marginTop: spacing.md },
+  subText: { marginTop: spacing.sm },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing['2xl'],
+    marginBottom: spacing.lg,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  rowText: { flex: 1, gap: 6 },
+  rowSub: { marginTop: 2 },
+});
+
 export default function ReceiverHistoryScreen({ navigation }: Props) {
   const [history, setHistory] = useState<ClaimHistory | null>(null);
   const [profile, setProfile] = useState<ReceiverProfile | null>(null);
@@ -65,11 +130,7 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
   }, []);
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.screen}>
-        <ActivityIndicator style={styles.loader} color={colors.accentPrimary} />
-      </SafeAreaView>
-    );
+    return <HistorySkeleton />;
   }
 
   const sections: HistorySection[] = (history?.groupedByWeek ?? []).map((g) => ({
@@ -178,7 +239,6 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
-  loader: { flex: 1 },
 
   header: {
     flexDirection: 'row',
