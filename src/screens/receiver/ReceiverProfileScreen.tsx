@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -51,6 +52,112 @@ type MenuRow = {
   onPress: () => void;
 };
 
+function ProfileSkeleton() {
+  const opacity = usePulse();
+  return (
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      <View style={pSkelStyles.header}>
+        <SkeletonBox opacity={opacity} width={22} height={22} borderRadius={100} />
+        <SkeletonBox opacity={opacity} width={40} height={40} borderRadius={100} />
+      </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={pSkelStyles.scroll} scrollEnabled={false}>
+        <SkeletonBox opacity={opacity} width={96} height={96} borderRadius={100} style={pSkelStyles.avatar} />
+        <SkeletonBox opacity={opacity} width={140} height={22} style={pSkelStyles.name} />
+        <SkeletonBox opacity={opacity} width={110} height={16} style={pSkelStyles.phone} />
+        <View style={pSkelStyles.statsRow}>
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={pSkelStyles.statBox}>
+              <SkeletonBox opacity={opacity} width={48} height={28} />
+              <SkeletonBox opacity={opacity} width={56} height={11} style={pSkelStyles.statLabel} />
+            </View>
+          ))}
+        </View>
+        <SkeletonBox opacity={opacity} width={70} height={18} style={pSkelStyles.sectionLabel} />
+        <View style={pSkelStyles.menuCard}>
+          {[0, 1].map((i) => (
+            <View key={i} style={[pSkelStyles.menuRow, i === 0 && pSkelStyles.menuRowBorder]}>
+              <SkeletonBox opacity={opacity} width={36} height={36} borderRadius={100} />
+              <View style={pSkelStyles.menuText}>
+                <SkeletonBox opacity={opacity} width={130} height={14} />
+                <SkeletonBox opacity={opacity} width={90} height={12} style={pSkelStyles.menuSub} />
+              </View>
+            </View>
+          ))}
+        </View>
+        <SkeletonBox opacity={opacity} width={70} height={18} style={pSkelStyles.sectionLabel} />
+        <View style={pSkelStyles.menuCard}>
+          {[0, 1].map((i) => (
+            <View key={i} style={[pSkelStyles.menuRow, i === 0 && pSkelStyles.menuRowBorder]}>
+              <SkeletonBox opacity={opacity} width={36} height={36} borderRadius={100} />
+              <SkeletonBox opacity={opacity} width={120} height={14} style={pSkelStyles.menuText} />
+            </View>
+          ))}
+        </View>
+        <SkeletonBox opacity={opacity} width={160} height={32} borderRadius={100} style={pSkelStyles.pill} />
+        <SkeletonBox opacity={opacity} height={52} borderRadius={18} style={pSkelStyles.logout} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const pSkelStyles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: spacing.md,
+  },
+  scroll: {
+    paddingHorizontal: 16,
+    paddingTop: spacing['2xl'],
+    paddingBottom: spacing['4xl'],
+    alignItems: 'center',
+  },
+  avatar:      { marginBottom: spacing.lg },
+  name:        { marginBottom: spacing.sm },
+  phone:       { marginBottom: spacing['2xl'] },
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    width: '100%',
+    marginBottom: spacing['2xl'],
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: radius.card,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    gap: 6,
+  },
+  statLabel:     { marginTop: 2 },
+  sectionLabel:  { alignSelf: 'flex-start', marginBottom: spacing.md },
+  menuCard: {
+    width: '100%',
+    backgroundColor: colors.surfaceTertiary,
+    borderRadius: radius.card,
+    overflow: 'hidden',
+    marginBottom: spacing['2xl'],
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: spacing.lg,
+  },
+  menuRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderDefault,
+  },
+  menuText:  { flex: 1 },
+  menuSub:   { marginTop: 4 },
+  pill:      { marginTop: 14 },
+  logout:    { width: '100%', marginTop: spacing['2xl'] },
+});
+
 export default function ReceiverProfileScreen({ navigation }: Props) {
   const { refreshToken, clearAuth } = useAuthStore();
   const { unreadCount } = useNotificationStore();
@@ -75,11 +182,7 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
   }
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.screen}>
-        <ActivityIndicator style={styles.loader} color={colors.accentPrimary} />
-      </SafeAreaView>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (!profile) return null;
@@ -96,10 +199,10 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
     {
       icon: 'notifications',
       iconBg: colors.goldLight,
-      iconColor: colors.warningYellow,
+      iconColor: colors.goldDark,
       label: 'Notifications',
       subtitle: '3 channels enabled',
-      onPress: () => {},
+      onPress: () => navigation.navigate('NotificationSettings'),
     },
   ];
 
@@ -109,14 +212,14 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
       iconBg: colors.surfaceSecondary,
       iconColor: colors.textMuted,
       label: 'Help & FAQ',
-      onPress: () => {},
+      onPress: () => navigation.navigate('HelpFaq'),
     },
     {
       icon: 'document-text',
       iconBg: colors.surfaceSecondary,
       iconColor: colors.textMuted,
       label: 'Terms & Privacy',
-      onPress: () => {},
+      onPress: () => navigation.navigate('TermsPrivacy'),
     },
   ];
 
@@ -171,7 +274,7 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
             <Text style={styles.statLabel}>MEALS</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={[styles.statNumber, { color: colors.warningYellow }]}>
+            <Text style={[styles.statNumber, { color: colors.goldDark }]}>
               {profile.restaurantsCount}
             </Text>
             <Text style={styles.statLabel}>RESTAURANTS</Text>
@@ -259,7 +362,6 @@ const MenuRowItem = memo(function MenuRowItem({ row, isLast }: { row: MenuRow; i
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
-  loader: { flex: 1 },
 
   header: {
     flexDirection: 'row',
