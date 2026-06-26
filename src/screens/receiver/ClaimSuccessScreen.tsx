@@ -188,7 +188,6 @@ const styles = StyleSheet.create({
   heading: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
     marginBottom: spacing.sm,
@@ -234,7 +233,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
     letterSpacing: -0.425,
     color: colors.textPrimary,
     marginBottom: spacing.md,
@@ -265,7 +263,6 @@ const styles = StyleSheet.create({
   detailPrimary: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.semiBold,
     letterSpacing: -0.21,
     color: colors.textPrimary,
     marginBottom: 2,
@@ -278,7 +275,6 @@ const styles = StyleSheet.create({
   mapLink: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.semiBold,
     color: colors.accentPrimary,
   },
   divider: { height: 1, backgroundColor: colors.borderDefault },
@@ -294,7 +290,6 @@ const styles = StyleSheet.create({
   limitText: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.regular,
     color: colors.textPrimary,
     lineHeight: 20,
   },
@@ -328,14 +323,12 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
     letterSpacing: letterSpacings.button,
     color: colors.textInverse,
   },
   secondaryBtnText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
     letterSpacing: letterSpacings.button,
     color: colors.textPrimary,
   },
