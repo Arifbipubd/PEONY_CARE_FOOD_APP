@@ -248,7 +248,6 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
@@ -260,7 +259,6 @@ const styles = StyleSheet.create({
   // ── Section header ───────────────────────────────────────────────────────────
   sectionHeader: {
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.medium,
     fontFamily: fontFamilies.medium,
     color: colors.textMuted,
     paddingTop: spacing.lg,
@@ -297,18 +295,15 @@ const styles = StyleSheet.create({
   rowTitle: {
     flex: 1,
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.semiBold,
     fontFamily: fontFamilies.semiBold,
     letterSpacing: -0.21,
     color: colors.textPrimary,
   },
   rowTitleRead: {
-    fontWeight: fontWeights.regular,
     fontFamily: fontFamilies.regular,
   },
   rowTime: {
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.medium,
     fontFamily: fontFamilies.medium,
     color: colors.textMuted,
     flexShrink: 0,
@@ -316,7 +311,6 @@ const styles = StyleSheet.create({
   },
   rowDesc: {
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.regular,
     fontFamily: fontFamilies.regular,
     color: colors.textMuted,
     marginTop: 2,
@@ -346,7 +340,6 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
@@ -355,7 +348,6 @@ const styles = StyleSheet.create({
   },
   emptyDesc: {
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.regular,
     fontFamily: fontFamilies.regular,
     lineHeight: 21,
     color: colors.textMuted,
@@ -381,7 +373,6 @@ const styles = StyleSheet.create({
   },
   emptyCtaText: {
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: letterSpacings.button,
     color: colors.textInverse,

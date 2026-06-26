@@ -202,7 +202,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     lineHeight: lineHeights.subheading,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
@@ -210,12 +209,10 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: fontFamilies.regular,
     fontSize: 14,
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
   },
   phoneBold: {
     fontFamily: fontFamilies.semiBold,
-    fontWeight: fontWeights.semiBold,
     color: colors.textPrimary,
   },
   codeRow: {
@@ -239,7 +236,6 @@ const styles = StyleSheet.create({
   digitText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     color: colors.textPrimary,
   },
   hiddenInput: {
@@ -260,7 +256,6 @@ const styles = StyleSheet.create({
   },
   resendLink: {
     fontFamily: fontFamilies.semiBold,
-    fontWeight: fontWeights.semiBold,
     color: colors.accentPrimary,
   },
   resendDisabled: {

@@ -93,7 +93,6 @@ const emptyStyles = StyleSheet.create({
   heading: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.lg,       // 17px
-    fontWeight: fontWeights.bold,
     letterSpacing: -0.425,        // component-specific, not in letterSpacings scale
     color: colors.textPrimary,
     textAlign: 'center',
@@ -102,7 +101,6 @@ const emptyStyles = StyleSheet.create({
   body: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes['14'],    // 14px
-    fontWeight: fontWeights.regular,
     lineHeight: lineHeights.body, // 21px
     color: colors.textMuted,
     textAlign: 'center',
@@ -121,7 +119,6 @@ const emptyStyles = StyleSheet.create({
   ctaBtnText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['14'],    // 14px
-    fontWeight: fontWeights.bold,
     color: colors.accentPrimary,
   },
 });
@@ -453,7 +450,6 @@ const styles = StyleSheet.create({
   greeting: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
     letterSpacing: letterSpacings.bodyBold,
     color: colors.textPrimary,
   },
@@ -491,7 +487,6 @@ const styles = StyleSheet.create({
   claimsText: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.semiBold,
     color: colors.successGreen,
   },
 
@@ -549,18 +544,15 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
   },
   tabLabelActive: {
     fontFamily: fontFamilies.semiBold,
-    fontWeight: fontWeights.semiBold,
     color: colors.accentPrimary,
   },
   tabCount: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
     color: colors.textMuted,
   },
   tabCountActive: {
@@ -633,7 +625,6 @@ const styles = StyleSheet.create({
   restaurantCardBadgeText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xs,       // 11px
-    fontWeight: fontWeights.bold,
     color: colors.textInverse,
   },
   restaurantCardBody: {
@@ -643,14 +634,12 @@ const styles = StyleSheet.create({
   restaurantCardName: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes.md,       // 15px
-    fontWeight: fontWeights.semiBold,
     letterSpacing: -0.225,        // component-specific
     color: colors.textPrimary,
   },
   restaurantCardCuisine: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.sm,       // 13px
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
   },
   restaurantCardMeta: {
@@ -666,7 +655,6 @@ const styles = StyleSheet.create({
   restaurantCardMetaText: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes['12'],    // 12px
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     includeFontPadding: false,
   },

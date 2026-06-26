@@ -95,7 +95,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
     letterSpacing: letterSpacings.button,
   },
   labelSm: {
