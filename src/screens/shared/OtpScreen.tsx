@@ -22,14 +22,14 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { UserRole } from '../../types';
 import LogoBadge from '../../components/LogoBadge';
-import { colors, spacing, fontSizes, fontWeights, fontFamilies, lineHeights, letterSpacings, radius } from '../../constants/theme';
+import { colors, spacing, fontSizes, fontFamilies, lineHeights, letterSpacings, radius } from '../../constants/theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Otp'>;
   route: RouteProp<AuthStackParamList, 'Otp'>;
 };
 
-const CODE_LENGTH    = 6;
+const CODE_LENGTH    = 4;
 const RESEND_SECONDS = 30;
 
 async function autoRegister(
@@ -71,7 +71,7 @@ export default function OtpScreen({ navigation, route }: Props) {
   }, [seconds]);
 
   async function handleVerify() {
-    if (code.length < CODE_LENGTH) { setError('Enter all 6 digits'); return; }
+    if (code.length < CODE_LENGTH) { setError('Enter all 4 digits'); return; }
     setLoading(true);
     setError('');
     try {
@@ -84,7 +84,11 @@ export default function OtpScreen({ navigation, route }: Props) {
 
       if (result.isNewUser && result.registrationToken && pendingRegistration) {
         const reg = await autoRegister(pendingRegistration, result.registrationToken);
-        setAuth(reg.accessToken, reg.refreshToken, reg.user as { id: string; phone: string; role: UserRole });
+        navigation.navigate('Permissions', {
+          accessToken:  reg.accessToken,
+          refreshToken: reg.refreshToken,
+          user:         reg.user as { id: string; phone: string; role: UserRole },
+        });
         return;
       }
 
