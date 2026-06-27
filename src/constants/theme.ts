@@ -109,10 +109,10 @@ export const letterSpacings = {
 } as const;
 
 export const fontWeights = {
-  regular: '400' as const,
-  medium:  '500' as const,
-  semiBold:'600' as const,
-  bold:    '700' as const,
+  regular: 'normal' as const,
+  medium:  'normal' as const,
+  semiBold:'normal' as const,
+  bold:    'normal' as const,
 };
 
 // Layout constants — shared pixel values for consistent sizing across screens
