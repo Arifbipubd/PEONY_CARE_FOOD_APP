@@ -139,7 +139,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     lineHeight: lineHeights.subheading,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
@@ -150,32 +149,27 @@ const styles = StyleSheet.create({
   prefix: {
     fontFamily: fontFamilies.regular,
     fontSize: 14,
-    fontWeight: fontWeights.regular,
     color: colors.textPrimary,
   },
   terms: {
     fontFamily: fontFamilies.regular,
     fontSize: 14,
-    fontWeight: fontWeights.regular,
     lineHeight: lineHeights.body,
     color: colors.textMuted,
     textAlign: 'center',
   },
   termsLink: {
     fontFamily: fontFamilies.semiBold,
-    fontWeight: fontWeights.semiBold,
     color: colors.accentPrimary,
   },
   loginRow: {
     fontFamily: fontFamilies.regular,
     fontSize: 14,
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     textAlign: 'center',
   },
   loginLink: {
     fontFamily: fontFamilies.semiBold,
-    fontWeight: fontWeights.semiBold,
     color: colors.accentPrimary,
   },
 });

@@ -297,7 +297,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xl,            // 20px — Figma: 20px (was fontSizes['2xl'] = 24)
-    fontWeight: fontWeights.bold,
     lineHeight: 28,                    // component-specific — Figma: 28px
     letterSpacing: -0.7,               // component-specific — Figma: -0.7px
     color: colors.textPrimary,
@@ -311,7 +310,6 @@ const styles = StyleSheet.create({
   leftBadgeText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['12'],         // 12px — Figma: 12px (was fontSizes.sm = 13)
-    fontWeight: fontWeights.bold,      // Figma: 700 (was semiBold 600)
     color: colors.accentPrimary,
   },
 
@@ -325,7 +323,6 @@ const styles = StyleSheet.create({
   categoryText: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['12'],         // 12px — Figma: 12px (was fontSizes.sm = 13)
-    fontWeight: fontWeights.semiBold,  // Figma: 600
     color: colors.textMuted,
   },
 
@@ -337,21 +334,18 @@ const styles = StyleSheet.create({
   restaurantName: {
     fontFamily: fontFamilies.medium,
     fontSize: fontSizes.md,            // 15px ✓
-    fontWeight: fontWeights.medium,    // Figma: 500 (was semiBold 600)
     color: colors.textPrimary,
     includeFontPadding: false,
   },
   restaurantAddress: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.sm,            // 13px ✓
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     includeFontPadding: false,
   },
   distance: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.sm,            // 13px ✓
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     includeFontPadding: false,
   },
@@ -359,7 +353,6 @@ const styles = StyleSheet.create({
   pickupTime: {
     fontFamily: fontFamilies.medium,
     fontSize: fontSizes.md,            // 15px ✓
-    fontWeight: fontWeights.medium,    // Figma: 500 (was semiBold 600)
     color: colors.pickupOrange,
     includeFontPadding: false,
   },
@@ -367,14 +360,12 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['12'],         // 12px — Figma: 12px (was fontSizes.xs = 11)
-    fontWeight: fontWeights.semiBold,
     color: colors.textMuted,
     letterSpacing: 0.96,              // component-specific — Figma: 0.96px (was 0.8)
   },
   description: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes['14'],         // 14px — Figma: 14px (was fontSizes.sm = 13)
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     lineHeight: 21,                    // component-specific — Figma: 21px (was 20)
   },
@@ -387,7 +378,6 @@ const styles = StyleSheet.create({
   sponsorLink: {
     fontFamily: fontFamilies.medium,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
     color: colors.goldDark,            // Figma: prim/yellow/600 = #B8941E
     includeFontPadding: false,
   },
@@ -426,7 +416,6 @@ const styles = StyleSheet.create({
   sponsorAvatarText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['14'],         // Figma: 14px
-    fontWeight: fontWeights.bold,      // Figma: 700
     letterSpacing: 0.28,               // component-specific — Figma: 0.28px
     color: colors.textInverse,         // Figma: white
   },
@@ -437,7 +426,6 @@ const styles = StyleSheet.create({
   sponsorByLabel: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
   },
   sponsorByLabelNamed: {
@@ -446,7 +434,6 @@ const styles = StyleSheet.create({
   sponsorName: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semiBold,
     color: colors.textPrimary,
   },
 
@@ -458,7 +445,6 @@ const styles = StyleSheet.create({
   progressLabel: {
     fontFamily: fontFamilies.medium,
     fontSize: fontSizes['12'],         // 12px — Figma: 12px (was fontSizes.sm = 13)
-    fontWeight: fontWeights.medium,    // Figma: 500
     color: colors.textMuted,
   },
   progressTrack: {
@@ -494,14 +480,12 @@ const styles = StyleSheet.create({
   claimBtnText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.md,            // 15px ✓
-    fontWeight: fontWeights.bold,
     color: colors.textInverse,
     letterSpacing: 0.3,               // component-specific — Figma: 0.3px (was 0.5)
   },
   dailyLimitText: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes['12'],         // 12px — Figma: 12px (was fontSizes.sm = 13)
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     textAlign: 'center',
     marginTop: 10,                     // component-specific — Figma: 10px (was spacing.sm = 6)

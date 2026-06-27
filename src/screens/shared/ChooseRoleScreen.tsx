@@ -98,7 +98,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
     marginBottom: 8,
@@ -106,7 +105,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: fontFamilies.regular,
     fontSize: 14,
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     marginBottom: spacing['3xl'],
   },
@@ -137,7 +135,6 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontFamily: fontFamilies.semiBold,
     fontSize: 16,
-    fontWeight: fontWeights.semiBold,
     color: colors.textPrimary,
     marginBottom: spacing.xs,
   },

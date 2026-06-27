@@ -269,14 +269,12 @@ const styles = StyleSheet.create({
 
   subtitle: {
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
     fontFamily: fontFamilies.medium,
     color: colors.textMuted,
     marginBottom: spacing.sm,
   },
   heading: {
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
@@ -285,7 +283,6 @@ const styles = StyleSheet.create({
 
   sectionLabel: {
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: -0.425,
     color: colors.textPrimary,
@@ -300,7 +297,6 @@ const styles = StyleSheet.create({
   },
   radiusNumber: {
     fontSize: fontSizes['5xl'],
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: letterSpacings.heading,
     color: colors.textPrimary,
@@ -309,7 +305,6 @@ const styles = StyleSheet.create({
   radiusUnit: {
     fontSize: fontSizes.xl,
     color: colors.textMuted,
-    fontWeight: fontWeights.semiBold,
     fontFamily: fontFamilies.semiBold,
   },
 
@@ -333,7 +328,6 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: fontSizes['12'],
     color: colors.textPrimary,
-    fontWeight: fontWeights.semiBold,
     fontFamily: fontFamilies.semiBold,
   },
   chipTextActive: {
@@ -371,7 +365,6 @@ const styles = StyleSheet.create({
   permText: { flex: 1, gap: spacing.xs },
   permLabel: {
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.semiBold,
     fontFamily: fontFamilies.semiBold,
     letterSpacing: -0.21,
     color: colors.textPrimary,
@@ -438,7 +431,6 @@ const styles = StyleSheet.create({
   },
   clearText: {
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semiBold,
     fontFamily: fontFamilies.semiBold,
     color: colors.accentPrimary,
   },
@@ -460,7 +452,6 @@ const styles = StyleSheet.create({
   },
   saveBtnText: {
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: letterSpacings.button,
     color: colors.textInverse,

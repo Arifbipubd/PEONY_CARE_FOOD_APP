@@ -269,7 +269,6 @@ const styles = StyleSheet.create({
   // ── Empty state ──────────────────────────────────────────────────────────────
   emptyPageTitle: {
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
@@ -293,7 +292,6 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
@@ -302,7 +300,6 @@ const styles = StyleSheet.create({
   },
   emptyDesc: {
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.regular,
     fontFamily: fontFamilies.regular,
     lineHeight: 21,
     color: colors.textMuted,
@@ -328,7 +325,6 @@ const styles = StyleSheet.create({
   },
   emptyCtaText: {
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: letterSpacings.button,
     color: colors.textInverse,
@@ -342,14 +338,12 @@ const styles = StyleSheet.create({
   },
   lifetimeLabel: {
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
     fontFamily: fontFamilies.medium,
     color: colors.textMuted,
     marginBottom: spacing.sm,
   },
   heading: {
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
@@ -357,7 +351,6 @@ const styles = StyleSheet.create({
   },
   bigNumber: {
     fontSize: fontSizes['5xl'],
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     lineHeight: fontSizes['5xl'],
     letterSpacing: letterSpacings.heading,
@@ -365,7 +358,6 @@ const styles = StyleSheet.create({
   },
   statsSubtitle: {
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.regular,
     fontFamily: fontFamilies.regular,
     color: colors.textMuted,
     marginTop: 10,
@@ -381,13 +373,11 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.medium,
     fontFamily: fontFamilies.medium,
     color: colors.textMuted,
   },
   sectionCount: {
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.semiBold,
     fontFamily: fontFamilies.semiBold,
     color: colors.textMuted,
   },
@@ -410,14 +400,12 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   foodName: {
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.semiBold,
     fontFamily: fontFamilies.semiBold,
     letterSpacing: -0.21,
     color: colors.textPrimary,
   },
   subtitle: {
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.regular,
     fontFamily: fontFamilies.regular,
     color: colors.textMuted,
     marginTop: 2,
@@ -425,7 +413,6 @@ const styles = StyleSheet.create({
 
   status: {
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: -0.21,
   },

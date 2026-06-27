@@ -167,21 +167,18 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontFamily: fontFamilies.medium,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
     color: colors.textMuted,
     marginBottom: 6,
   },
   title: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
   },
   subtitle: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     marginTop: 8,
     marginBottom: spacing['2xl'],
@@ -191,7 +188,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
     letterSpacing: -0.425,
     color: colors.textPrimary,
     marginBottom: spacing.lg,
@@ -219,14 +215,12 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.semiBold,
     letterSpacing: -0.21,
     color: colors.textPrimary,
   },
   rowSub: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     marginTop: 2,
   },
@@ -254,7 +248,6 @@ const styles = StyleSheet.create({
   saveBtnText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
     letterSpacing: letterSpacings.button,
     color: colors.textInverse,
   },
