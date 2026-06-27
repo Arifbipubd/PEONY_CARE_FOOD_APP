@@ -410,7 +410,6 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: 0.4,
     color: colors.accentPrimary,
@@ -432,7 +431,6 @@ const styles = StyleSheet.create({
   // ── Name / phone ─────────────────────────────────────────────────────────────
   name: {
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
@@ -446,7 +444,6 @@ const styles = StyleSheet.create({
   },
   phone: {
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.regular,
     fontFamily: fontFamilies.regular,
     color: colors.textMuted,
   },
@@ -468,14 +465,12 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     lineHeight: lineHeights.subheading,
     letterSpacing: -0.84,
   },
   statLabel: {
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semiBold,
     fontFamily: fontFamilies.semiBold,
     color: colors.textMuted,
     letterSpacing: 0.88,
@@ -486,7 +481,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     alignSelf: 'flex-start',
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
     fontFamily: fontFamilies.bold,
     letterSpacing: -0.425,
     color: colors.textPrimary,
@@ -524,14 +518,12 @@ const styles = StyleSheet.create({
   menuText: { flex: 1 },
   menuLabel: {
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.semiBold,
     fontFamily: fontFamilies.semiBold,
     letterSpacing: -0.21,
     color: colors.textPrimary,
   },
   menuSubtitle: {
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.regular,
     fontFamily: fontFamilies.regular,
     color: colors.textMuted,
     marginTop: 2,
@@ -550,7 +542,6 @@ const styles = StyleSheet.create({
   },
   memberText: {
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.semiBold,
     fontFamily: fontFamilies.semiBold,
     color: colors.accentPrimary,
   },
@@ -570,7 +561,6 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontSize: fontSizes['16'],
-    fontWeight: fontWeights.semiBold,
     fontFamily: fontFamilies.semiBold,
     color: colors.errorRed,
   },

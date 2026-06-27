@@ -268,21 +268,18 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontFamily: fontFamilies.medium,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
     color: colors.textMuted,
     marginBottom: spacing.sm,
   },
   title: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
   },
   subtitle: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     marginTop: 8,
   },
@@ -302,7 +299,6 @@ const styles = StyleSheet.create({
   lastUpdatedText: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
   },
 
@@ -326,7 +322,6 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.semiBold,
     color: colors.textPrimary,
   },
   tabLabelActive: {
@@ -340,7 +335,6 @@ const styles = StyleSheet.create({
   sectionHeading: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
     letterSpacing: -0.225,
     color: colors.textPrimary,
     marginBottom: 8,
@@ -348,14 +342,12 @@ const styles = StyleSheet.create({
   sectionBody: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.regular,
     lineHeight: 20.8,
     color: colors.textMuted,
   },
   accentInline: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semiBold,
     lineHeight: 20.8,
     color: colors.accentPrimary,
   },
@@ -379,7 +371,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.regular,
     lineHeight: 20.8,
     color: colors.textMuted,
   },
@@ -398,14 +389,12 @@ const styles = StyleSheet.create({
   footerNote: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.regular,
     lineHeight: 18,
     color: colors.textMuted,
   },
   footerEmail: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.semiBold,
     lineHeight: 18,
     color: colors.accentPrimary,
   },

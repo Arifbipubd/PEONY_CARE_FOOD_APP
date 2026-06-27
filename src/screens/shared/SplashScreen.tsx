@@ -76,7 +76,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['5xl'],
-    fontWeight: fontWeights.bold,
     lineHeight: lineHeights.heading,
     letterSpacing: letterSpacings.heading,
     color: colors.textPrimary,
@@ -86,7 +85,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: fontFamilies.regular,
     fontSize: 14,
-    fontWeight: fontWeights.regular,
     lineHeight: lineHeights.body,
     color: colors.textMuted,
     textAlign: 'center',
