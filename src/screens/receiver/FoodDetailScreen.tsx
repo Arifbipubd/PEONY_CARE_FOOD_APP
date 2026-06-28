@@ -14,7 +14,7 @@ import { RouteProp } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { getFoodDetail, getDailyLimit } from '../../services/receiver';
 import { FoodItem, DailyLimitStatus } from '../../types';
-import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, layout } from '../../constants/theme';
+import { colors, spacing, radius, fontSizes, fontFamilies, layout } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
@@ -239,6 +239,18 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
           </View>
         </View>
         <TouchableOpacity
+          style={styles.reportRow}
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('ReportListing', {
+            restaurantName: food.restaurantName,
+            foodId: food.id,
+          })}
+        >
+          <Ionicons name="flag-outline" size={14} color={colors.textMuted} />
+          <Text style={styles.reportText}>Report this listing</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={styles.claimBtn}
           activeOpacity={0.85}
           onPress={() => navigation.navigate('QrScanner')}
@@ -435,6 +447,18 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes.sm,
     color: colors.textPrimary,
+  },
+
+  reportRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  reportText: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    color: colors.textMuted,
   },
 
   progressBlock: { gap: spacing.xs },

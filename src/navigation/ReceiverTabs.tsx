@@ -14,6 +14,7 @@ import DailyLimitScreen       from '../screens/receiver/DailyLimitScreen';
 import ScanErrorScreen        from '../screens/receiver/ScanErrorScreen';
 import OfflineErrorScreen     from '../screens/receiver/OfflineErrorScreen';
 import ServerErrorScreen      from '../screens/receiver/ServerErrorScreen';
+import ReportListingScreen   from '../screens/receiver/ReportListingScreen';
 import ReceiverHistoryScreen  from '../screens/receiver/ReceiverHistoryScreen';
 import NotificationsScreen    from '../screens/shared/NotificationsScreen';
 import ReceiverProfileScreen      from '../screens/receiver/ReceiverProfileScreen';
@@ -21,6 +22,8 @@ import LocationSettingsScreen     from '../screens/receiver/LocationSettingsScre
 import NotificationSettingsScreen from '../screens/receiver/NotificationSettingsScreen';
 import HelpFaqScreen             from '../screens/receiver/HelpFaqScreen';
 import TermsPrivacyScreen        from '../screens/receiver/TermsPrivacyScreen';
+import DeleteAccountScreen       from '../screens/receiver/DeleteAccountScreen';
+import ExportDataScreen          from '../screens/receiver/ExportDataScreen';
 import { colors, fontSizes }  from '../constants/theme';
 
 export type HomeStackParamList = {
@@ -34,6 +37,7 @@ export type HomeStackParamList = {
   ScanError:       undefined;
   OfflineError:    undefined;
   ServerError:     { errorRef?: string };
+  ReportListing:   { restaurantName: string; foodId: string };
 };
 
 export type HistoryStackParamList = {
@@ -46,6 +50,8 @@ export type ProfileStackParamList = {
   NotificationSettings: undefined;
   HelpFaq:              undefined;
   TermsPrivacy:         undefined;
+  DeleteAccount:        undefined;
+  ExportData:           undefined;
 };
 
 const Tab          = createBottomTabNavigator();
@@ -66,6 +72,7 @@ function HomeNavigator() {
       <HomeStack.Screen name="ScanError"       component={ScanErrorScreen} />
       <HomeStack.Screen name="OfflineError"    component={OfflineErrorScreen} />
       <HomeStack.Screen name="ServerError"     component={ServerErrorScreen} />
+      <HomeStack.Screen name="ReportListing"  component={ReportListingScreen} />
     </HomeStack.Navigator>
   );
 }
@@ -86,6 +93,8 @@ function ProfileNavigator() {
       <ProfileStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
       <ProfileStack.Screen name="HelpFaq"              component={HelpFaqScreen} />
       <ProfileStack.Screen name="TermsPrivacy"         component={TermsPrivacyScreen} />
+      <ProfileStack.Screen name="DeleteAccount"        component={DeleteAccountScreen} />
+      <ProfileStack.Screen name="ExportData"           component={ExportDataScreen} />
     </ProfileStack.Navigator>
   );
 }

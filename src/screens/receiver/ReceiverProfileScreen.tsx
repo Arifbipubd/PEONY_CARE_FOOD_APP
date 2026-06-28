@@ -17,7 +17,7 @@ import { logout } from '../../services/auth';
 import { getReceiverProfile } from '../../services/receiver';
 import { ReceiverProfile } from '../../types';
 import {
-  colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, lineHeights,
+  colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, lineHeights,
 } from '../../constants/theme';
 import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
 import SgFlag from '../../components/SgFlag';
@@ -48,6 +48,7 @@ type MenuRow = {
   iconBg: string;
   iconColor: string;
   label: string;
+  labelColor?: string;
   subtitle?: string;
   onPress: () => void;
 };
@@ -204,6 +205,23 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
       subtitle: '3 channels enabled',
       onPress: () => navigation.navigate('NotificationSettings'),
     },
+    {
+      icon: 'download-outline',
+      iconBg: colors.surfaceSecondary,
+      iconColor: colors.textPrimary,
+      label: 'Download my data',
+      subtitle: 'Get a copy of your data',
+      onPress: () => navigation.navigate('ExportData'),
+    },
+    {
+      icon: 'trash-outline',
+      iconBg: colors.accentLight,
+      iconColor: colors.textPrimary,
+      label: 'Delete account',
+      labelColor: colors.dangerRed,
+      subtitle: 'Permanently remove your data',
+      onPress: () => navigation.navigate('DeleteAccount'),
+    },
   ];
 
   const supportRows: MenuRow[] = [
@@ -350,7 +368,7 @@ const MenuRowItem = memo(function MenuRowItem({ row, isLast }: { row: MenuRow; i
         <Ionicons name={row.icon} size={18} color={row.iconColor} />
       </View>
       <View style={styles.menuText}>
-        <Text style={styles.menuLabel}>{row.label}</Text>
+        <Text style={[styles.menuLabel, row.labelColor ? { color: row.labelColor } : null]}>{row.label}</Text>
         {row.subtitle && (
           <Text style={styles.menuSubtitle}>{row.subtitle}</Text>
         )}
