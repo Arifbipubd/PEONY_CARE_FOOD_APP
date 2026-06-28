@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Claim } from '../types';
 import ReceiverHomeScreen     from '../screens/receiver/ReceiverHomeScreen';
@@ -13,10 +14,16 @@ import DailyLimitScreen       from '../screens/receiver/DailyLimitScreen';
 import ScanErrorScreen        from '../screens/receiver/ScanErrorScreen';
 import OfflineErrorScreen     from '../screens/receiver/OfflineErrorScreen';
 import ServerErrorScreen      from '../screens/receiver/ServerErrorScreen';
+import ReportListingScreen   from '../screens/receiver/ReportListingScreen';
 import ReceiverHistoryScreen  from '../screens/receiver/ReceiverHistoryScreen';
 import NotificationsScreen    from '../screens/shared/NotificationsScreen';
-import ReceiverProfileScreen  from '../screens/receiver/ReceiverProfileScreen';
-import LocationSettingsScreen from '../screens/receiver/LocationSettingsScreen';
+import ReceiverProfileScreen      from '../screens/receiver/ReceiverProfileScreen';
+import LocationSettingsScreen     from '../screens/receiver/LocationSettingsScreen';
+import NotificationSettingsScreen from '../screens/receiver/NotificationSettingsScreen';
+import HelpFaqScreen             from '../screens/receiver/HelpFaqScreen';
+import TermsPrivacyScreen        from '../screens/receiver/TermsPrivacyScreen';
+import DeleteAccountScreen       from '../screens/receiver/DeleteAccountScreen';
+import ExportDataScreen          from '../screens/receiver/ExportDataScreen';
 import { colors, fontSizes }  from '../constants/theme';
 
 export type HomeStackParamList = {
@@ -30,6 +37,7 @@ export type HomeStackParamList = {
   ScanError:       undefined;
   OfflineError:    undefined;
   ServerError:     { errorRef?: string };
+  ReportListing:   { restaurantName: string; foodId: string };
 };
 
 export type HistoryStackParamList = {
@@ -37,8 +45,13 @@ export type HistoryStackParamList = {
 };
 
 export type ProfileStackParamList = {
-  ReceiverProfile:  undefined;
-  LocationSettings: undefined;
+  ReceiverProfile:      undefined;
+  LocationSettings:     undefined;
+  NotificationSettings: undefined;
+  HelpFaq:              undefined;
+  TermsPrivacy:         undefined;
+  DeleteAccount:        undefined;
+  ExportData:           undefined;
 };
 
 const Tab          = createBottomTabNavigator();
@@ -59,6 +72,7 @@ function HomeNavigator() {
       <HomeStack.Screen name="ScanError"       component={ScanErrorScreen} />
       <HomeStack.Screen name="OfflineError"    component={OfflineErrorScreen} />
       <HomeStack.Screen name="ServerError"     component={ServerErrorScreen} />
+      <HomeStack.Screen name="ReportListing"  component={ReportListingScreen} />
     </HomeStack.Navigator>
   );
 }
@@ -74,15 +88,19 @@ function HistoryNavigator() {
 function ProfileNavigator() {
   return (
     <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
-      <ProfileStack.Screen name="ReceiverProfile"  component={ReceiverProfileScreen} />
-      <ProfileStack.Screen name="LocationSettings" component={LocationSettingsScreen} />
+      <ProfileStack.Screen name="ReceiverProfile"      component={ReceiverProfileScreen} />
+      <ProfileStack.Screen name="LocationSettings"     component={LocationSettingsScreen} />
+      <ProfileStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
+      <ProfileStack.Screen name="HelpFaq"              component={HelpFaqScreen} />
+      <ProfileStack.Screen name="TermsPrivacy"         component={TermsPrivacyScreen} />
+      <ProfileStack.Screen name="DeleteAccount"        component={DeleteAccountScreen} />
+      <ProfileStack.Screen name="ExportData"           component={ExportDataScreen} />
     </ProfileStack.Navigator>
   );
 }
 
 const TAB_ICONS = {
   Home:    { active: 'home'           as const, inactive: 'home-outline'           as const },
-  History: { active: 'time'           as const, inactive: 'time-outline'           as const },
   Alerts:  { active: 'notifications'  as const, inactive: 'notifications-outline'  as const },
   Profile: { active: 'person-circle'  as const, inactive: 'person-circle-outline'  as const },
 };
@@ -97,6 +115,9 @@ export default function ReceiverTabs() {
         tabBarLabelStyle: { fontSize: fontSizes.xs },
         tabBarStyle: { borderTopColor: colors.borderDefault },
         tabBarIcon: ({ focused, color, size }) => {
+          if (route.name === 'History') {
+            return <MaterialCommunityIcons name="history" size={size} color={color} />;
+          }
           const icons = TAB_ICONS[route.name as keyof typeof TAB_ICONS];
           if (!icons) return null;
           return <Ionicons name={focused ? icons.active : icons.inactive} size={size} color={color} />;

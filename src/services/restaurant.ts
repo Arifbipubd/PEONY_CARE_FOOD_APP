@@ -72,6 +72,7 @@ function mapApiPublicRestaurant(d: ApiPublicRestaurant): PublicRestaurant {
     photoUrl: d.photo_url,
     isVerified: d.is_verified,
     totalFoodShared: d.total_food_shared,
+    mealCount: d.meal_count,
   };
 }
 

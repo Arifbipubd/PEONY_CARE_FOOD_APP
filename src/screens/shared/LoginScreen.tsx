@@ -28,9 +28,13 @@ export default function LoginScreen({ navigation }: Props) {
   const [error, setError]     = useState('');
 
   const cleaned = phone.trim().replace(/\s/g, '');
+  const isValidSgPhone = /^[689]\d{7}$/.test(cleaned);
+  const phoneError =
+    cleaned.length > 0 && !/^[689]/.test(cleaned) ? 'Must start with 6, 8 or 9' :
+    cleaned.length > 8                             ? 'Must be exactly 8 digits'  : '';
 
   async function handleSend() {
-    if (cleaned.length < 8) { setError('Enter a valid phone number'); return; }
+    if (!isValidSgPhone) { setError('Enter a valid Singapore number'); return; }
     setError('');
     setLoading(true);
     try {
@@ -67,7 +71,7 @@ export default function LoginScreen({ navigation }: Props) {
             onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
             placeholder="91234567"
             keyboardType="number-pad"
-            error={error}
+            error={phoneError || error}
             leftSection={
               <>
                 <SgFlag size={24} />
@@ -80,7 +84,7 @@ export default function LoginScreen({ navigation }: Props) {
             label="Send code"
             onPress={handleSend}
             loading={loading}
-            disabled={cleaned.length < 8}
+            disabled={!isValidSgPhone}
             style={styles.btn}
             rightIcon={<Ionicons name="arrow-forward" size={20} color={colors.textInverse} />}
           />

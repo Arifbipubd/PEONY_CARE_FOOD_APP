@@ -16,7 +16,7 @@ import Button from '../../components/Button';
 import Input from '../../components/Input';
 import LogoBadge from '../../components/LogoBadge';
 import { sendOtp } from '../../services/auth';
-import { colors, spacing, fontSizes, fontWeights, fontFamilies, lineHeights, letterSpacings } from '../../constants/theme';
+import { colors, spacing, fontSizes, fontFamilies, lineHeights, letterSpacings } from '../../constants/theme';
 import SgFlag from '../../components/SgFlag';
 
 type Props = {
@@ -30,11 +30,15 @@ export default function ReceiverRegisterScreen({ navigation }: Props) {
   const [error, setError]   = useState('');
 
   const cleaned = phone.trim().replace(/\s/g, '');
-  const canSubmit = name.trim().length > 0 && cleaned.length >= 8;
+  const isValidSgPhone = /^[689]\d{7}$/.test(cleaned);
+  const phoneError =
+    cleaned.length > 0 && !/^[689]/.test(cleaned) ? 'Must start with 6, 8 or 9' :
+    cleaned.length > 8                             ? 'Must be exactly 8 digits'  : '';
+  const canSubmit = name.trim().length > 0 && isValidSgPhone;
 
   async function handleSend() {
     if (!name.trim()) { setError('Full name is required'); return; }
-    if (cleaned.length < 8) { setError('Enter a valid phone number'); return; }
+    if (!isValidSgPhone) { setError('Enter a valid Singapore number'); return; }
     setError('');
     setLoading(true);
     try {
@@ -85,7 +89,7 @@ export default function ReceiverRegisterScreen({ navigation }: Props) {
               onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
               placeholder="91234567"
               keyboardType="number-pad"
-              error={error}
+              error={phoneError || error}
               leftSection={
                 <>
                   <SgFlag size={24} />
@@ -139,7 +143,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     lineHeight: lineHeights.subheading,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
@@ -150,32 +153,27 @@ const styles = StyleSheet.create({
   prefix: {
     fontFamily: fontFamilies.regular,
     fontSize: 14,
-    fontWeight: fontWeights.regular,
     color: colors.textPrimary,
   },
   terms: {
     fontFamily: fontFamilies.regular,
     fontSize: 14,
-    fontWeight: fontWeights.regular,
     lineHeight: lineHeights.body,
     color: colors.textMuted,
     textAlign: 'center',
   },
   termsLink: {
     fontFamily: fontFamilies.semiBold,
-    fontWeight: fontWeights.semiBold,
     color: colors.accentPrimary,
   },
   loginRow: {
     fontFamily: fontFamilies.regular,
     fontSize: 14,
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     textAlign: 'center',
   },
   loginLink: {
     fontFamily: fontFamilies.semiBold,
-    fontWeight: fontWeights.semiBold,
     color: colors.accentPrimary,
   },
 });

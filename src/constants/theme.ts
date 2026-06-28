@@ -29,7 +29,9 @@ export const colors = {
   successGreenLight: '#ECFDF5',
   warningYellow:      '#F59E0B',
   warningYellowLight: '#FFFBEB',
-  errorRed:      '#D31B1B',
+  errorRed:        '#D31B1B',
+  dangerRed:       '#DC2626',  // destructive actions — delete account, trash icon
+  accentLightBorder: '#FECACA', // border on accentLight (red-200) — danger card
 
   // Input focus ring (shadow/5 from design system)
   accentFocusShadow: 'rgba(200, 16, 46, 0.08)',
@@ -39,6 +41,7 @@ export const colors = {
 
   // Gold (donor "hand-heart" icon — verified against Choose-Role@2x.png)
   goldLight: '#FFF3D0',  // yellow/200
+  goldMid:   '#D4AF37',  // yellow/500 — donor avatar bg, anon heart icon (verified against FoodDetail Figma CSS)
   goldDark:  '#B8941E',  // yellow/600
 
   // Mint (receiver icon background — verified against Choose-Role@2x.png)
