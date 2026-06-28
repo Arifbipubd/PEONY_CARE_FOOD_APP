@@ -88,7 +88,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.semiBold,
     color: colors.textMuted,
   },
   focusRing: {

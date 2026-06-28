@@ -73,7 +73,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontFamily: fontFamilies.bold,
     fontSize: 12,                 // Figma: 12px
-    fontWeight: fontWeights.bold,
     letterSpacing: letterSpacings.slogan,  // 0.96px
   },
   chip: {

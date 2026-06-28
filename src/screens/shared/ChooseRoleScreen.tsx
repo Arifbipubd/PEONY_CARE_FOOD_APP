@@ -34,7 +34,7 @@ const ROLES = [
     subtitle: 'Find complimentary food near you',
     iconBg: colors.mintLight,
     iconColor: colors.successGreen,
-    renderIcon: (color: string) => <Ionicons name="restaurant" size={24} color={color} />,
+    renderIcon: (color: string) => <MaterialCommunityIcons name="silverware-fork-knife" size={24} color={color} />,
     screen: 'ReceiverRegister' as const,
   },
 ] as const;
@@ -98,7 +98,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
     marginBottom: 8,
@@ -106,7 +105,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: fontFamilies.regular,
     fontSize: 14,
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     marginBottom: spacing['3xl'],
   },
@@ -137,7 +135,6 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontFamily: fontFamilies.semiBold,
     fontSize: 16,
-    fontWeight: fontWeights.semiBold,
     color: colors.textPrimary,
     marginBottom: spacing.xs,
   },

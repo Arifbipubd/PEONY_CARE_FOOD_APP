@@ -122,7 +122,6 @@ const styles = StyleSheet.create({
   badgeCategoryText: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes.xs,       // 11px
-    fontWeight: fontWeights.semiBold,
     letterSpacing: 0.22,          // component-specific, not in letterSpacings scale
     color: colors.textInverse,
   },
@@ -140,7 +139,6 @@ const styles = StyleSheet.create({
   badgeQtyText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xs,       // 11px
-    fontWeight: fontWeights.bold,
     color: colors.textInverse,
   },
   content: {
@@ -149,7 +147,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes.md,       // 15px
-    fontWeight: fontWeights.semiBold,
     letterSpacing: -0.225,        // component-specific, not in letterSpacings scale
     color: colors.textPrimary,
   },
@@ -162,7 +159,6 @@ const styles = StyleSheet.create({
   restaurantText: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.sm,       // 13px
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     flex: 1,
     includeFontPadding: false,
@@ -181,14 +177,12 @@ const styles = StyleSheet.create({
   metaText: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes['12'],    // 12px
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
     includeFontPadding: false,
   },
   pickupText: {
     fontFamily: fontFamilies.medium,
     fontSize: fontSizes['12'],    // 12px
-    fontWeight: fontWeights.medium,
     color: colors.pickupOrange,
     includeFontPadding: false,
   },
@@ -201,7 +195,6 @@ const styles = StyleSheet.create({
   sponsorText: {
     fontFamily: fontFamilies.medium,
     fontSize: fontSizes['12'],    // 12px
-    fontWeight: fontWeights.medium,
     color: colors.textMuted,
     includeFontPadding: false,
   },

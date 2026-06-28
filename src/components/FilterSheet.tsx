@@ -160,21 +160,18 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
     letterSpacing: -0.5,      // component-specific
     color: colors.textPrimary,
   },
   reset: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.semiBold,
     color: colors.accentPrimary,
   },
 
   sectionLabel: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.bold,
     letterSpacing: 0.88,      // component-specific
     color: colors.textMuted,
     marginBottom: 12,         // component-specific
@@ -201,7 +198,6 @@ const styles = StyleSheet.create({
   chipText: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.semiBold,
     color: colors.textPrimary,
   },
   chipTextActive: {
@@ -217,7 +213,6 @@ const styles = StyleSheet.create({
   distanceValue: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
     letterSpacing: -0.5,      // component-specific
     color: colors.textPrimary,
   },
@@ -241,7 +236,6 @@ const styles = StyleSheet.create({
   cancelBtnText: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.semiBold,
     color: colors.textPrimary,
   },
   applyBtn: {
@@ -260,7 +254,6 @@ const styles = StyleSheet.create({
   applyBtnText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['14'],
-    fontWeight: fontWeights.bold,
     letterSpacing: 0.28,      // component-specific
     color: colors.textInverse,
   },
