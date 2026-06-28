@@ -21,6 +21,7 @@ export const MOCK_PUBLIC_RESTAURANTS: Record<string, ApiPublicRestaurant> = {
     photo_url: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=600',
     is_verified: true,
     total_food_shared: 1240,
+    meal_count: 3,
   },
   'rest-002': {
     id: 'rest-002',
@@ -37,6 +38,7 @@ export const MOCK_PUBLIC_RESTAURANTS: Record<string, ApiPublicRestaurant> = {
     photo_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600',
     is_verified: true,
     total_food_shared: 430,
+    meal_count: 5,
   },
   'rest-003': {
     id: 'rest-003',
@@ -53,6 +55,7 @@ export const MOCK_PUBLIC_RESTAURANTS: Record<string, ApiPublicRestaurant> = {
     photo_url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600',
     is_verified: true,
     total_food_shared: 890,
+    meal_count: 8,
   },
   'rest-004': {
     id: 'rest-004',
@@ -69,6 +72,7 @@ export const MOCK_PUBLIC_RESTAURANTS: Record<string, ApiPublicRestaurant> = {
     photo_url: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600',
     is_verified: false,
     total_food_shared: 210,
+    meal_count: 2,
   },
   'rest-005': {
     id: 'rest-005',
@@ -85,6 +89,7 @@ export const MOCK_PUBLIC_RESTAURANTS: Record<string, ApiPublicRestaurant> = {
     photo_url: 'https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600',
     is_verified: true,
     total_food_shared: 560,
+    meal_count: 6,
   },
   'rest-006': {
     id: 'rest-006',
@@ -101,6 +106,7 @@ export const MOCK_PUBLIC_RESTAURANTS: Record<string, ApiPublicRestaurant> = {
     photo_url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600',
     is_verified: true,
     total_food_shared: 320,
+    meal_count: 4,
   },
   'rest-007': {
     id: 'rest-007',
@@ -117,6 +123,7 @@ export const MOCK_PUBLIC_RESTAURANTS: Record<string, ApiPublicRestaurant> = {
     photo_url: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600',
     is_verified: true,
     total_food_shared: 180,
+    meal_count: 1,
   },
 };
 

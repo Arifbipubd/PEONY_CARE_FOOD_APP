@@ -4,16 +4,16 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Switch,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { CustomSwitch } from '../../components/CustomSwitch';
+import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getLocationSettings } from '../../services/receiver';
 import { LocationSettings, RecentPlace } from '../../types';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../../constants/theme';
+import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings } from '../../constants/theme';
 import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
@@ -28,6 +28,83 @@ function relativeDay(isoString: string): string {
   if (diffDays === 1) return 'Yesterday';
   return `${diffDays}d ago`;
 }
+
+function LocationSkeleton() {
+  const opacity = usePulse();
+  return (
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+      <View style={lSkelStyles.header}>
+        <SkeletonBox opacity={opacity} width={22} height={22} borderRadius={100} />
+        <SkeletonBox opacity={opacity} width={22} height={22} borderRadius={100} />
+      </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={lSkelStyles.scroll} scrollEnabled={false}>
+        <SkeletonBox opacity={opacity} width={100} height={13} />
+        <SkeletonBox opacity={opacity} width={200} height={28} style={lSkelStyles.heading} />
+        <View style={lSkelStyles.radiusRow}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <SkeletonBox key={i} opacity={opacity} width={44} height={36} borderRadius={100} />
+          ))}
+        </View>
+        {[0, 1].map((i) => (
+          <View key={i} style={lSkelStyles.toggleRow}>
+            <View style={lSkelStyles.toggleText}>
+              <SkeletonBox opacity={opacity} width={140} height={15} />
+              <SkeletonBox opacity={opacity} width={200} height={12} style={lSkelStyles.toggleSub} />
+            </View>
+            <SkeletonBox opacity={opacity} width={50} height={28} borderRadius={100} />
+          </View>
+        ))}
+        <SkeletonBox opacity={opacity} width={110} height={18} style={lSkelStyles.sectionLabel} />
+        {[0, 1].map((i) => (
+          <View key={i} style={lSkelStyles.placeRow}>
+            <SkeletonBox opacity={opacity} width={36} height={36} borderRadius={100} />
+            <View style={lSkelStyles.placeText}>
+              <SkeletonBox opacity={opacity} width={130} height={14} />
+              <SkeletonBox opacity={opacity} width={80} height={12} style={lSkelStyles.toggleSub} />
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const lSkelStyles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: spacing.md,
+  },
+  scroll: {
+    paddingHorizontal: spacing['2xl'],
+    paddingBottom: spacing['4xl'],
+    paddingTop: spacing.lg,
+    gap: spacing['2xl'],
+  },
+  heading: { marginTop: spacing.sm },
+  radiusRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    flexWrap: 'wrap',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+  },
+  toggleText: { flex: 1, gap: 4 },
+  toggleSub:  { marginTop: 2 },
+  sectionLabel: { marginTop: spacing.sm },
+  placeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+  placeText: { flex: 1, gap: 4 },
+});
 
 export default function LocationSettingsScreen({ navigation }: Props) {
   const [settings, setSettings] = useState<LocationSettings | null>(null);
@@ -50,11 +127,7 @@ export default function LocationSettingsScreen({ navigation }: Props) {
   }, []);
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.screen}>
-        <ActivityIndicator style={styles.loader} color={colors.accentPrimary} />
-      </SafeAreaView>
-    );
+    return <LocationSkeleton />;
   }
 
   return (
@@ -69,7 +142,7 @@ export default function LocationSettingsScreen({ navigation }: Props) {
           onPress={() => navigation.getParent()?.navigate('Alerts' as never)}
           hitSlop={8}
         >
-          <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
+          <Ionicons name="notifications" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -114,12 +187,7 @@ export default function LocationSettingsScreen({ navigation }: Props) {
               <Text style={styles.permLabel}>Location services</Text>
               <Text style={styles.permSub}>Use GPS to find food near you</Text>
             </View>
-            <Switch
-              value={locationSvc}
-              onValueChange={setLocationSvc}
-              trackColor={{ false: colors.borderDefault, true: colors.accentPrimary }}
-              thumbColor={colors.surface}
-            />
+            <CustomSwitch value={locationSvc} onValueChange={setLocationSvc} />
           </View>
           <View style={styles.permDivider} />
           <View style={styles.permRow}>
@@ -130,12 +198,7 @@ export default function LocationSettingsScreen({ navigation }: Props) {
               <Text style={styles.permLabel}>Save location history</Text>
               <Text style={styles.permSub}>Better recommendations based on usual areas</Text>
             </View>
-            <Switch
-              value={saveHistory}
-              onValueChange={setSaveHistory}
-              trackColor={{ false: colors.borderDefault, true: colors.accentPrimary }}
-              thumbColor={colors.surface}
-            />
+            <CustomSwitch value={saveHistory} onValueChange={setSaveHistory} />
           </View>
         </View>
 
@@ -160,21 +223,23 @@ export default function LocationSettingsScreen({ navigation }: Props) {
               {i < recentPlaces.length - 1 && <View style={styles.placeDivider} />}
             </View>
           ))}
+          <View style={styles.clearDivider} />
+          <TouchableOpacity
+            onPress={() => setRecentPlaces([])}
+            activeOpacity={0.7}
+            style={styles.clearBtn}
+          >
+            <Ionicons name="trash-outline" size={15} color={colors.accentPrimary} />
+            <Text style={styles.clearText}>Clear location history</Text>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          onPress={() => setRecentPlaces([])}
-          activeOpacity={0.7}
-          style={styles.clearBtn}
-        >
-          <Text style={styles.clearText}>Clear location history</Text>
-        </TouchableOpacity>
 
       </ScrollView>
 
       {/* Save button */}
       <View style={styles.saveWrap}>
         <TouchableOpacity style={styles.saveBtn} activeOpacity={0.85}>
+          <Ionicons name="checkmark" size={20} color={colors.textInverse} />
           <Text style={styles.saveBtnText}>Save settings</Text>
         </TouchableOpacity>
       </View>
@@ -185,7 +250,6 @@ export default function LocationSettingsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
-  loader: { flex: 1 },
 
   header: {
     flexDirection: 'row',
@@ -205,19 +269,22 @@ const styles = StyleSheet.create({
 
   subtitle: {
     fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.medium,
     color: colors.textMuted,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   heading: {
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
     marginBottom: spacing['2xl'],
   },
 
   sectionLabel: {
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: -0.425,
     color: colors.textPrimary,
     marginBottom: spacing.md,
   },
@@ -229,16 +296,16 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   radiusNumber: {
-    fontSize: 52,
-    fontWeight: fontWeights.bold,
+    fontSize: fontSizes['5xl'],
+    fontFamily: fontFamilies.bold,
+    letterSpacing: letterSpacings.heading,
     color: colors.textPrimary,
-    lineHeight: 58,
+    lineHeight: fontSizes['5xl'],
   },
   radiusUnit: {
     fontSize: fontSizes.xl,
     color: colors.textMuted,
-    fontWeight: fontWeights.semiBold,
-    paddingBottom: spacing.sm,
+    fontFamily: fontFamilies.semiBold,
   },
 
   chipRow: {
@@ -249,20 +316,19 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.borderDefault,
+    height: 36,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   chipActive: {
     backgroundColor: colors.textPrimary,
-    borderColor: colors.textPrimary,
   },
   chipText: {
-    fontSize: fontSizes.sm,
-    color: colors.textMuted,
-    fontWeight: fontWeights.medium,
+    fontSize: fontSizes['12'],
+    color: colors.textPrimary,
+    fontFamily: fontFamilies.semiBold,
   },
   chipTextActive: {
     color: colors.textInverse,
@@ -290,27 +356,28 @@ const styles = StyleSheet.create({
   },
   permDivider: { height: 1, backgroundColor: colors.borderDefault },
   permIcon: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   permText: { flex: 1, gap: spacing.xs },
   permLabel: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.semiBold,
+    fontSize: fontSizes['14'],
+    fontFamily: fontFamilies.semiBold,
+    letterSpacing: -0.21,
     color: colors.textPrimary,
   },
   permSub: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['12'],
     color: colors.textMuted,
   },
 
   recentHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'baseline',
     marginBottom: spacing.md,
   },
   recentCount: {
@@ -332,6 +399,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   placeDivider: { height: 1, backgroundColor: colors.borderDefault, marginLeft: 56 + spacing.lg },
+  clearDivider: { height: 1, backgroundColor: colors.borderDefault },
   placeIcon: {
     width: 40,
     height: 40,
@@ -355,13 +423,15 @@ const styles = StyleSheet.create({
   },
 
   clearBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
     paddingVertical: spacing.md,
-    marginBottom: spacing.lg,
   },
   clearText: {
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semiBold,
+    fontFamily: fontFamilies.semiBold,
     color: colors.accentPrimary,
   },
 
@@ -372,14 +442,18 @@ const styles = StyleSheet.create({
     borderTopColor: colors.borderDefault,
   },
   saveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
     backgroundColor: colors.accentPrimary,
     borderRadius: radius.card,
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
+    height: 52,
   },
   saveBtnText: {
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: letterSpacings.button,
     color: colors.textInverse,
   },
 });
