@@ -2,6 +2,7 @@ import { useState, useEffect, memo } from 'react';
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -12,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthStore } from '../../store/authStore';
+import { useProfileStore } from '../../store/profileStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import { logout } from '../../services/auth';
 import { getReceiverProfile } from '../../services/receiver';
@@ -165,6 +167,7 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
   const [profile, setProfile] = useState<ReceiverProfile | null>(null);
   const [loading, setLoading]   = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+  const { photoUrl } = useProfileStore();
 
   useEffect(() => {
     getReceiverProfile().then((p) => {
@@ -267,11 +270,15 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
         {/* Avatar */}
         <View style={styles.avatarWrapper}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>{initials(profile.displayName)}</Text>
+            {photoUrl ? (
+              <Image source={{ uri: photoUrl }} style={styles.avatarImage} resizeMode="cover" />
+            ) : (
+              <Text style={styles.avatarText}>{initials(profile.displayName)}</Text>
+            )}
           </View>
-          <View style={styles.cameraBtn}>
+          <TouchableOpacity style={styles.cameraBtn} onPress={() => navigation.navigate('EditProfile')} activeOpacity={0.8}>
             <Ionicons name="camera" size={15} color={colors.textInverse} />
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Name */}
@@ -425,6 +432,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.avatarBg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarImage: {
+    width: 96,
+    height: 96,
+    borderRadius: radius.pill,
   },
   avatarText: {
     fontSize: fontSizes.xl,
