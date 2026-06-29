@@ -24,6 +24,7 @@ import HelpFaqScreen             from '../screens/receiver/HelpFaqScreen';
 import TermsPrivacyScreen        from '../screens/receiver/TermsPrivacyScreen';
 import DeleteAccountScreen       from '../screens/receiver/DeleteAccountScreen';
 import ExportDataScreen          from '../screens/receiver/ExportDataScreen';
+import EditProfileScreen         from '../screens/receiver/EditProfileScreen';
 import { colors, fontSizes }  from '../constants/theme';
 
 export type HomeStackParamList = {
@@ -52,6 +53,7 @@ export type ProfileStackParamList = {
   TermsPrivacy:         undefined;
   DeleteAccount:        undefined;
   ExportData:           undefined;
+  EditProfile:          undefined;
 };
 
 const Tab          = createBottomTabNavigator();
@@ -95,6 +97,7 @@ function ProfileNavigator() {
       <ProfileStack.Screen name="TermsPrivacy"         component={TermsPrivacyScreen} />
       <ProfileStack.Screen name="DeleteAccount"        component={DeleteAccountScreen} />
       <ProfileStack.Screen name="ExportData"           component={ExportDataScreen} />
+      <ProfileStack.Screen name="EditProfile"          component={EditProfileScreen} />
     </ProfileStack.Navigator>
   );
 }
