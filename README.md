@@ -32,21 +32,56 @@ Peony Care is a mobile app that lets restaurants list surplus food as complement
 
 ---
 
+## Prerequisites
+
+| Tool | Version | Notes |
+|---|---|---|
+| Node.js | 18 or 20 LTS | Check with `node -v` |
+| npm | 9+ | Comes with Node |
+| Android Studio | Latest | Required for the Android emulator |
+| JDK | 17 | Required by Android Studio |
+
+Or skip Android Studio entirely — install **Expo Go** on your Android phone and scan the QR code.
+
+---
+
 ## Getting Started
 
 ```bash
-# Install dependencies
+# 1. Clone the repo
+git clone https://github.com/Arifbipubd/PEONY_CARE_FOOD_APP.git
+cd PEONY_CARE_FOOD_APP
+
+# 2. Install dependencies
 npm install
 
-# Start dev server
+# 3. Start the dev server
 npx expo start
+```
 
-# Android only
+### Running on a device or emulator
+
+**Option A — Physical Android phone (easiest)**
+1. Install **Expo Go** from the Play Store
+2. Run `npx expo start`
+3. Scan the QR code shown in the terminal with Expo Go
+
+**Option B — Android emulator (Android Studio)**
+1. Open Android Studio → Virtual Device Manager → create a Pixel device (API 33+)
+2. Start the emulator
+3. Run `npx expo start --android` — Expo detects the running emulator automatically
+
+```bash
+# Android emulator shortcut
 npx expo start --android
 
-# Clear Metro cache if something looks stale
+# Clear Metro cache if you see stale bundle errors
 npx expo start --clear
 ```
+
+### Logging in (mock)
+
+Any phone number works on the login screen. Enter any 6-digit code on the OTP screen. On the register screen, choose a role to land in the matching tab navigator.
 
 ---
 
