@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import Button from '../../components/Button';
 import Input from '../../components/Input';
 import LogoBadge from '../../components/LogoBadge';
 import { sendOtp } from '../../services/auth';
+import { ApiError } from '../../services/api';
 import { colors, spacing, fontSizes, fontFamilies, lineHeights, letterSpacings } from '../../constants/theme';
 import SgFlag from '../../components/SgFlag';
 
@@ -24,10 +25,23 @@ type Props = {
 };
 
 export default function ReceiverRegisterScreen({ navigation }: Props) {
-  const [name, setName]     = useState('');
-  const [phone, setPhone]   = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState('');
+  const [name, setName]               = useState('');
+  const [phone, setPhone]             = useState('');
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState('');
+  const [rateLimitSecs, setRateLimitSecs] = useState(0);
+
+  useEffect(() => {
+    if (rateLimitSecs <= 0) return;
+    const t = setTimeout(() => {
+      setRateLimitSecs((s) => {
+        const next = s - 1;
+        if (next <= 0) setError('');
+        return next;
+      });
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [rateLimitSecs]);
 
   const cleaned = phone.trim().replace(/\s/g, '');
   const isValidSgPhone = /^[689]\d{7}$/.test(cleaned);
@@ -50,7 +64,13 @@ export default function ReceiverRegisterScreen({ navigation }: Props) {
         pendingRegistration: { role: 'RECEIVER', displayName: name.trim() },
       });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to send code. Try again.');
+      if (err instanceof ApiError && err.code === 'OTP_RATE_LIMITED') {
+        const secs = (err.details?.retry_after_seconds as number) ?? 60;
+        setRateLimitSecs(secs);
+        setError(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to send code. Try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -89,7 +109,7 @@ export default function ReceiverRegisterScreen({ navigation }: Props) {
               onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
               placeholder="91234567"
               keyboardType="number-pad"
-              error={phoneError || error}
+              error={phoneError || (rateLimitSecs > 0 && error ? `${error} Retry in ${rateLimitSecs}s.` : error)}
               leftSection={
                 <>
                   <SgFlag size={24} />
