@@ -19,6 +19,11 @@ export function useLocation(): LocationState {
           if (!cancelled) setState({ lat: null, lng: null, loading: false });
           return;
         }
+        const last = await Location.getLastKnownPositionAsync();
+        if (last && !cancelled) {
+          setState({ lat: last.coords.latitude, lng: last.coords.longitude, loading: false });
+          return;
+        }
         const pos = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
