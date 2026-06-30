@@ -4,7 +4,11 @@ import { useAuthStore } from '../store/authStore';
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000/api/v1';
 
 export class ApiError extends Error {
-  constructor(public readonly code: string, message: string) {
+  constructor(
+    public readonly code: string,
+    message: string,
+    public readonly details?: Record<string, unknown>,
+  ) {
     super(message);
     this.name = 'ApiError';
   }
@@ -38,7 +42,7 @@ interface RetryConfig extends InternalAxiosRequestConfig {
 
 api.interceptors.response.use(
   (res) => res,
-  async (error: AxiosError<{ error?: { code: string; message: string } }>) => {
+  async (error: AxiosError<{ error?: { code: string; message: string; details?: Record<string, unknown> } }>) => {
     const original = error.config as RetryConfig | undefined;
 
     // --- 401: try token refresh ---
@@ -89,7 +93,7 @@ api.interceptors.response.use(
     // --- Other errors ---
     const apiErr = error.response?.data?.error;
     if (apiErr) {
-      return Promise.reject(new ApiError(apiErr.code, apiErr.message));
+      return Promise.reject(new ApiError(apiErr.code, apiErr.message, apiErr.details));
     }
     if (!error.response) {
       return Promise.reject(new ApiError('NETWORK_ERROR', 'No connection. Please check your network.'));
