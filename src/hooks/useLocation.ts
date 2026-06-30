@@ -14,7 +14,7 @@ export function useLocation(): LocationState {
     let cancelled = false;
     (async () => {
       try {
-        const { status } = await Location.getForegroundPermissionsAsync();
+        const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           if (!cancelled) setState({ lat: null, lng: null, loading: false });
           return;
