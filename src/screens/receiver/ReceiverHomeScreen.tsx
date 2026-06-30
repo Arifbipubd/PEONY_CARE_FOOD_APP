@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { useNotificationStore } from '../../store/notificationStore';
 import FoodCard from '../../components/FoodCard';
 import FilterSheet, { FilterState, DEFAULT_FILTERS, matchesFilters } from '../../components/FilterSheet';
 import { browseFood, getDailyLimit, getReceiverProfile } from '../../services/receiver';
+import { useLocation } from '../../hooks/useLocation';
 import { getNearbyRestaurants } from '../../services/restaurant';
 import { getNotifications } from '../../services/notifications';
 import { FoodItem, FoodCategory, DailyLimitStatus, PublicRestaurant } from '../../types';
@@ -229,6 +230,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const { unreadCount, setNotifications } = useNotificationStore();
   const name = displayName || 'Sarah';
   const firstName = name.split(' ')[0];
+  const { lat, lng, loading: locLoading } = useLocation();
 
   const [activeTab, setActiveTab]       = useState<Tab>('meals');
   const [filters, setFilters]           = useState<FilterState>(DEFAULT_FILTERS);
@@ -239,9 +241,9 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const [dailyLimit, setDailyLimit]     = useState<DailyLimitStatus | null>(null);
   const [loading, setLoading]           = useState(true);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     Promise.all([
-      browseFood(),
+      browseFood(lat ?? undefined, lng ?? undefined),
       getDailyLimit(),
       getNearbyRestaurants(),
       getReceiverProfile(),
@@ -254,7 +256,12 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
       setNotifications(notifications);
       setLoading(false);
     });
-  }, []);
+  }, [lat, lng, setProfile, setNotifications]);
+
+  useEffect(() => {
+    if (locLoading) return;
+    fetchData();
+  }, [locLoading, fetchData]);
 
   const filtered = foods.filter((f) => {
     if (!matchesFilters(f, filters)) return false;

@@ -14,7 +14,7 @@ import {
 } from '../mock/foodItems';
 import { MOCK_CLAIM_HISTORY, MOCK_RECEIVER_PROFILE } from '../mock/claimHistory';
 import { MOCK_LOCATION_SETTINGS } from '../mock/locationSettings';
-// import { api } from './api';
+import { api } from './api';
 
 // ─── Mappers (snake_case API → camelCase app types) ───────────────────────────
 
@@ -42,8 +42,8 @@ function mapApiFoodItem(d: ApiFoodItem): FoodItem {
     distanceKm: d.distance_km,
     sponsorshipType: d.sponsorship_type as FoodItem['sponsorshipType'],
     sponsorDisplayName: d.sponsor_display_name,
-    isHalal: d.is_halal,
-    isVegetarian: d.is_vegetarian,
+    isHalal: d.is_halal ?? false,
+    isVegetarian: d.is_vegetarian ?? false,
   };
 }
 
@@ -84,18 +84,14 @@ function mapApiClaimHistoryItem(d: ApiClaimHistoryItem): ClaimHistoryItem {
 // ─── Service functions ────────────────────────────────────────────────────────
 
 export const browseFood = async (
-  _lat?: number,
-  _lng?: number,
+  lat?: number,
+  lng?: number,
+  radius_km: number = 5,
 ): Promise<FoodItem[]> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 600));
-  return MOCK_FOOD_ITEMS.map(mapApiFoodItem);
-  /* REAL API:
   const res = await api.get('/receiver/donations/browse/', {
-    params: { lat: _lat, lng: _lng },
+    params: { lat, lng, radius_km },
   });
   return (res.data.data as ApiFoodItem[]).map(mapApiFoodItem);
-  */
 };
 
 export const searchFood = async (
