@@ -36,7 +36,7 @@ const FoodCard = React.memo(function FoodCard({ item, onPress }: FoodCardProps) 
 
       {/* Image + overlaid badges */}
       <View>
-        <Image source={{ uri: item.photoUrl }} style={styles.image} resizeMode="cover" />
+        <Image source={{ uri: item.photoUrl || undefined }} style={styles.image} resizeMode="cover" />
         <View style={styles.imageBadges}>
           <View style={styles.badgeCategory}>
             <Text style={styles.badgeCategoryText}>{formatCategory(item.category)}</Text>
