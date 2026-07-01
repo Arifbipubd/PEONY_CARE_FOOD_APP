@@ -16,8 +16,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useProfileStore } from '../../store/profileStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import FoodCard from '../../components/FoodCard';
-import FilterSheet, { FilterState, DEFAULT_FILTERS, matchesFilters } from '../../components/FilterSheet';
-import { browseFood, getDailyLimit, getReceiverProfile, updateReceiverLocation } from '../../services/receiver';
+import FilterSheet, { FilterState, DEFAULT_FILTERS } from '../../components/FilterSheet';
+import { browseFood, getDailyLimit, getReceiverProfile, searchFood, updateReceiverLocation } from '../../services/receiver';
 import { useLocation } from '../../hooks/useLocation';
 import { getNearbyRestaurants } from '../../services/restaurant';
 import { getNotifications } from '../../services/notifications';
@@ -238,15 +238,17 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
   const [searchQuery, setSearchQuery]   = useState('');
   const [foods, setFoods]               = useState<FoodItem[]>([]);
+  const [searchResults, setSearchResults] = useState<FoodItem[] | null>(null);
   const [restaurants, setRestaurants]   = useState<PublicRestaurant[]>([]);
   const [dailyLimit, setDailyLimit]     = useState<DailyLimitStatus | null>(null);
   const [loading, setLoading]           = useState(true);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchData = useCallback(() => {
     Promise.all([
       browseFood(lat ?? undefined, lng ?? undefined),
       getDailyLimit(),
-      getNearbyRestaurants(),
+      getNearbyRestaurants(lat ?? undefined, lng ?? undefined),
       getReceiverProfile(),
       getNotifications(),
     ]).then(([items, limit, rests, profile, notifications]) => {
@@ -270,9 +272,45 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
     fetchData();
   }, [locLoading, fetchData]);
 
-  const filtered = foods.filter((f) => {
-    if (!matchesFilters(f, filters)) return false;
-    if (searchQuery.trim() && !f.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+  useEffect(() => {
+    const hasQuery = searchQuery.trim() !== '';
+    const hasCategory = filters.category !== null;
+    const hasRadiusChange = filters.maxDistanceKm !== DEFAULT_FILTERS.maxDistanceKm;
+
+    if (!hasQuery && !hasCategory && !hasRadiusChange) {
+      setSearchResults(null);
+      return;
+    }
+
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+
+    searchTimerRef.current = setTimeout(() => {
+      searchFood(
+        searchQuery.trim(),
+        filters.category ?? undefined,
+        lat ?? undefined,
+        lng ?? undefined,
+        filters.maxDistanceKm,
+      )
+        .then(setSearchResults)
+        .catch(() => {});
+    }, 300);
+
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [searchQuery, filters.category, filters.maxDistanceKm, lat, lng]);
+
+  const displayedFoods = searchResults ?? foods;
+  const filtered = displayedFoods.filter((f) => {
+    const { showOnly } = filters;
+    if (showOnly.sponsored && f.sponsorshipType === 'DIRECT') return false;
+    if (showOnly.halal && !f.isHalal) return false;
+    if (showOnly.vegetarian && !f.isVegetarian) return false;
+    if (showOnly.pickupUnder1h) {
+      const msLeft = new Date(f.pickupEnd).getTime() - Date.now();
+      if (!(msLeft > 0 && msLeft <= 60 * 60 * 1000)) return false;
+    }
     return true;
   });
 
@@ -401,7 +439,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
             >
               <View>
                 <Image
-                  source={{ uri: item.photoUrl }}
+                  source={{ uri: item.photoUrl ?? undefined }}
                   style={styles.restaurantCardImage}
                   resizeMode="cover"
                 />

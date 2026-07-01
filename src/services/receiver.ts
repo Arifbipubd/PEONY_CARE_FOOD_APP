@@ -9,10 +9,7 @@ import {
 import {
   ApiFoodItem, ApiFoodDetail, ApiDailyLimit, ApiClaimHistoryItem, ApiRecentPlace,
 } from '../types/api';
-import {
-  MOCK_FOOD_ITEMS, MOCK_FOOD_DETAILS, MOCK_DAILY_LIMIT,
-} from '../mock/foodItems';
-import { MOCK_CLAIM_HISTORY, MOCK_RECEIVER_PROFILE } from '../mock/claimHistory';
+import { MOCK_FOOD_ITEMS } from '../mock/foodItems';
 import { MOCK_LOCATION_SETTINGS } from '../mock/locationSettings';
 import { api } from './api';
 
@@ -99,49 +96,38 @@ export const browseFood = async (
 };
 
 export const searchFood = async (
-  _query: string,
-  _category?: string,
-  _lat?: number,
-  _lng?: number,
+  query: string,
+  category?: string,
+  lat?: number,
+  lng?: number,
+  radius_km?: number,
 ): Promise<FoodItem[]> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 400));
-  return MOCK_FOOD_ITEMS
-    .filter((f) => f.name.toLowerCase().includes(_query.toLowerCase()))
-    .map(mapApiFoodItem);
-  /* REAL API:
   const res = await api.get('/receiver/donations/search/', {
-    params: { q: _query, category: _category, lat: _lat, lng: _lng },
+    params: {
+      q: query || undefined,
+      category: category || undefined,
+      lat,
+      lng,
+      radius_km,
+    },
   });
   return (res.data.data as ApiFoodItem[]).map(mapApiFoodItem);
-  */
 };
 
 export const getFoodDetail = async (
   id: string,
-  _lat?: number,
-  _lng?: number,
+  lat?: number,
+  lng?: number,
 ): Promise<FoodItem> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 300));
-  const item = MOCK_FOOD_DETAILS[id];
-  if (!item) throw new Error('Food not found');
-  return mapApiFoodDetail(item);
-  /* REAL API:
   const res = await api.get(`/receiver/donations/${id}/`, {
-    params: { lat: _lat, lng: _lng },
+    params: { lat, lng },
   });
   return mapApiFoodDetail(res.data.data as ApiFoodDetail);
-  */
 };
 
 export const getDailyLimit = async (): Promise<DailyLimitStatus> => {
-  // MOCK:
-  return mapApiDailyLimit(MOCK_DAILY_LIMIT);
-  /* REAL API:
   const res = await api.get('/receiver/claims/today/');
   return mapApiDailyLimit(res.data.data);
-  */
 };
 
 export const claimFood = async (
@@ -188,29 +174,16 @@ export const claimFood = async (
 };
 
 export const getClaimHistory = async (): Promise<ClaimHistory> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 400));
-  const h = MOCK_CLAIM_HISTORY;
-  return {
-    count: h.count,
-    results: h.results.map(mapApiClaimHistoryItem),
-    groupedByWeek: h.grouped_by_week.map((g) => ({
-      weekStart: g.week_start,
-      claims: g.claims.map(mapApiClaimHistoryItem),
-    })),
-  };
-  /* REAL API:
   const res = await api.get('/receiver/claims/');
   const h = res.data.data;
   return {
     count: h.count,
     results: h.results.map(mapApiClaimHistoryItem),
-    groupedByWeek: h.grouped_by_week.map((g: any) => ({
+    groupedByWeek: h.grouped_by_week.map((g: { week_start: string; claims: ApiClaimHistoryItem[] }) => ({
       weekStart: g.week_start,
       claims: g.claims.map(mapApiClaimHistoryItem),
     })),
   };
-  */
 };
 
 export const getFoodByRestaurant = async (restaurantId: string): Promise<FoodItem[]> => {
@@ -261,33 +234,19 @@ export const getLocationSettings = async (): Promise<LocationSettings> => {
 };
 
 export const getReceiverProfile = async (): Promise<ReceiverProfile> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 400));
-  const p = MOCK_RECEIVER_PROFILE;
-  return {
-    id: p.id,
-    displayName: p.display_name,
-    phone: p.phone,
-    email: p.email,
-    isVerified: p.is_verified,
-    memberSince: p.member_since,
-    daysActive: p.days_active,
-    totalClaims: p.total_claims,
-    lastClaimDate: p.last_claim_date,
-    lifetimeMeals: p.stats.lifetime_meals,
-    restaurantsCount: p.stats.restaurants_count,
-  };
-  /* REAL API:
   const res = await api.get('/receiver/profile/');
   const p = res.data.data;
   return {
     id: p.id,
     displayName: p.display_name,
     phone: p.phone,
+    photoUrl: p.photo_url ?? null,
+    browseRadiusKm: p.browse_radius_km,
+    memberSince: p.member_since,
+    daysActive: p.stats.days_active,
     totalClaims: p.total_claims,
-    lastClaimDate: p.last_claim_date,
+    lastClaimDate: p.last_claim_date ?? null,
     lifetimeMeals: p.stats.lifetime_meals,
     restaurantsCount: p.stats.restaurants_count,
   };
-  */
 };
