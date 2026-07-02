@@ -102,8 +102,8 @@ export interface ClaimHistoryItem {
   id: string;
   foodName: string;
   restaurantName: string;
-  photoUrl: string;
-  sponsorDisplayName: string | null;
+  photoUrl?: string;
+  sponsorDisplayName?: string | null;
   status: ClaimHistoryItemStatus;
   claimedAt: string;
   pickupWindow: string;
@@ -138,15 +138,20 @@ export interface RecentPlace {
   id: string;
   name: string;
   area: string;
-  address: string;
+  placeType: string;
+  latitude: number;
+  longitude: number;
   visitedAt: string;
-  iconColor: string;
 }
 
 export interface LocationSettings {
   searchRadiusKm: number;
+  radiusOptionsKm: number[];
   locationServicesEnabled: boolean;
   saveLocationHistory: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  recentPlacesCount: number;
   recentPlaces: RecentPlace[];
 }
 

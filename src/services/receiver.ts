@@ -9,8 +9,6 @@ import {
 import {
   ApiFoodItem, ApiFoodDetail, ApiDailyLimit, ApiClaimHistoryItem, ApiRecentPlace,
 } from '../types/api';
-import { MOCK_FOOD_ITEMS } from '../mock/foodItems';
-import { MOCK_LOCATION_SETTINGS } from '../mock/locationSettings';
 import { api } from './api';
 
 // ─── Mappers (snake_case API → camelCase app types) ───────────────────────────
@@ -70,8 +68,8 @@ function mapApiClaimHistoryItem(d: ApiClaimHistoryItem): ClaimHistoryItem {
     id: d.id,
     foodName: d.food_name,
     restaurantName: d.restaurant_name,
-    photoUrl: d.photo_url,
-    sponsorDisplayName: d.sponsor_display_name,
+    photoUrl: d.photo_url || undefined,
+    sponsorDisplayName: d.sponsor_display_name ?? undefined,
     status: d.status as ClaimHistoryItem['status'],
     claimedAt: d.claimed_at,
     pickupWindow: d.pickup_window,
@@ -131,31 +129,16 @@ export const getDailyLimit = async (): Promise<DailyLimitStatus> => {
 };
 
 export const claimFood = async (
-  _foodId: string,
-  _qrPayload: string,
-  _lat?: number,
-  _lng?: number,
+  foodId: string,
+  qrPayload: string,
+  lat: number,
+  lng: number,
 ): Promise<Claim> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 1000));
-  return {
-    claimId: 'mock-claim-001',
-    status: 'CLAIMED',
-    foodName: 'Chicken Rice (1 pack)',
-    restaurantName: 'Tian Tian Hainanese',
-    pickupAddress: '335 Smith St, #02-25, Singapore 050335',
-    distanceKm: 0.8,
-    pickupWindow: '6:00 PM – 8:00 PM',
-    claimedAt: new Date().toISOString(),
-    message: 'Show this confirmation at the counter to collect your complementary meal.',
-    dailyLimit: { used: 1, limit: 1, canClaim: false, resetsAt: '2026-06-16T00:00:00+08:00' },
-  };
-  /* REAL API:
   const res = await api.post('/receiver/claims/', {
-    food_id: _foodId,
-    qr_payload: _qrPayload,
-    lat: _lat,
-    lng: _lng,
+    food_id: foodId,
+    qr_payload: qrPayload,
+    lat,
+    lng,
   });
   const d = res.data.data;
   return {
@@ -170,7 +153,6 @@ export const claimFood = async (
     message: d.message,
     dailyLimit: mapApiDailyLimit(d.daily_limit),
   };
-  */
 };
 
 export const getClaimHistory = async (): Promise<ClaimHistory> => {
@@ -186,51 +168,31 @@ export const getClaimHistory = async (): Promise<ClaimHistory> => {
   };
 };
 
-export const getFoodByRestaurant = async (restaurantId: string): Promise<FoodItem[]> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 400));
-  return MOCK_FOOD_ITEMS
-    .filter((f) => f.restaurant.id === restaurantId)
-    .map(mapApiFoodItem);
-  /* REAL API:
-  const res = await api.get('/receiver/donations/browse/', {
-    params: { lat: 0, lng: 0, restaurant_id: restaurantId },
-  });
-  return (res.data.data as ApiFoodItem[]).map(mapApiFoodItem);
-  */
-};
-
 function mapApiRecentPlace(d: ApiRecentPlace): RecentPlace {
   return {
     id: d.id,
-    name: d.name,
-    area: d.area,
-    address: d.address,
+    name: d.place_name,
+    area: d.area_label,
+    placeType: d.place_type,
+    latitude: d.latitude,
+    longitude: d.longitude,
     visitedAt: d.visited_at,
-    iconColor: d.icon_color,
   };
 }
 
 export const getLocationSettings = async (): Promise<LocationSettings> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 300));
-  const s = MOCK_LOCATION_SETTINGS;
-  return {
-    searchRadiusKm: s.search_radius_km,
-    locationServicesEnabled: s.location_services_enabled,
-    saveLocationHistory: s.save_location_history,
-    recentPlaces: s.recent_places.map(mapApiRecentPlace),
-  };
-  /* REAL API:
-  const res = await api.get('/receiver/location-settings/');
+  const res = await api.get('/receiver/settings/location/');
   const s = res.data.data;
   return {
-    searchRadiusKm: s.search_radius_km,
+    searchRadiusKm: s.browse_radius_km,
+    radiusOptionsKm: s.radius_options_km,
     locationServicesEnabled: s.location_services_enabled,
     saveLocationHistory: s.save_location_history,
-    recentPlaces: s.recent_places.map(mapApiRecentPlace),
+    latitude: s.latitude,
+    longitude: s.longitude,
+    recentPlacesCount: s.recent_places_count,
+    recentPlaces: (s.recent_places as ApiRecentPlace[]).map(mapApiRecentPlace),
   };
-  */
 };
 
 export const getReceiverProfile = async (): Promise<ReceiverProfile> => {

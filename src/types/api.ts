@@ -68,8 +68,8 @@ export interface ApiClaimHistoryItem {
   id: string;
   food_name: string;
   restaurant_name: string;
-  photo_url: string;
-  sponsor_display_name: string | null;
+  photo_url?: string;
+  sponsor_display_name?: string | null;
   status: string;
   claimed_at: string;
   pickup_window: string;
@@ -102,17 +102,22 @@ export interface ApiReceiverProfile {
 
 export interface ApiRecentPlace {
   id: string;
-  name: string;
-  area: string;
-  address: string;
+  place_name: string;
+  area_label: string;
+  place_type: string;
+  latitude: number;
+  longitude: number;
   visited_at: string;
-  icon_color: string;
 }
 
 export interface ApiLocationSettings {
-  search_radius_km: number;
+  browse_radius_km: number;
+  radius_options_km: number[];
   location_services_enabled: boolean;
   save_location_history: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  recent_places_count: number;
   recent_places: ApiRecentPlace[];
 }
 
