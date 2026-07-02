@@ -219,7 +219,7 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
             : `${item.restaurantName} · ${relativeTime(item.claimedAt)}`;
           return (
             <View style={styles.row}>
-              <Image source={{ uri: item.photoUrl }} style={styles.thumb} resizeMode="cover" />
+              <Image source={{ uri: item.photoUrl || undefined }} style={styles.thumb} resizeMode="cover" />
               <View style={styles.rowText}>
                 <Text style={styles.foodName} numberOfLines={1}>{item.foodName}</Text>
                 <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
