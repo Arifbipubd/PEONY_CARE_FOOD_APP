@@ -39,6 +39,8 @@ function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
     foodQrImageUrl: d.food_qr_image_url,
     claimsCount: d.claims_count,
     createdAt: d.created_at,
+    sponsorDisplayName: d.sponsor_display_name ?? null,
+    sponsorInitials: d.sponsor_initials ?? null,
     claims: d.claims?.map((c) => ({
       id: c.id,
       receiverName: c.receiver_name,
@@ -50,12 +52,20 @@ function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
 
 function mapApiDashboard(d: ApiRestaurantDashboard): RestaurantDashboard {
   return {
+    restaurantName: d.restaurant_name,
     livesImpacted: d.lives_impacted,
     donationsThisYear: d.donations_this_year,
+    growthPctThisWeek: d.growth_pct_this_week,
     claimRatePct: d.claim_rate_pct,
     activeCount: d.active_count,
     claimedToday: d.claimed_today,
+    thisWeekDonations: d.this_week_donations,
+    thisWeekMeals: d.this_week_meals,
+    thisWeekInactive: d.this_week_inactive,
+    todayPortions: d.today_portions,
     todayListings: d.today_listings.map(mapApiDonation),
+    yesterdayListings: d.yesterday_listings.map(mapApiDonation),
+    yesterdayFed: d.yesterday_fed,
   };
 }
 

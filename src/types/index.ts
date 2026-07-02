@@ -218,6 +218,8 @@ export interface RestaurantDonation {
   foodQrImageUrl: string | null;
   claimsCount: number;
   createdAt: string;
+  sponsorDisplayName?: string | null;
+  sponsorInitials?: string | null;
   claims?: Array<{
     id: string;
     receiverName: string;
@@ -227,12 +229,20 @@ export interface RestaurantDonation {
 }
 
 export interface RestaurantDashboard {
+  restaurantName: string;
   livesImpacted: number;
   donationsThisYear: number;
+  growthPctThisWeek: number;
   claimRatePct: number;
   activeCount: number;
   claimedToday: number;
+  thisWeekDonations: number;
+  thisWeekMeals: number;
+  thisWeekInactive: number;
+  todayPortions: number;
   todayListings: RestaurantDonation[];
+  yesterdayListings: RestaurantDonation[];
+  yesterdayFed: number;
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────
