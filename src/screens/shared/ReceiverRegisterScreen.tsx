@@ -15,6 +15,7 @@ import { AuthStackParamList } from '../../navigation/AuthStack';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import LogoBadge from '../../components/LogoBadge';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sendOtp } from '../../services/auth';
 import { ApiError } from '../../services/api';
 import { colors, spacing, fontSizes, fontFamilies, lineHeights, letterSpacings } from '../../constants/theme';
@@ -57,6 +58,7 @@ export default function ReceiverRegisterScreen({ navigation }: Props) {
     setLoading(true);
     try {
       const fullPhone = `+65${cleaned}`;
+      await AsyncStorage.setItem('peony_pending_name', name.trim());
       await sendOtp(fullPhone, 'REGISTER');
       navigation.navigate('Otp', {
         phone: fullPhone,
