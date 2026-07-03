@@ -83,6 +83,10 @@ function mapApiClaimHistoryItem(d: ApiClaimHistoryItem): ClaimHistoryItem {
 
 // ─── Service functions ────────────────────────────────────────────────────────
 
+export const updateReceiverLocation = async (lat: number, lng: number): Promise<void> => {
+  await api.patch('/receiver/profile/', { latitude: lat, longitude: lng });
+};
+
 export const browseFood = async (
   lat?: number,
   lng?: number,

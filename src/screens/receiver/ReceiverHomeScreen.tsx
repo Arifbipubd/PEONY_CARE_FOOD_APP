@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import { useProfileStore } from '../../store/profileStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import FoodCard from '../../components/FoodCard';
 import FilterSheet, { FilterState, DEFAULT_FILTERS, matchesFilters } from '../../components/FilterSheet';
-import { browseFood, getDailyLimit, getReceiverProfile } from '../../services/receiver';
+import { browseFood, getDailyLimit, getReceiverProfile, updateReceiverLocation } from '../../services/receiver';
 import { useLocation } from '../../hooks/useLocation';
 import { getNearbyRestaurants } from '../../services/restaurant';
 import { getNotifications } from '../../services/notifications';
@@ -231,6 +231,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const name = displayName || 'Sarah';
   const firstName = name.split(' ')[0];
   const { lat, lng, loading: locLoading } = useLocation();
+  const locationPatched = useRef(false);
 
   const [activeTab, setActiveTab]       = useState<Tab>('meals');
   const [filters, setFilters]           = useState<FilterState>(DEFAULT_FILTERS);
@@ -257,6 +258,12 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
       setLoading(false);
     });
   }, [lat, lng, setProfile, setNotifications]);
+
+  useEffect(() => {
+    if (locLoading || lat === null || lng === null || locationPatched.current) return;
+    locationPatched.current = true;
+    updateReceiverLocation(lat, lng).catch(() => {});
+  }, [locLoading, lat, lng]);
 
   useEffect(() => {
     if (locLoading) return;
