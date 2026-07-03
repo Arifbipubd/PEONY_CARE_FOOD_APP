@@ -29,8 +29,8 @@ export interface ApiFoodItem {
   restaurant: ApiRestaurantRef;
   sponsorship_type: string;
   sponsor_display_name: string | null;
-  is_halal: boolean;
-  is_vegetarian: boolean;
+  is_halal?: boolean;
+  is_vegetarian?: boolean;
 }
 
 export interface ApiClaimProgress {
@@ -123,15 +123,48 @@ export interface ApiPublicRestaurant {
   postal_code: string;
   latitude: number;
   longitude: number;
-  cuisine_type: string;
-  distance_km: number;
-  closes_at: string;
-  opening_hours: string;
-  about: string;
-  photo_url: string;
+  photo_url: string | null;
   is_verified: boolean;
-  total_food_shared: number;
-  meal_count: number;
+  distance_km: number;
+  active_meal_count?: number;
+  cuisine_type?: string;
+  closes_at?: string;
+  opening_hours?: string;
+  about?: string;
+  total_food_shared?: number;
+  meal_count?: number;
+}
+
+export interface ApiRestaurantMealSummary {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  photo_url: string | null;
+  quantity_available: number;
+  pickup_start: string;
+  pickup_end: string;
+  pickup_window: string;
+  sponsorship_type: string;
+  sponsor_display_name: string | null;
+}
+
+export interface ApiRestaurantDetail {
+  id: string;
+  name: string;
+  address: string;
+  postal_code: string;
+  latitude: number;
+  longitude: number;
+  photo_url: string | null;
+  about: string;
+  opening_hours: string;
+  contact_phone: string;
+  is_verified: boolean;
+  distance_km: number;
+  active_meal_count: number;
+  categories: string[];
+  available_meals: ApiRestaurantMealSummary[];
 }
 
 export interface ApiRestaurantDonation {
