@@ -124,8 +124,8 @@ export interface ReceiverProfile {
   id: string;
   displayName: string;
   phone: string;
-  email: string;
-  isVerified: boolean;
+  photoUrl: string | null;
+  browseRadiusKm: number;
   memberSince: string;
   daysActive: number;
   totalClaims: number;
@@ -159,15 +159,15 @@ export interface PublicRestaurant {
   postalCode: string;
   latitude: number;
   longitude: number;
-  cuisineType: string;
-  distanceKm: number;
-  closesAt: string;
-  openingHours: string;
-  about: string;
-  photoUrl: string;
+  photoUrl: string | null;
   isVerified: boolean;
-  totalFoodShared: number;
+  distanceKm: number;
   mealCount: number;
+  cuisineType?: string;
+  closesAt?: string;
+  openingHours?: string;
+  about?: string;
+  totalFoodShared?: number;
 }
 
 // ─── Restaurant-side types ────────────────────────────────────────────────────

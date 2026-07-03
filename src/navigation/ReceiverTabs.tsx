@@ -127,10 +127,28 @@ export default function ReceiverTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home"    component={HomeNavigator} />
+      <Tab.Screen
+        name="Home"
+        component={HomeNavigator}
+        listeners={({ navigation, route }) => ({
+          tabPress: () => {
+            const key = (route as { state?: { key: string } }).state?.key;
+            if (key) navigation.dispatch({ type: 'POP_TO_TOP', target: key });
+          },
+        })}
+      />
       <Tab.Screen name="History" component={HistoryNavigator} />
       <Tab.Screen name="Alerts"  component={NotificationsScreen} />
-      <Tab.Screen name="Profile" component={ProfileNavigator} />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileNavigator}
+        listeners={({ navigation, route }) => ({
+          tabPress: () => {
+            const key = (route as { state?: { key: string } }).state?.key;
+            if (key) navigation.dispatch({ type: 'POP_TO_TOP', target: key });
+          },
+        })}
+      />
     </Tab.Navigator>
   );
 }

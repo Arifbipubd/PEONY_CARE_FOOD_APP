@@ -3,16 +3,19 @@
 // To connect the backend: delete the mock block, uncomment the api call.
 
 import {
-  RestaurantDashboard, RestaurantDonation, RestaurantProfile, PublicRestaurant,
+  RestaurantDashboard, RestaurantDonation, RestaurantProfile, PublicRestaurant, FoodItem,
 } from '../types';
-import { ApiRestaurantDonation, ApiRestaurantDashboard, ApiPublicRestaurant } from '../types/api';
+import {
+  ApiRestaurantDonation, ApiRestaurantDashboard, ApiPublicRestaurant,
+  ApiRestaurantDetail, ApiRestaurantMealSummary,
+} from '../types/api';
 import {
   MOCK_RESTAURANT_DASHBOARD,
   MOCK_RESTAURANT_DONATIONS,
   MOCK_RESTAURANT_PROFILE,
   MOCK_PUBLIC_RESTAURANTS,
 } from '../mock/restaurantData';
-// import { api } from './api';
+import { api } from './api';
 
 // ─── Mappers ─────────────────────────────────────────────────────────────────
 
@@ -64,15 +67,61 @@ function mapApiPublicRestaurant(d: ApiPublicRestaurant): PublicRestaurant {
     postalCode: d.postal_code,
     latitude: d.latitude,
     longitude: d.longitude,
-    cuisineType: d.cuisine_type,
+    photoUrl: d.photo_url ?? null,
+    isVerified: d.is_verified,
     distanceKm: d.distance_km,
+    mealCount: d.active_meal_count ?? d.meal_count ?? 0,
+    cuisineType: d.cuisine_type,
     closesAt: d.closes_at,
     openingHours: d.opening_hours,
     about: d.about,
-    photoUrl: d.photo_url,
-    isVerified: d.is_verified,
     totalFoodShared: d.total_food_shared,
-    mealCount: d.meal_count,
+  };
+}
+
+function mapApiMealSummary(m: ApiRestaurantMealSummary, d: ApiRestaurantDetail): FoodItem {
+  return {
+    id: m.id,
+    restaurantId: d.id,
+    restaurantName: d.name,
+    restaurantAddress: d.address,
+    restaurantLatitude: d.latitude,
+    restaurantLongitude: d.longitude,
+    restaurantIsVerified: d.is_verified,
+    name: m.name,
+    description: m.description,
+    category: m.category as FoodItem['category'],
+    unit: '',
+    photoUrl: m.photo_url || '',
+    quantityOriginal: m.quantity_available,
+    quantityAvailable: m.quantity_available,
+    quantityClaimed: 0,
+    status: 'AVAILABLE',
+    pickupStart: m.pickup_start,
+    pickupEnd: m.pickup_end,
+    pickupWindow: m.pickup_window,
+    distanceKm: d.distance_km,
+    sponsorshipType: m.sponsorship_type as FoodItem['sponsorshipType'],
+    sponsorDisplayName: m.sponsor_display_name,
+    isHalal: false,
+    isVegetarian: false,
+  };
+}
+
+function mapApiRestaurantDetail(d: ApiRestaurantDetail): PublicRestaurant {
+  return {
+    id: d.id,
+    name: d.name,
+    address: d.address,
+    postalCode: d.postal_code,
+    latitude: d.latitude,
+    longitude: d.longitude,
+    photoUrl: d.photo_url ?? null,
+    isVerified: d.is_verified,
+    distanceKm: d.distance_km,
+    mealCount: d.active_meal_count,
+    openingHours: d.opening_hours,
+    about: d.about,
   };
 }
 
@@ -158,29 +207,28 @@ export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
 };
 
 export const getNearbyRestaurants = async (
-  _lat?: number,
-  _lng?: number,
+  lat?: number,
+  lng?: number,
+  radius_km: number = 5,
 ): Promise<PublicRestaurant[]> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 500));
-  return Object.values(MOCK_PUBLIC_RESTAURANTS).map(mapApiPublicRestaurant);
-  /* REAL API:
-  const res = await api.get('/restaurants/nearby/', {
-    params: { lat: _lat, lng: _lng },
+  const res = await api.get('/receiver/restaurants/browse/', {
+    params: { lat, lng, radius_km },
   });
   return (res.data.data as ApiPublicRestaurant[]).map(mapApiPublicRestaurant);
-  */
 };
 
-// Used by RestaurantPageScreen.
-export const getPublicRestaurant = async (restaurantId: string): Promise<PublicRestaurant> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 400));
-  const item = MOCK_PUBLIC_RESTAURANTS[restaurantId];
-  if (!item) throw new Error('Restaurant not found');
-  return mapApiPublicRestaurant(item);
-  /* REAL API:
-  const res = await api.get(`/restaurants/${restaurantId}/`);
-  return mapApiPublicRestaurant(res.data.data);
-  */
+// Used by RestaurantPageScreen — one call returns restaurant info + available meals.
+export const getPublicRestaurantDetail = async (
+  restaurantId: string,
+  lat?: number,
+  lng?: number,
+): Promise<{ restaurant: PublicRestaurant; foods: FoodItem[] }> => {
+  const res = await api.get(`/receiver/restaurants/${restaurantId}/`, {
+    params: { lat, lng },
+  });
+  const d: ApiRestaurantDetail = res.data.data;
+  return {
+    restaurant: mapApiRestaurantDetail(d),
+    foods: d.available_meals.map((m) => mapApiMealSummary(m, d)),
+  };
 };
