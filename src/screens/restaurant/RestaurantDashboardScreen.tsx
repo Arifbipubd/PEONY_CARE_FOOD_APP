@@ -151,7 +151,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
   }, []);
 
   const goToPost = useCallback(() => {
-    navigation.navigate('Donations');
+    navigation.navigate('Donations', { screen: 'PostDonation' } as never);
   }, [navigation]);
 
   if (loading) return <DashboardSkeleton />;
