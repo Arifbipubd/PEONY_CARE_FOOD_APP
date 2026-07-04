@@ -1,5 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import RestaurantDashboardScreen from '../screens/restaurant/RestaurantDashboardScreen';
@@ -66,7 +67,15 @@ export default function RestaurantTabs() {
       })}
     >
       <Tab.Screen name="Home"      component={RestaurantDashboardScreen} />
-      <Tab.Screen name="Donations" component={DonationsNavigator} />
+      <Tab.Screen
+        name="Donations"
+        component={DonationsNavigator}
+        options={({ route }) => ({
+          tabBarStyle: getFocusedRouteNameFromRoute(route) === 'PostDonation'
+            ? { display: 'none' }
+            : { borderTopColor: colors.borderDefault },
+        })}
+      />
       <Tab.Screen
         name="Alerts"
         component={NotificationsScreen}
