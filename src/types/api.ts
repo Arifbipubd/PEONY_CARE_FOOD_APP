@@ -211,20 +211,21 @@ export interface ApiDonationSummary {
 }
 
 export interface ApiRestaurantDashboard {
-  restaurant_name: string;
   lives_impacted: number;
   donations_this_year: number;
-  growth_pct_this_week: number;
   claim_rate_pct: number;
   active_count: number;
   claimed_today: number;
-  this_week_donations: number;
-  this_week_meals: number;
-  this_week_inactive: number;
-  today_portions: number;
   today_listings: ApiRestaurantDonation[];
-  yesterday_listings: ApiRestaurantDonation[];
-  yesterday_fed: number;
+  // Fields not yet returned by the backend — optional with safe defaults
+  restaurant_name?: string;
+  growth_pct_this_week?: number;
+  this_week_donations?: number;
+  this_week_meals?: number;
+  this_week_inactive?: number;
+  today_portions?: number;
+  yesterday_listings?: ApiRestaurantDonation[];
+  yesterday_fed?: number;
 }
 
 export interface ApiNotification {
