@@ -237,6 +237,17 @@ export interface DonationSummary {
   weeklyMeals: number;
 }
 
+export interface CreateDonationPayload {
+  name: string;
+  description: string;
+  category: string;
+  unit: string;
+  quantityOriginal: number;
+  pickupStart: string;
+  pickupEnd: string;
+  photoUrl?: string | null;
+}
+
 export interface RestaurantDashboard {
   restaurantName: string;
   livesImpacted: number;

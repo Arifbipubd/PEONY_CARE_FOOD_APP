@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getDonations, getDonationSummary } from '../../services/restaurant';
+import { getDonations, getDonationSummary, reactivateDonation, deleteDonation } from '../../services/restaurant';
 import { RestaurantDonation, DonationSummary } from '../../types';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import PostFAB from '../../components/PostFAB';
@@ -246,33 +246,96 @@ const InactiveRow = React.memo(({
   </View>
 ));
 
+// ─── Empty state ─────────────────────────────────────────────────────────────
+
+interface EmptyStateProps {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  title: string;
+  desc: string;
+  ctaLabel?: string;
+  onCta?: () => void;
+}
+
+const DonationEmptyState = React.memo(({ icon, title, desc, ctaLabel, onCta }: EmptyStateProps) => (
+  <View style={styles.emptyBody}>
+    <View style={styles.emptyIconCircle}>
+      <Ionicons name={icon} size={40} color={colors.textMuted} />
+    </View>
+    <Text style={styles.emptyTitle}>{title}</Text>
+    <Text style={styles.emptyDesc}>{desc}</Text>
+    {ctaLabel && onCta && (
+      <TouchableOpacity style={styles.emptyCta} onPress={onCta} activeOpacity={0.85}>
+        <Ionicons name="add" size={18} color={colors.textInverse} />
+        <Text style={styles.emptyCtaText}>{ctaLabel}</Text>
+      </TouchableOpacity>
+    )}
+  </View>
+));
+
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function DonationListScreen({ navigation }: Props) {
   const [tab, setTab] = useState<Tab>('active');
 
-  const [summary,  setSummary]  = useState<DonationSummary | null>(null);
-  const [active,   setActive]   = useState<RestaurantDonation[] | null>(null);
-  const [past,     setPast]     = useState<RestaurantDonation[] | null>(null);
-  const [inactive, setInactive] = useState<RestaurantDonation[] | null>(null);
-  const [loading,  setLoading]  = useState(true);
+  const [summary,       setSummary]       = useState<DonationSummary | null>(null);
+  const [active,        setActive]        = useState<RestaurantDonation[] | null>(null);
+  const [past,          setPast]          = useState<RestaurantDonation[] | null>(null);
+  const [inactive,      setInactive]      = useState<RestaurantDonation[] | null>(null);
+  const [loading,       setLoading]       = useState(true);
+  const [actionLoading, setActionLoading] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    Promise.all([getDonationSummary(), getDonations('active')]).then(([s, a]) => {
-      setSummary(s);
-      setActive(a);
-      setLoading(false);
-    });
+    Promise.all([getDonationSummary(), getDonations('active')])
+      .then(([s, a]) => {
+        setSummary(s);
+        setActive(a);
+      })
+      .catch(() => {
+        setSummary({ activeCount: 0, pastCount: 0, inactiveCount: 0, weeklyMeals: 0 });
+        setActive([]);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     if (tab === 'past' && past === null) {
-      getDonations('past').then(setPast);
+      getDonations('past').then(setPast).catch(() => setPast([]));
     }
     if (tab === 'inactive' && inactive === null) {
-      getDonations('inactive').then(setInactive);
+      getDonations('inactive').then(setInactive).catch(() => setInactive([]));
     }
   }, [tab, past, inactive]);
+
+  const handleReactivate = useCallback(async (id: string) => {
+    if (actionLoading.has(id)) return;
+    setActionLoading((prev) => new Set(prev).add(id));
+    try {
+      await reactivateDonation(id);
+      setInactive((prev) => prev?.filter((d) => d.id !== id) ?? prev);
+      setSummary((prev) => prev
+        ? { ...prev, inactiveCount: prev.inactiveCount - 1, activeCount: prev.activeCount + 1 }
+        : prev,
+      );
+      setActive(null);
+    } finally {
+      setActionLoading((prev) => { const s = new Set(prev); s.delete(id); return s; });
+    }
+  }, [actionLoading]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    if (actionLoading.has(id)) return;
+    setActionLoading((prev) => new Set(prev).add(id));
+    try {
+      await deleteDonation(id);
+      setInactive((prev) => prev?.filter((d) => d.id !== id) ?? prev);
+      setSummary((prev) => prev
+        ? { ...prev, inactiveCount: prev.inactiveCount - 1 }
+        : prev,
+      );
+    } finally {
+      setActionLoading((prev) => { const s = new Set(prev); s.delete(id); return s; });
+    }
+  }, [actionLoading]);
 
   const goToDetail = useCallback((id: string) => {
     navigation.navigate('DonationDetail', { donationId: id });
@@ -307,7 +370,7 @@ export default function DonationListScreen({ navigation }: Props) {
     ? `${summary?.weeklyMeals ?? 0} meals donated this week`
     : 'closed early — reactivate or remove';
 
-  const fabLabel = tab === 'active' ? 'Post' : 'Post food';
+  const fabLabel = 'Post food';
 
   const isTabLoading = loading
     || (tab === 'past'     && past    === null)
@@ -371,6 +434,13 @@ export default function DonationListScreen({ navigation }: Props) {
           renderItem={({ item }) => (
             <ActiveRow item={item} onPress={() => goToDetail(item.id)} />
           )}
+          ListEmptyComponent={
+            <DonationEmptyState
+              icon="receipt-outline"
+              title="No donations yet"
+              desc="Post a complementary meal to start sharing with your community."
+            />
+          }
           contentContainerStyle={styles.listContent}
         />
       )}
@@ -402,6 +472,13 @@ export default function DonationListScreen({ navigation }: Props) {
                 isRelativeSection={section.title === 'Yesterday' || section.title === 'Today'}
               />
             )}
+            ListEmptyComponent={
+              <DonationEmptyState
+                icon="receipt-outline"
+                title="No donations yet"
+                desc="Post a complementary meal to start sharing with your community."
+              />
+            }
             contentContainerStyle={styles.listContent}
           />
         )
@@ -424,10 +501,17 @@ export default function DonationListScreen({ navigation }: Props) {
               <InactiveRow
                 item={item}
                 onView={() => goToDetail(item.id)}
-                onReactivate={() => {}}
-                onDelete={() => {}}
+                onReactivate={() => handleReactivate(item.id)}
+                onDelete={() => handleDelete(item.id)}
               />
             )}
+            ListEmptyComponent={
+              <DonationEmptyState
+                icon="receipt-outline"
+                title="No donations yet"
+                desc="Post a complementary meal to start sharing with your community."
+              />
+            }
             ListFooterComponent={
               <View style={styles.infoBox}>
                 <Ionicons name="information-circle" size={20} color={colors.textMuted} style={styles.infoIcon} />
@@ -684,4 +768,57 @@ const styles = StyleSheet.create({
   },
 
   listContent: { paddingBottom: 100 },
+
+  // ── Empty state ───────────────────────────────────────────────────────────────
+  emptyBody: {
+    paddingTop: 40,
+    paddingHorizontal: spacing['2xl'],
+    alignItems: 'center',
+  },
+  emptyIconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing['2xl'],
+  },
+  emptyTitle: {
+    fontSize: fontSizes['2xl'],
+    fontFamily: fontFamilies.bold,
+    letterSpacing: letterSpacings.subheading,
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  emptyDesc: {
+    fontSize: fontSizes['14'],
+    fontFamily: fontFamilies.regular,
+    lineHeight: 21,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  emptyCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.accentPrimary,
+    borderRadius: radius.card,
+    height: 52,
+    marginTop: 16,
+    alignSelf: 'stretch',
+    shadowColor: colors.accentPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  emptyCtaText: {
+    fontSize: fontSizes.md,
+    fontFamily: fontFamilies.bold,
+    letterSpacing: letterSpacings.button,
+    color: colors.textInverse,
+  },
 });
