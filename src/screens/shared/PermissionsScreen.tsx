@@ -20,47 +20,84 @@ type Props = {
   route:      RouteProp<AuthStackParamList, 'Permissions'>;
 };
 
-const PERMS = [
-  {
-    key:        'location',
-    icon:       'location' as const,
-    iconBg:     colors.avatarBg,
-    iconColor:  colors.accentPrimary,
-    title:      'Location',
-    desc:       'So we can show food donations near you. Only used while the app is open.',
-    badge:      'REQUIRED',
-  },
-  {
-    key:        'camera',
-    icon:       'camera' as const,
-    iconBg:     '#FFF3D0',
-    iconColor:  '#B8941E',
-    title:      'Camera',
-    desc:       'To scan QR codes at pickup and add a profile photo. Photos are only uploaded when you tap Save.',
-    badge:      'REQUIRED',
-  },
-  {
-    key:        'notifications',
-    icon:       'notifications' as const,
-    iconBg:     colors.mintLight,
-    iconColor:  colors.successGreen,
-    title:      'Notifications',
-    desc:       'Get alerted when new food appears nearby. You can mute these anytime in settings.',
-    badge:      'OPTIONAL',
-  },
-] as const;
+type Badge = 'REQUIRED' | 'OPTIONAL';
+
+interface PermItem {
+  key:       string;
+  icon:      React.ComponentProps<typeof Ionicons>['name'];
+  iconBg:    string;
+  iconColor: string;
+  title:     string;
+  desc:      string;
+  badge:     Badge;
+}
+
+const LOCATION: PermItem = {
+  key:       'location',
+  icon:      'location',
+  iconBg:    colors.avatarBg,
+  iconColor: colors.accentPrimary,
+  title:     'Location',
+  desc:      'So we can show food donations near you. Only used while the app is open.',
+  badge:     'REQUIRED',
+};
+
+const CAMERA_RECEIVER: PermItem = {
+  key:       'camera',
+  icon:      'camera',
+  iconBg:    '#FFF3D0',
+  iconColor: '#B8941E',
+  title:     'Camera',
+  desc:      'To scan QR codes at pickup and add a profile photo. Photos are only uploaded when you tap Save.',
+  badge:     'REQUIRED',
+};
+
+const CAMERA_RESTAURANT: PermItem = {
+  ...CAMERA_RECEIVER,
+  desc:  'To upload food photos for your listings and display QR codes for receivers to scan.',
+  badge: 'REQUIRED',
+};
+
+const NOTIFICATIONS_RECEIVER: PermItem = {
+  key:       'notifications',
+  icon:      'notifications',
+  iconBg:    colors.mintLight,
+  iconColor: colors.successGreen,
+  title:     'Notifications',
+  desc:      'Get alerted when new food appears nearby. You can mute these anytime in settings.',
+  badge:     'OPTIONAL',
+};
+
+const NOTIFICATIONS_RESTAURANT: PermItem = {
+  ...NOTIFICATIONS_RECEIVER,
+  desc:  'Get alerted when a receiver claims one of your food donations.',
+  badge: 'REQUIRED',
+};
+
+function getPerms(role: string): PermItem[] {
+  if (role === 'RESTAURANT') return [LOCATION, CAMERA_RESTAURANT, NOTIFICATIONS_RESTAURANT];
+  if (role === 'DONOR')      return [LOCATION, NOTIFICATIONS_RECEIVER];
+  return [LOCATION, CAMERA_RECEIVER, NOTIFICATIONS_RECEIVER]; // RECEIVER
+}
+
+function getSubtitle(role: string, count: number): string {
+  if (role === 'RESTAURANT') {
+    return 'A few permissions so you can manage your donations effectively.';
+  }
+  const word = count === 2 ? 'Two' : 'Three';
+  return `${word} things we'll ask for so the app can help you find food.`;
+}
 
 export default function PermissionsScreen({ navigation, route }: Props) {
   const { accessToken, refreshToken, user } = route.params;
   const { setAuth } = useAuthStore();
 
+  const perms    = getPerms(user.role);
+  const subtitle = getSubtitle(user.role, perms.length);
+
   const finish = useCallback(() => {
     setAuth(accessToken, refreshToken, user as { id: string; phone: string; role: UserRole });
   }, [accessToken, refreshToken, user, setAuth]);
-
-  const handleAllow = useCallback(() => {
-    finish();
-  }, [finish]);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -75,13 +112,11 @@ export default function PermissionsScreen({ navigation, route }: Props) {
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Almost ready</Text>
           <Text style={styles.title}>Quick permissions</Text>
-          <Text style={styles.subtitle}>
-            Three things we'll ask for so the app can help you find food.
-          </Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
 
         <View style={styles.cards}>
-          {PERMS.map((p) => (
+          {perms.map((p) => (
             <View key={p.key} style={styles.card}>
               <View style={[styles.iconWrap, { backgroundColor: p.iconBg }]}>
                 <Ionicons name={p.icon} size={22} color={p.iconColor} />
@@ -96,9 +131,13 @@ export default function PermissionsScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.allowBtn} onPress={handleAllow} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.allowBtn} onPress={finish} activeOpacity={0.85}>
             <Text style={styles.allowLabel}>Allow & continue</Text>
             <Ionicons name="arrow-forward" size={18} color={colors.textInverse} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.skipBtn} onPress={finish} activeOpacity={0.7}>
+            <Text style={styles.skipLabel}>Skip for now</Text>
           </TouchableOpacity>
         </View>
 

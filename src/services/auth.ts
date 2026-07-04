@@ -83,6 +83,7 @@ export const registerRestaurant = async (
     address: string;
     contact_name: string;
     contact_email: string;
+    contact_phone?: string;
   },
   registrationToken: string,
 ): Promise<{
