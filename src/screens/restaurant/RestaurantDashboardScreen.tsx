@@ -14,6 +14,7 @@ import { getDashboard } from '../../services/restaurant';
 import { RestaurantDashboard, RestaurantDonation } from '../../types';
 import { useNotificationStore } from '../../store/notificationStore';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
+import PostFAB from '../../components/PostFAB';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
 } from '../../constants/theme';
@@ -253,11 +254,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
 
       </ScrollView>
 
-      {/* FAB */}
-      <TouchableOpacity style={styles.fab} onPress={goToPost} activeOpacity={0.85}>
-        <Ionicons name="add" size={20} color={colors.textInverse} />
-        <Text style={styles.fabText}>Post</Text>
-      </TouchableOpacity>
+      <PostFAB onPress={goToPost} />
 
     </SafeAreaView>
   );
@@ -483,27 +480,4 @@ const styles = StyleSheet.create({
   },
 
   // ── FAB ───────────────────────────────────────────────────────────────────
-  fab: {
-    position: 'absolute',
-    right: spacing['2xl'],
-    bottom: spacing['2xl'],
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.accentPrimary,
-    borderRadius: radius.pill,
-    paddingHorizontal: 20,
-    paddingVertical: spacing.lg,
-    shadowColor: colors.accentPrimary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  fabText: {
-    fontSize: fontSizes['14'],
-    fontFamily: fontFamilies.bold,
-    color: colors.textInverse,
-    letterSpacing: letterSpacings.buttonSm,
-  },
 });
