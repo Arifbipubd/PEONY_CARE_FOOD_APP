@@ -19,6 +19,7 @@ import {
   registerDonor,
   registerRestaurant,
 } from '../../services/auth';
+import { ApiError } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { UserRole } from '../../types';
 import LogoBadge from '../../components/LogoBadge';
@@ -30,7 +31,7 @@ type Props = {
 };
 
 const CODE_LENGTH    = 4;
-const RESEND_SECONDS = 30;
+const RESEND_SECONDS = 60;
 
 async function autoRegister(
   pending: PendingRegistration,
@@ -54,11 +55,12 @@ export default function OtpScreen({ navigation, route }: Props) {
   const { phone, purpose, pendingRegistration } = route.params;
   const { setAuth } = useAuthStore();
 
-  const [code, setCode]       = useState('');
-  const [focused, setFocused] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
-  const [seconds, setSeconds] = useState(RESEND_SECONDS);
+  const [code, setCode]             = useState('');
+  const [focused, setFocused]       = useState(false);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState('');
+  const [seconds, setSeconds]       = useState(RESEND_SECONDS);
+  const [rateLimitSecs, setRateLimitSecs] = useState(0);
   const inputRef = useRef<TextInput>(null);
 
   // The box that shows the cursor: next empty slot, capped at last box
@@ -69,6 +71,18 @@ export default function OtpScreen({ navigation, route }: Props) {
     const t = setTimeout(() => setSeconds((s) => s - 1), 1000);
     return () => clearTimeout(t);
   }, [seconds]);
+
+  useEffect(() => {
+    if (rateLimitSecs <= 0) return;
+    const t = setTimeout(() => {
+      setRateLimitSecs((s) => {
+        const next = s - 1;
+        if (next <= 0) setError('');
+        return next;
+      });
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [rateLimitSecs]);
 
   async function handleVerify() {
     if (code.length < CODE_LENGTH) { setError('Enter all 4 digits'); return; }
@@ -108,7 +122,13 @@ export default function OtpScreen({ navigation, route }: Props) {
       setCode('');
       inputRef.current?.focus();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to resend. Try again.');
+      if (err instanceof ApiError && err.code === 'OTP_RATE_LIMITED') {
+        const secs = (err.details?.retry_after_seconds as number) ?? 60;
+        setRateLimitSecs(secs);
+        setError(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to resend. Try again.');
+      }
     }
   }
 
@@ -166,7 +186,11 @@ export default function OtpScreen({ navigation, route }: Props) {
           autoFocus
         />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <Text style={styles.error}>
+            {rateLimitSecs > 0 ? `${error} Retry in ${rateLimitSecs}s.` : error}
+          </Text>
+        ) : null}
 
         <TouchableOpacity onPress={handleResend} disabled={seconds > 0}>
           <Text style={styles.resendText}>
