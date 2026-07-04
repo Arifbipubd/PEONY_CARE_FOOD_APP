@@ -41,10 +41,10 @@ function DonationsNavigator() {
 }
 
 const TAB_ICONS = {
-  Home:      { active: 'home'           as const, inactive: 'home-outline'           as const },
-  Donations: { active: 'restaurant'     as const, inactive: 'restaurant-outline'     as const },
-  Alerts:    { active: 'notifications'  as const, inactive: 'notifications-outline'  as const },
-  Profile:   { active: 'person-circle'  as const, inactive: 'person-circle-outline'  as const },
+  Home:      { active: 'home'              as const, inactive: 'home-outline'           as const },
+  Donations: { active: 'receipt'           as const, inactive: 'receipt-outline'        as const },
+  Alerts:    { active: 'notifications'     as const, inactive: 'notifications-outline'  as const },
+  Profile:   { active: 'person'            as const, inactive: 'person-outline'         as const },
 };
 
 export default function RestaurantTabs() {
