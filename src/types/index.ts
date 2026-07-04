@@ -102,8 +102,8 @@ export interface ClaimHistoryItem {
   id: string;
   foodName: string;
   restaurantName: string;
-  photoUrl: string;
-  sponsorDisplayName: string | null;
+  photoUrl?: string;
+  sponsorDisplayName?: string | null;
   status: ClaimHistoryItemStatus;
   claimedAt: string;
   pickupWindow: string;
@@ -124,8 +124,8 @@ export interface ReceiverProfile {
   id: string;
   displayName: string;
   phone: string;
-  email: string;
-  isVerified: boolean;
+  photoUrl: string | null;
+  browseRadiusKm: number;
   memberSince: string;
   daysActive: number;
   totalClaims: number;
@@ -138,15 +138,20 @@ export interface RecentPlace {
   id: string;
   name: string;
   area: string;
-  address: string;
+  placeType: string;
+  latitude: number;
+  longitude: number;
   visitedAt: string;
-  iconColor: string;
 }
 
 export interface LocationSettings {
   searchRadiusKm: number;
+  radiusOptionsKm: number[];
   locationServicesEnabled: boolean;
   saveLocationHistory: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  recentPlacesCount: number;
   recentPlaces: RecentPlace[];
 }
 
@@ -159,15 +164,15 @@ export interface PublicRestaurant {
   postalCode: string;
   latitude: number;
   longitude: number;
-  cuisineType: string;
-  distanceKm: number;
-  closesAt: string;
-  openingHours: string;
-  about: string;
-  photoUrl: string;
+  photoUrl: string | null;
   isVerified: boolean;
-  totalFoodShared: number;
+  distanceKm: number;
   mealCount: number;
+  cuisineType?: string;
+  closesAt?: string;
+  openingHours?: string;
+  about?: string;
+  totalFoodShared?: number;
 }
 
 // ─── Restaurant-side types ────────────────────────────────────────────────────

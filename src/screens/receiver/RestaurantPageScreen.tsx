@@ -12,8 +12,7 @@ import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { getFoodByRestaurant } from '../../services/receiver';
-import { getPublicRestaurant } from '../../services/restaurant';
+import { getPublicRestaurantDetail } from '../../services/restaurant';
 import { PublicRestaurant, FoodItem } from '../../types';
 import { colors, spacing, radius, fontSizes, fontWeights, layout } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
@@ -121,12 +120,9 @@ export default function RestaurantPageScreen({ navigation, route }: Props) {
   const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      getPublicRestaurant(restaurantId),
-      getFoodByRestaurant(restaurantId),
-    ]).then(([rest, items]) => {
-      setRestaurant(rest);
-      setFoods(items);
+    getPublicRestaurantDetail(restaurantId).then(({ restaurant, foods }) => {
+      setRestaurant(restaurant);
+      setFoods(foods);
       setLoading(false);
     });
   }, [restaurantId]);
@@ -146,7 +142,7 @@ export default function RestaurantPageScreen({ navigation, route }: Props) {
         {/* Hero image + back button */}
         <View>
           <Image
-            source={{ uri: restaurant.photoUrl }}
+            source={{ uri: restaurant.photoUrl ?? undefined }}
             style={styles.image}
             resizeMode="cover"
           />
@@ -193,7 +189,7 @@ export default function RestaurantPageScreen({ navigation, route }: Props) {
               </View>
             )}
 
-            {restaurant.openingHours.length > 0 && (
+            {(restaurant.openingHours?.length ?? 0) > 0 && (
               <View style={styles.infoRow}>
                 <Ionicons name="time-outline" size={15} color={colors.textMuted} />
                 <Text style={styles.infoText}>{restaurant.openingHours}</Text>
