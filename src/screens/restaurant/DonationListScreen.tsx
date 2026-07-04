@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getDonations, getDonationSummary } from '../../services/restaurant';
 import { RestaurantDonation, DonationSummary } from '../../types';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
+import PostFAB from '../../components/PostFAB';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
 } from '../../constants/theme';
@@ -34,6 +35,10 @@ function dayLabel(isoDate: string): string {
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Yesterday';
   return d.toLocaleDateString('en-SG', { month: 'short', day: 'numeric' });
+}
+
+function shortDate(isoDate: string): string {
+  return new Date(isoDate).toLocaleDateString('en-SG', { month: 'short', day: 'numeric' });
 }
 
 function closedWhen(pickupEnd: string): string {
@@ -77,7 +82,7 @@ function ListSkeleton() {
         <SkeletonBox opacity={opacity} width={200} height={13} style={sk.mt6} />
         <View style={sk.tabs}>
           {[0, 1, 2].map((i) => (
-            <SkeletonBox key={i} opacity={opacity} style={{ flex: 1 }} height={44} borderRadius={radius.pill} />
+            <SkeletonBox key={i} opacity={opacity} style={{ flex: 1 }} height={38} borderRadius={radius.pill} />
           ))}
         </View>
         {[0, 1, 2, 3].map((i) => (
@@ -122,13 +127,20 @@ function TabSkeleton({ header }: { header: React.ReactNode }) {
   );
 }
 
-// ─── Shared row components ───────────────────────────────────────────────────
+// ─── Shared thumbnail ─────────────────────────────────────────────────────────
 
 const DonationThumb = React.memo(({ item }: { item: RestaurantDonation }) => {
   if (item.sponsorDisplayName) {
     return (
       <View style={[styles.thumb, styles.sponsorThumb]}>
         <Text style={styles.sponsorInitials}>{item.sponsorInitials ?? ''}</Text>
+      </View>
+    );
+  }
+  if (item.status === 'FULLY_CLAIMED' && !item.photoUrl) {
+    return (
+      <View style={[styles.thumb, styles.thumbClaimed]}>
+        <Ionicons name="checkmark" size={20} color={colors.successGreen} />
       </View>
     );
   }
@@ -165,20 +177,24 @@ const ActiveRow = React.memo(({ item, onPress }: { item: RestaurantDonation; onP
 
 // ─── Past row ────────────────────────────────────────────────────────────────
 
-const PastRow = React.memo(({ item, onPress }: { item: RestaurantDonation; onPress: () => void }) => {
+const PastRow = React.memo(({ item, onPress, isRelativeSection }: {
+  item: RestaurantDonation;
+  onPress: () => void;
+  isRelativeSection: boolean;
+}) => {
   const pct  = item.quantityOriginal > 0
     ? Math.round((item.quantityClaimed / item.quantityOriginal) * 100)
     : 0;
   const full = pct === 100;
 
-  const nameParts = [item.name];
-  if (item.sponsorDisplayName) nameParts.push('· Sponsored');
-  const nameText = nameParts.join(' ');
+  const nameText = item.sponsorDisplayName ? `${item.name} · Sponsored` : item.name;
 
-  const subParts = [`${item.quantityClaimed} of ${item.quantityOriginal} claimed`];
-  if (item.noShowCount)  subParts.push(`· ${item.noShowCount} no-show`);
-  if (item.expiredCount) subParts.push(`· ${item.expiredCount} expired`);
+  const hasExtras = !!(item.noShowCount || item.expiredCount || item.sponsorDisplayName);
+  const subParts  = [`${item.quantityClaimed} of ${item.quantityOriginal} claimed`];
+  if (item.noShowCount)      subParts.push(`· ${item.noShowCount} no-show`);
+  if (item.expiredCount)     subParts.push(`· ${item.expiredCount} expired`);
   if (item.sponsorDisplayName) subParts.push(`· by ${item.sponsorDisplayName}`);
+  if (!hasExtras && isRelativeSection) subParts.push(`· ${shortDate(item.pickupStart)}`);
 
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
@@ -187,7 +203,7 @@ const PastRow = React.memo(({ item, onPress }: { item: RestaurantDonation; onPre
         <Text style={styles.rowName} numberOfLines={1}>{nameText}</Text>
         <Text style={styles.rowSub}  numberOfLines={1}>{subParts.join(' ')}</Text>
       </View>
-      <Text style={[styles.rowRight, { color: full ? colors.successGreen : colors.textMuted }]}>
+      <Text style={[styles.rowRight, { color: full ? colors.successGreen : colors.textMuted, fontFamily: full ? fontFamilies.bold : fontFamilies.semiBold }]}>
         {pct}%
       </Text>
     </TouchableOpacity>
@@ -206,7 +222,7 @@ const InactiveRow = React.memo(({
   onDelete: () => void;
 }) => (
   <View style={styles.inactiveCard}>
-    <View style={styles.row}>
+    <View style={styles.inactiveRowContent}>
       <DonationThumb item={item} />
       <View style={styles.rowText}>
         <Text style={styles.rowName} numberOfLines={1}>{item.name}</Text>
@@ -220,6 +236,7 @@ const InactiveRow = React.memo(({
         <Text style={styles.btnViewText}>View</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.btnReactivate} onPress={onReactivate} activeOpacity={0.85}>
+        <Ionicons name="refresh" size={13} color={colors.textInverse} />
         <Text style={styles.btnReactivateText}>Reactivate</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.btnDelete} onPress={onDelete} activeOpacity={0.7}>
@@ -269,17 +286,20 @@ export default function DonationListScreen({ navigation }: Props) {
     navigation.getParent()?.navigate('Alerts' as never);
   }, [navigation]);
 
-  const activeSections  = useMemo(() => groupByDate(active  ?? []), [active]);
-  const pastSections    = useMemo(() => groupByDate(past    ?? []), [past]);
+  const goBack = useCallback(() => {
+    navigation.getParent()?.navigate('Home' as never);
+  }, [navigation]);
 
-  // ── Header subtitle / number / summary per tab ─────────────────────────────
-  const headerSubtitle = tab === 'active'   ? 'Manage'
-    : tab === 'past'                         ? 'Completed history'
+  const activeSections = useMemo(() => groupByDate(active ?? []), [active]);
+  const pastSections   = useMemo(() => groupByDate(past   ?? []), [past]);
+
+  const headerSubtitle = tab === 'active'  ? 'Manage'
+    : tab === 'past'                        ? 'Completed history'
     : 'Closed listings';
 
-  const headerNumber = tab === 'active'   ? summary?.activeCount   ?? 0
-    : tab === 'past'                       ? summary?.pastCount     ?? 0
-    : summary?.inactiveCount               ?? 0;
+  const headerNumber = tab === 'active'  ? summary?.activeCount   ?? 0
+    : tab === 'past'                      ? summary?.pastCount     ?? 0
+    : summary?.inactiveCount              ?? 0;
 
   const headerSummary = tab === 'active'
     ? `${summary?.activeCount ?? 0} active · ${summary?.pastCount ?? 0} past · ${summary?.inactiveCount ?? 0} inactive`
@@ -290,20 +310,18 @@ export default function DonationListScreen({ navigation }: Props) {
   const fabLabel = tab === 'active' ? 'Post' : 'Post food';
 
   const isTabLoading = loading
-    || (tab === 'past'    && past    === null)
+    || (tab === 'past'     && past    === null)
     || (tab === 'inactive' && inactive === null);
 
   if (loading) return <ListSkeleton />;
 
-  // ── Shared header ──────────────────────────────────────────────────────────
   const Header = (
     <View style={styles.listHeader}>
-      <Text style={styles.subtitle}>{headerSubtitle}</Text>
+      <Text style={styles.eyebrow}>{headerSubtitle}</Text>
       <Text style={styles.title}>Donations</Text>
       <Text style={styles.bigNumber}>{headerNumber}</Text>
       <Text style={styles.summary}>{headerSummary}</Text>
 
-      {/* Tab pills */}
       <View style={styles.pills}>
         {(['active', 'past', 'inactive'] as Tab[]).map((t) => (
           <TouchableOpacity
@@ -324,10 +342,12 @@ export default function DonationListScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
 
-      {/* Top bar */}
       <View style={styles.headerRow}>
+        <TouchableOpacity style={styles.backBtn} onPress={goBack} hitSlop={8}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.bellBtn} onPress={goToAlerts} hitSlop={8}>
-          <Ionicons name="notifications" size={20} color={colors.textPrimary} />
+          <Ionicons name="notifications-outline" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -375,8 +395,12 @@ export default function DonationListScreen({ navigation }: Props) {
                 <Text style={styles.daySummary}>{section.completedCount} completed</Text>
               </View>
             )}
-            renderItem={({ item }) => (
-              <PastRow item={item} onPress={() => goToDetail(item.id)} />
+            renderItem={({ item, section }) => (
+              <PastRow
+                item={item}
+                onPress={() => goToDetail(item.id)}
+                isRelativeSection={section.title === 'Yesterday' || section.title === 'Today'}
+              />
             )}
             contentContainerStyle={styles.listContent}
           />
@@ -396,19 +420,17 @@ export default function DonationListScreen({ navigation }: Props) {
             maxToRenderPerBatch={8}
             windowSize={5}
             ListHeaderComponent={Header}
-            renderItem={({ item, index }) => (
-              <>
-                <InactiveRow
-                  item={item}
-                  onView={() => goToDetail(item.id)}
-                  onReactivate={() => {}}
-                  onDelete={() => {}}
-                />
-                {index < (inactive?.length ?? 0) - 1 && <View style={styles.inactiveDivider} />}
-              </>
+            renderItem={({ item }) => (
+              <InactiveRow
+                item={item}
+                onView={() => goToDetail(item.id)}
+                onReactivate={() => {}}
+                onDelete={() => {}}
+              />
             )}
             ListFooterComponent={
               <View style={styles.infoBox}>
+                <Ionicons name="information-circle" size={20} color={colors.textMuted} style={styles.infoIcon} />
                 <Text style={styles.infoText}>
                   Inactive donations were closed before the pickup window ended. Reactivate to bring them back to your Active list, or delete permanently.
                 </Text>
@@ -419,10 +441,7 @@ export default function DonationListScreen({ navigation }: Props) {
         )
       )}
 
-      {/* FAB */}
-      <TouchableOpacity style={styles.fab} onPress={goToPost} activeOpacity={0.85}>
-        <Text style={styles.fabText}>{fabLabel}</Text>
-      </TouchableOpacity>
+      <PostFAB onPress={goToPost} label={fabLabel} />
 
     </SafeAreaView>
   );
@@ -435,9 +454,13 @@ const styles = StyleSheet.create({
 
   headerRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: spacing['2xl'],
     paddingVertical: spacing.md,
+  },
+  backBtn: {
+    padding: spacing.sm,
   },
   bellBtn: {
     width: 40,
@@ -454,42 +477,44 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.xl,
   },
-  subtitle: {
+  eyebrow: {
     fontSize: fontSizes.sm,
     fontFamily: fontFamilies.medium,
     color: colors.textMuted,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   title: {
     fontSize: fontSizes['2xl'],
     fontFamily: fontFamilies.bold,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: 12,
   },
   bigNumber: {
     fontSize: fontSizes['5xl'],
     fontFamily: fontFamilies.bold,
     letterSpacing: letterSpacings.heading,
     color: colors.textPrimary,
-    lineHeight: fontSizes['5xl'],
-    marginBottom: spacing.sm,
+    lineHeight: 48,
+    marginBottom: 0,
   },
   summary: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['14'],
     fontFamily: fontFamilies.regular,
     color: colors.textMuted,
-    marginBottom: spacing.xl,
+    marginTop: 10,
+    marginBottom: 0,
   },
 
   // ── Tab pills ─────────────────────────────────────────────────────────────────
   pills: {
     flexDirection: 'row',
     gap: 8,
+    marginTop: spacing.xl,
   },
   pill: {
     flex: 1,
-    height: 44,
+    height: 38,
     borderRadius: radius.pill,
     backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
@@ -499,7 +524,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.textPrimary,
   },
   pillText: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['12'],
     fontFamily: fontFamilies.semiBold,
     color: colors.textPrimary,
   },
@@ -526,15 +551,13 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
-  // ── Donation row ──────────────────────────────────────────────────────────────
+  // ── Donation row (active / past) ──────────────────────────────────────────────
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing['2xl'],
     paddingVertical: 13,
     gap: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderDefault,
   },
   thumb: {
     width: 52,
@@ -544,6 +567,11 @@ const styles = StyleSheet.create({
   },
   thumbPlaceholder: {
     backgroundColor: colors.successGreenLight,
+  },
+  thumbClaimed: {
+    backgroundColor: colors.mintLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sponsorThumb: {
     backgroundColor: colors.goldLight,
@@ -576,93 +604,83 @@ const styles = StyleSheet.create({
   inactiveCard: {
     paddingHorizontal: spacing['2xl'],
   },
+  inactiveRowContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
+    gap: spacing.lg,
+  },
   actionRow: {
     flexDirection: 'row',
     gap: 8,
     paddingBottom: spacing.lg,
-    paddingLeft: 52 + spacing.lg,
+    paddingLeft: 0,
   },
   btnView: {
-    height: 36,
-    paddingHorizontal: spacing.lg,
+    height: 32,
+    paddingHorizontal: 12,
     borderRadius: radius.pill,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.borderDefault,
     alignItems: 'center',
     justifyContent: 'center',
   },
   btnViewText: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['12'],
     fontFamily: fontFamilies.semiBold,
     color: colors.textPrimary,
   },
   btnReactivate: {
-    height: 36,
-    paddingHorizontal: spacing.lg,
+    height: 32,
+    paddingHorizontal: 12,
     borderRadius: radius.pill,
     backgroundColor: colors.accentPrimary,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
   },
   btnReactivateText: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['12'],
     fontFamily: fontFamilies.semiBold,
     color: colors.textInverse,
   },
   btnDelete: {
-    height: 36,
-    paddingHorizontal: spacing.lg,
+    height: 32,
+    paddingHorizontal: 12,
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.accentPrimary,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
     alignItems: 'center',
     justifyContent: 'center',
   },
   btnDeleteText: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['12'],
     fontFamily: fontFamilies.semiBold,
-    color: colors.accentPrimary,
+    color: colors.dangerRed,
   },
-  inactiveDivider: {
-    height: 1,
-    backgroundColor: colors.borderDefault,
-    marginHorizontal: spacing['2xl'],
-  },
-
   // ── Info box (inactive footer) ────────────────────────────────────────────────
   infoBox: {
-    margin: spacing['2xl'],
-    padding: spacing.lg,
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: radius.card,
+    marginTop: spacing['2xl'],
+    marginHorizontal: spacing['2xl'],
+    marginBottom: 0,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: 16,
+    backgroundColor: colors.surfaceTertiary,
+    borderRadius: radius.input,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  infoIcon: {
+    flexShrink: 0,
   },
   infoText: {
-    fontSize: fontSizes.sm,
+    flex: 1,
+    fontSize: fontSizes['12'],
     fontFamily: fontFamilies.regular,
     color: colors.textMuted,
-    lineHeight: 20,
-  },
-
-  // ── FAB ───────────────────────────────────────────────────────────────────────
-  fab: {
-    position: 'absolute',
-    right: spacing['2xl'],
-    bottom: spacing['2xl'],
-    backgroundColor: colors.accentPrimary,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing['3xl'],
-    paddingVertical: spacing.lg,
-    shadowColor: colors.accentPrimary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  fabText: {
-    fontSize: fontSizes.md,
-    fontFamily: fontFamilies.bold,
-    color: colors.textInverse,
-    letterSpacing: letterSpacings.button,
+    lineHeight: 17.4,
   },
 
   listContent: { paddingBottom: 100 },
