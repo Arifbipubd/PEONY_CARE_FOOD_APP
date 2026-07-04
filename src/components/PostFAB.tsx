@@ -7,7 +7,7 @@ interface PostFABProps {
   label?: string;
 }
 
-export default function PostFAB({ onPress, label = 'Post' }: PostFABProps) {
+export default function PostFAB({ onPress, label = 'Post food' }: PostFABProps) {
   return (
     <TouchableOpacity style={styles.fab} onPress={onPress} activeOpacity={0.85}>
       <Ionicons name="add" size={20} color={colors.textInverse} />

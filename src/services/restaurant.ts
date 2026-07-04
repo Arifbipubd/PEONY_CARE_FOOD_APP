@@ -1,10 +1,8 @@
 // Restaurant service — dashboard, donation management, profile.
-// MOCK MODE ACTIVE — real API calls are commented out below each function.
-// To connect the backend: delete the mock block, uncomment the api call.
 
 import {
   RestaurantDashboard, RestaurantDonation, RestaurantProfile, PublicRestaurant, FoodItem,
-  DonationSummary,
+  DonationSummary, CreateDonationPayload,
 } from '../types';
 import {
   ApiRestaurantDonation, ApiRestaurantDashboard, ApiPublicRestaurant,
@@ -12,8 +10,6 @@ import {
 } from '../types/api';
 import {
   MOCK_RESTAURANT_DASHBOARD,
-  MOCK_RESTAURANT_DONATIONS,
-  MOCK_DONATION_SUMMARY,
   MOCK_RESTAURANT_PROFILE,
 } from '../mock/restaurantData';
 import { api } from './api';
@@ -160,13 +156,13 @@ export const getApprovalStatus = async (): Promise<{
 };
 
 export const getDonationSummary = async (): Promise<DonationSummary> => {
-  await new Promise((r) => setTimeout(r, 300));
-  const s: ApiDonationSummary = MOCK_DONATION_SUMMARY;
+  const res = await api.get('/restaurant/donations/summary/');
+  const s: ApiDonationSummary = res.data.data;
   return {
-    activeCount:  s.active_count,
-    pastCount:    s.past_count,
+    activeCount:   s.active_count,
+    pastCount:     s.past_count,
     inactiveCount: s.inactive_count,
-    weeklyMeals:  s.weekly_meals,
+    weeklyMeals:   s.weekly_meals,
   };
 };
 
@@ -185,28 +181,36 @@ export const getDashboard = async (): Promise<RestaurantDashboard> => {
 export const getDonations = async (
   status: 'active' | 'past' | 'inactive',
 ): Promise<RestaurantDonation[]> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 400));
-  const statusMap: Record<string, string> = { active: 'ACTIVE', past: 'PAST', inactive: 'INACTIVE' };
-  return MOCK_RESTAURANT_DONATIONS
-    .filter((d) => d.list_status === statusMap[status])
-    .map(mapApiDonation);
-  /* REAL API:
   const res = await api.get('/restaurant/donations/', { params: { status } });
   return (res.data.data as ApiRestaurantDonation[]).map(mapApiDonation);
-  */
 };
 
 export const getDonationDetail = async (foodId: string): Promise<RestaurantDonation> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 300));
-  const item = MOCK_RESTAURANT_DONATIONS.find((d) => d.id === foodId);
-  if (!item) throw new Error('Donation not found');
-  return mapApiDonation({ ...item, claims: [] });
-  /* REAL API:
   const res = await api.get(`/restaurant/donations/${foodId}/`);
   return mapApiDonation(res.data.data);
-  */
+};
+
+export const reactivateDonation = async (foodId: string): Promise<RestaurantDonation> => {
+  const res = await api.patch(`/restaurant/donations/${foodId}/reactivate/`);
+  return mapApiDonation(res.data.data);
+};
+
+export const deleteDonation = async (foodId: string): Promise<void> => {
+  await api.delete(`/restaurant/donations/${foodId}/`);
+};
+
+export const createDonation = async (payload: CreateDonationPayload): Promise<RestaurantDonation> => {
+  const res = await api.post('/restaurant/donations/', {
+    name:              payload.name,
+    description:       payload.description,
+    category:          payload.category,
+    unit:              payload.unit,
+    quantity_original: payload.quantityOriginal,
+    pickup_start:      payload.pickupStart,
+    pickup_end:        payload.pickupEnd,
+    photo_url:         payload.photoUrl ?? null,
+  });
+  return mapApiDonation(res.data.data);
 };
 
 export const getTodaysClaims = async (): Promise<{ total: number; claims: RestaurantDonation[] }> => {
