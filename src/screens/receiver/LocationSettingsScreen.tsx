@@ -22,6 +22,15 @@ type Props = {
 
 const RADIUS_OPTIONS = [1, 2, 3, 5, 10];
 
+const PLACE_TYPE_COLORS: Record<string, string> = {
+  FOOD_CENTRE: '#FF6B35',
+  RESTAURANT:  '#D31B1B',
+  SHOPPING:    '#7C3AED',
+  TRANSIT:     '#2563EB',
+  PARK:        '#26A34E',
+  OTHER:       '#6B7280',
+};
+
 function relativeDay(isoString: string): string {
   const diffDays = Math.floor((Date.now() - new Date(isoString).getTime()) / 86_400_000);
   if (diffDays === 0) return 'Today';
@@ -211,12 +220,12 @@ export default function LocationSettingsScreen({ navigation }: Props) {
           {recentPlaces.map((place, i) => (
             <View key={place.id}>
               <View style={styles.placeRow}>
-                <View style={[styles.placeIcon, { backgroundColor: place.iconColor }]}>
-                  <Ionicons name="location-outline" size={16} color={colors.textMuted} />
+                <View style={[styles.placeIcon, { backgroundColor: PLACE_TYPE_COLORS[place.placeType] ?? '#6B7280' }]}>
+                  <Ionicons name="location-outline" size={16} color={colors.textInverse} />
                 </View>
                 <View style={styles.placeText}>
                   <Text style={styles.placeName}>{place.name}</Text>
-                  <Text style={styles.placeAddress}>{place.area} · {place.address}</Text>
+                  <Text style={styles.placeAddress}>{place.area}</Text>
                 </View>
                 <Text style={styles.placeTime}>{relativeDay(place.visitedAt)}</Text>
               </View>
