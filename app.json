@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "com.peonycare.foodapp",
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#D31B1B",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -33,6 +34,12 @@
         "expo-camera",
         {
           "cameraPermission": "Peony Care needs camera access to scan claim QR codes."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Peony Care needs your location to show food donations near you."
         }
       ]
     ],

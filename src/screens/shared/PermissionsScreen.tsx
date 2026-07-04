@@ -10,8 +10,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
-import { Camera } from 'expo-camera';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import { useAuthStore } from '../../store/authStore';
 import { UserRole } from '../../types';
@@ -60,9 +58,7 @@ export default function PermissionsScreen({ navigation, route }: Props) {
     setAuth(accessToken, refreshToken, user as { id: string; phone: string; role: UserRole });
   }, [accessToken, refreshToken, user, setAuth]);
 
-  const handleAllow = useCallback(async () => {
-    await Location.requestForegroundPermissionsAsync();
-    await Camera.requestCameraPermissionsAsync();
+  const handleAllow = useCallback(() => {
     finish();
   }, [finish]);
 
@@ -103,10 +99,6 @@ export default function PermissionsScreen({ navigation, route }: Props) {
           <TouchableOpacity style={styles.allowBtn} onPress={handleAllow} activeOpacity={0.85}>
             <Text style={styles.allowLabel}>Allow & continue</Text>
             <Ionicons name="arrow-forward" size={18} color={colors.textInverse} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.skipBtn} onPress={finish} activeOpacity={0.7}>
-            <Text style={styles.skipLabel}>Skip for now</Text>
           </TouchableOpacity>
         </View>
 
