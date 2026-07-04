@@ -210,6 +210,17 @@ export interface ApiDonationSummary {
   weekly_meals: number;
 }
 
+export interface ApiCreateDonationPayload {
+  name: string;
+  description: string;
+  category: string;
+  unit: string;
+  quantity_original: number;
+  pickup_start: string;
+  pickup_end: string;
+  photo_url?: string | null;
+}
+
 export interface ApiRestaurantDashboard {
   lives_impacted: number;
   donations_this_year: number;
