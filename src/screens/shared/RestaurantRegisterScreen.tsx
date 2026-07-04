@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,8 +15,12 @@ import { AuthStackParamList } from '../../navigation/AuthStack';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import LogoBadge from '../../components/LogoBadge';
+import SgFlag from '../../components/SgFlag';
 import { sendOtp } from '../../services/auth';
-import { colors, spacing, fontSizes, fontWeights } from '../../constants/theme';
+import { ApiError } from '../../services/api';
+import {
+  colors, spacing, fontSizes, fontFamilies, letterSpacings, radius,
+} from '../../constants/theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'RestaurantRegister'>;
@@ -27,25 +31,48 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
   const [uen, setUen]                       = useState('');
   const [address, setAddress]               = useState('');
   const [contactName, setContactName]       = useState('');
-  const [email, setEmail]                   = useState('');
   const [phone, setPhone]                   = useState('');
+  const [email, setEmail]                   = useState('');
+  const [termsAccepted, setTermsAccepted]   = useState(false);
   const [loading, setLoading]               = useState(false);
   const [error, setError]                   = useState('');
+  const [rateLimitSecs, setRateLimitSecs]   = useState(0);
+
+  useEffect(() => {
+    if (rateLimitSecs <= 0) return;
+    const t = setTimeout(() => {
+      setRateLimitSecs((s) => {
+        const next = s - 1;
+        if (next <= 0) setError('');
+        return next;
+      });
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [rateLimitSecs]);
 
   const cleaned = phone.trim().replace(/\s/g, '');
+  const isValidSgPhone = /^[689]\d{7}$/.test(cleaned);
+  const phoneError =
+    cleaned.length > 0 && !/^[689]/.test(cleaned) ? 'Must start with 6, 8 or 9' :
+    cleaned.length > 8                             ? 'Must be exactly 8 digits'  : '';
+
   const canSubmit =
     restaurantName.trim().length > 0 &&
     uen.trim().length > 0 &&
     address.trim().length > 0 &&
     contactName.trim().length > 0 &&
-    cleaned.length >= 8;
+    isValidSgPhone &&
+    termsAccepted;
+
+  const clearError = useCallback(() => setError(''), []);
 
   async function handleSend() {
     if (!restaurantName.trim()) { setError('Restaurant name is required'); return; }
     if (!uen.trim())             { setError('UEN is required'); return; }
     if (!address.trim())         { setError('Address is required'); return; }
     if (!contactName.trim())     { setError('Contact name is required'); return; }
-    if (cleaned.length < 8)      { setError('Enter a valid phone number'); return; }
+    if (!isValidSgPhone)         { setError('Enter a valid Singapore number'); return; }
+    if (!termsAccepted)          { setError('You must agree to the Terms and Privacy Policy'); return; }
     setError('');
     setLoading(true);
     try {
@@ -55,16 +82,23 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
         phone: fullPhone,
         purpose: 'REGISTER',
         pendingRegistration: {
-          role: 'RESTAURANT',
+          role:          'RESTAURANT',
           restaurantName: restaurantName.trim(),
-          uen: uen.trim(),
-          address: address.trim(),
-          contactName: contactName.trim(),
-          email: email.trim(),
+          uen:            uen.trim(),
+          address:        address.trim(),
+          contactName:    contactName.trim(),
+          email:          email.trim(),
+          contactPhone:   fullPhone,
         },
       });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to send code. Try again.');
+      if (err instanceof ApiError && err.code === 'OTP_RATE_LIMITED') {
+        const secs = (err.details?.retry_after_seconds as number) ?? 60;
+        setRateLimitSecs(secs);
+        setError(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to send code. Try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -93,60 +127,94 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
             <Input
               label="Restaurant name"
               value={restaurantName}
-              onChangeText={(t) => { setRestaurantName(t); setError(''); }}
+              onChangeText={(t) => { setRestaurantName(t); clearError(); }}
               placeholder="Tian Tian Hainanese"
-              leftIcon={<Ionicons name="storefront-outline" size={18} color={colors.textMuted} />}
+              leftIcon={<Ionicons name="storefront" size={18} color={colors.textMuted} />}
             />
             <Input
               label="UEN (business registration)"
               value={uen}
-              onChangeText={(t) => { setUen(t); setError(''); }}
+              onChangeText={(t) => { setUen(t); clearError(); }}
               placeholder="200912345A"
+              leftIcon={<Ionicons name="id-card" size={18} color={colors.textMuted} />}
             />
-            <Input
-              label="Address"
-              value={address}
-              onChangeText={(t) => { setAddress(t); setError(''); }}
-              placeholder="443 Joo Chiat Rd, Singapore"
-              leftIcon={<Ionicons name="location-outline" size={18} color={colors.textMuted} />}
-            />
+            <View style={styles.addressBlock}>
+              <Input
+                label="Address"
+                value={address}
+                onChangeText={(t) => { setAddress(t); clearError(); }}
+                placeholder="443 Joo Chiat Rd, Singapore"
+                leftIcon={<Ionicons name="location" size={18} color={colors.textMuted} />}
+              />
+              <TouchableOpacity style={styles.pinRow} activeOpacity={0.7}>
+                <Ionicons name="bookmark" size={14} color={colors.accentPrimary} />
+                <Text style={styles.pinText}>Pin exact location on map</Text>
+              </TouchableOpacity>
+            </View>
             <Input
               label="Contact name"
               value={contactName}
-              onChangeText={(t) => { setContactName(t); setError(''); }}
+              onChangeText={(t) => { setContactName(t); clearError(); }}
               placeholder="Manager / owner"
-              leftIcon={<Ionicons name="person-outline" size={18} color={colors.textMuted} />}
+              leftIcon={<Ionicons name="person" size={18} color={colors.textMuted} />}
             />
             <Input
-              label="Email"
+              label="Mobile number"
+              value={phone}
+              onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); clearError(); }}
+              placeholder="8765 4321"
+              keyboardType="number-pad"
+              error={phoneError}
+              leftSection={
+                <>
+                  <SgFlag size={24} />
+                  <Text style={styles.prefix}>+65</Text>
+                </>
+              }
+            />
+            <Input
+              label="Email address"
               value={email}
-              onChangeText={(t) => { setEmail(t); setError(''); }}
+              onChangeText={(t) => { setEmail(t); clearError(); }}
               placeholder="contact@restaurant.sg"
               keyboardType="email-address"
-              leftIcon={<Ionicons name="mail-outline" size={18} color={colors.textMuted} />}
-            />
-            <Input
-              label="Phone number"
-              value={phone}
-              onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
-              placeholder="91234567"
-              keyboardType="number-pad"
-              error={error}
-              leftIcon={<Text style={styles.prefix}>+65</Text>}
+              leftIcon={<Ionicons name="mail" size={18} color={colors.textMuted} />}
             />
           </View>
+
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => setTermsAccepted((v) => !v)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+              {termsAccepted && (
+                <Ionicons name="checkmark" size={14} color={colors.textInverse} />
+              )}
+            </View>
+            <Text style={styles.termsText}>
+              {'I agree to the '}
+              <Text style={styles.termsLink}>Terms</Text>
+              {' and '}
+              <Text style={styles.termsLink}>Privacy Policy</Text>
+              {'.'}
+            </Text>
+          </TouchableOpacity>
+
+          {error ? (
+            <Text style={styles.errorText}>
+              {rateLimitSecs > 0 ? `${error} Retry in ${rateLimitSecs}s.` : error}
+            </Text>
+          ) : null}
 
           <Button
             label="Send code"
             onPress={handleSend}
             loading={loading}
             disabled={!canSubmit}
+            size="sm"
+            rightIcon={<Ionicons name="arrow-forward" size={20} color={colors.textInverse} />}
           />
-
-          <Text style={styles.terms}>
-            By signing up you agree to our{' '}
-            <Text style={styles.termsLink}>Terms & Privacy</Text>.
-          </Text>
 
           <Text style={styles.loginRow}>
             Already a partner?{' '}
@@ -176,34 +244,75 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
     textAlign: 'center',
     alignSelf: 'stretch',
   },
   form: { alignSelf: 'stretch', gap: spacing.lg },
-  prefix: {
-    fontSize: fontSizes.md,
-    color: colors.textMuted,
-    fontWeight: fontWeights.medium,
+  addressBlock: { gap: spacing.xs },
+  pinRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
-  terms: {
-    fontSize: fontSizes.sm,
+  pinText: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    color: colors.accentPrimary,
+  },
+  prefix: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
+    color: colors.textPrimary,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    gap: spacing.md,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.xs,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.accentPrimary,
+    borderColor: colors.accentPrimary,
+  },
+  termsText: {
+    flex: 1,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
     color: colors.textMuted,
-    textAlign: 'center',
   },
   termsLink: {
+    fontFamily: fontFamilies.semiBold,
     color: colors.accentPrimary,
-    fontWeight: fontWeights.medium,
+  },
+  errorText: {
+    fontSize: fontSizes.sm,
+    color: colors.errorRed,
+    textAlign: 'center',
+    alignSelf: 'stretch',
   },
   loginRow: {
+    fontFamily: fontFamilies.regular,
     fontSize: fontSizes.sm,
     color: colors.textMuted,
     textAlign: 'center',
   },
   loginLink: {
+    fontFamily: fontFamilies.semiBold,
     color: colors.accentPrimary,
-    fontWeight: fontWeights.semiBold,
   },
 });
