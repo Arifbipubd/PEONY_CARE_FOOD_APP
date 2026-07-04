@@ -15,7 +15,7 @@ import { RestaurantDashboard, RestaurantDonation } from '../../types';
 import { useNotificationStore } from '../../store/notificationStore';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import {
-  colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, layout,
+  colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
 } from '../../constants/theme';
 import { RestaurantTabParamList } from '../../navigation/RestaurantTabs';
 
@@ -51,7 +51,7 @@ function DashboardSkeleton() {
         </View>
         {[0, 1, 2, 3].map((i) => (
           <View key={i} style={sk.row}>
-            <SkeletonBox opacity={opacity} width={40} height={40} borderRadius={radius.pill} />
+            <SkeletonBox opacity={opacity} width={44} height={44} borderRadius={radius.pill} />
             <View style={sk.rowText}>
               <SkeletonBox opacity={opacity} width={140} height={14} />
               <SkeletonBox opacity={opacity} width={100} height={12} style={sk.mt4} />
@@ -86,20 +86,20 @@ const StatCard = React.memo(({ value, label, valueColor }: { value: string; labe
 // ─── Donation row ────────────────────────────────────────────────────────────
 
 const DonationRow = React.memo(({ item }: { item: RestaurantDonation }) => {
-  const isFullyClaimed = item.status === 'FULLY_CLAIMED';
-  const isSponsored    = !!item.sponsorDisplayName;
-  const ratio          = `${item.quantityClaimed}/${item.quantityOriginal}`;
+  const isFullyClaimed  = item.status === 'FULLY_CLAIMED';
+  const isSponsored     = !!item.sponsorDisplayName;
+  const showClaimedTick = isFullyClaimed && !item.photoUrl && !isSponsored;
   const pct            = item.quantityOriginal > 0
     ? Math.round((item.quantityClaimed / item.quantityOriginal) * 100)
     : 0;
 
   const rightLabel = isFullyClaimed
     ? (pct === 100 ? '100%' : 'All claimed')
-    : ratio;
+    : `${item.quantityClaimed} / ${item.quantityOriginal}`;
   const rightColor = isFullyClaimed ? colors.successGreen : colors.textMuted;
 
   const subtitle = isSponsored
-    ? `1 of ${item.quantityOriginal} claimed · by ${item.sponsorDisplayName}`
+    ? `${item.quantityClaimed} of ${item.quantityOriginal} claimed · by ${item.sponsorDisplayName}`
     : `${item.quantityClaimed} of ${item.quantityOriginal} claimed · ${item.pickupWindow}`;
 
   const nameLabel = isSponsored ? `${item.name} · Sponsored` : item.name;
@@ -110,6 +110,10 @@ const DonationRow = React.memo(({ item }: { item: RestaurantDonation }) => {
         <View style={styles.sponsorAvatar}>
           <Text style={styles.sponsorInitials}>{item.sponsorInitials ?? ''}</Text>
         </View>
+      ) : showClaimedTick ? (
+        <View style={[styles.donationThumb, styles.thumbClaimed]}>
+          <Ionicons name="checkmark" size={20} color={colors.successGreen} />
+        </View>
       ) : item.photoUrl ? (
         <Image source={{ uri: item.photoUrl }} style={styles.donationThumb} resizeMode="cover" />
       ) : (
@@ -119,7 +123,14 @@ const DonationRow = React.memo(({ item }: { item: RestaurantDonation }) => {
         <Text style={styles.donationName} numberOfLines={1}>{nameLabel}</Text>
         <Text style={styles.donationSub}  numberOfLines={1}>{subtitle}</Text>
       </View>
-      <Text style={[styles.donationRight, { color: rightColor }]}>{rightLabel}</Text>
+      <Text
+        style={[
+          styles.donationRight,
+          { color: rightColor, fontFamily: isFullyClaimed ? fontFamilies.bold : fontFamilies.semiBold },
+        ]}
+      >
+        {rightLabel}
+      </Text>
     </View>
   );
 });
@@ -127,7 +138,7 @@ const DonationRow = React.memo(({ item }: { item: RestaurantDonation }) => {
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function RestaurantDashboardScreen({ navigation }: Props) {
-  const [data, setData]     = useState<RestaurantDashboard | null>(null);
+  const [data, setData]       = useState<RestaurantDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const { unreadCount } = useNotificationStore();
 
@@ -165,7 +176,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('Alerts')}
           hitSlop={8}
         >
-          <Ionicons name="notifications" size={20} color={colors.textPrimary} />
+          <Ionicons name="notifications-outline" size={20} color={colors.textPrimary} />
           {unreadCount > 0 && <View style={styles.bellDot} />}
         </TouchableOpacity>
       </View>
@@ -188,9 +199,9 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
 
         {/* Today stats */}
         <View style={styles.statRow}>
-          <StatCard value={String(data.activeCount)} label="ACTIVE"        valueColor={colors.accentPrimary} />
+          <StatCard value={String(data.activeCount)}  label="ACTIVE"        valueColor={colors.accentPrimary} />
           <StatCard value={String(data.claimedToday)} label="CLAIMED TODAY" valueColor={colors.textPrimary} />
-          <StatCard value={`${data.claimRatePct}%`}  label="CLAIM RATE"    valueColor={colors.warningYellow} />
+          <StatCard value={`${data.claimRatePct}%`}  label="CLAIM RATE"    valueColor={colors.goldDark} />
         </View>
 
         {/* This week */}
@@ -203,7 +214,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
         <View style={styles.statRow}>
           <StatCard value={String(data.thisWeekDonations)} label="DONATIONS" valueColor={colors.textPrimary} />
           <StatCard value={String(data.thisWeekMeals)}     label="MEALS"     valueColor={colors.accentPrimary} />
-          <StatCard value={String(data.thisWeekInactive)}  label="INACTIVE"  valueColor={colors.warningYellow} />
+          <StatCard value={String(data.thisWeekInactive)}  label="INACTIVE"  valueColor={colors.goldDark} />
         </View>
 
         {/* Active donations */}
@@ -228,7 +239,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
         {/* Yesterday group */}
         {data.yesterdayListings.length > 0 && (
           <>
-            <View style={styles.dayHeader}>
+            <View style={[styles.dayHeader, styles.dayHeaderGap]}>
               <Text style={styles.dayLabel}>Yesterday</Text>
               <Text style={styles.daySummary}>
                 {data.yesterdayListings.length} listings · {data.yesterdayFed} fed
@@ -244,6 +255,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
 
       {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={goToPost} activeOpacity={0.85}>
+        <Ionicons name="add" size={20} color={colors.textInverse} />
         <Text style={styles.fabText}>Post</Text>
       </TouchableOpacity>
 
@@ -288,8 +300,8 @@ const styles = StyleSheet.create({
   },
   bellDot: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 4,
+    right: 4,
     width: 8,
     height: 8,
     borderRadius: radius.pill,
@@ -307,14 +319,14 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     fontFamily: fontFamilies.medium,
     color: colors.textMuted,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   heroTitle: {
     fontSize: fontSizes['2xl'],
     fontFamily: fontFamilies.bold,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: 14,
   },
   heroNumber: {
     fontSize: fontSizes['5xl'],
@@ -324,22 +336,22 @@ const styles = StyleSheet.create({
     lineHeight: fontSizes['5xl'],
   },
   heroSub: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['14'],
     fontFamily: fontFamilies.regular,
     color: colors.textMuted,
-    marginTop: spacing.sm,
+    marginTop: 10,
   },
   growthBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.successGreenLight,
+    backgroundColor: colors.mintLight,
     borderRadius: radius.pill,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginTop: 10,
+    paddingVertical: 5,
+    marginTop: 14,
     marginBottom: spacing['2xl'],
   },
   growthText: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['12'],
     fontFamily: fontFamilies.semiBold,
     color: colors.successGreen,
   },
@@ -355,7 +367,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
     borderRadius: radius.card,
     paddingVertical: 14,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 76,
@@ -383,13 +395,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   sectionTitle: {
-    fontSize: fontSizes['16'],
+    fontSize: fontSizes.lg,
     fontFamily: fontFamilies.bold,
-    letterSpacing: -0.32,
+    letterSpacing: -0.425,
     color: colors.textPrimary,
   },
   sectionLink: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['12'],
     fontFamily: fontFamilies.semiBold,
     color: colors.accentPrimary,
   },
@@ -399,16 +411,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.surfaceSecondary,
-    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    marginHorizontal: -spacing['2xl'],
-    marginBottom: 0,
+  },
+  dayHeaderGap: {
+    marginTop: spacing.lg,
   },
   dayLabel: {
-    fontSize: fontSizes.sm,
-    fontFamily: fontFamilies.semiBold,
-    color: colors.textPrimary,
+    fontSize: fontSizes['12'],
+    fontFamily: fontFamilies.medium,
+    color: colors.textMuted,
   },
   daySummary: {
     fontSize: fontSizes.xs,
@@ -420,32 +431,38 @@ const styles = StyleSheet.create({
   donationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 13,
+    paddingVertical: 14,
     gap: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderDefault,
   },
   donationThumb: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: radius.pill,
     backgroundColor: colors.borderDefault,
+    overflow: 'hidden',
   },
   thumbPlaceholder: {
-    backgroundColor: colors.successGreenLight,
+    backgroundColor: colors.mintLight,
+  },
+  thumbClaimed: {
+    backgroundColor: colors.mintLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sponsorAvatar: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: radius.pill,
-    backgroundColor: colors.textMuted,
+    backgroundColor: colors.goldLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sponsorInitials: {
     fontSize: fontSizes.sm,
     fontFamily: fontFamilies.bold,
-    color: colors.textInverse,
+    color: colors.goldDark,
   },
   donationText: { flex: 1 },
   donationName: {
@@ -455,14 +472,14 @@ const styles = StyleSheet.create({
     letterSpacing: -0.21,
   },
   donationSub: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes['12'],
     fontFamily: fontFamilies.regular,
     color: colors.textMuted,
     marginTop: 2,
   },
   donationRight: {
-    fontSize: fontSizes.sm,
-    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['14'],
+    letterSpacing: -0.21,
   },
 
   // ── FAB ───────────────────────────────────────────────────────────────────
@@ -470,9 +487,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: spacing['2xl'],
     bottom: spacing['2xl'],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: colors.accentPrimary,
     borderRadius: radius.pill,
-    paddingHorizontal: spacing['3xl'],
+    paddingHorizontal: 20,
     paddingVertical: spacing.lg,
     shadowColor: colors.accentPrimary,
     shadowOffset: { width: 0, height: 4 },
@@ -481,9 +501,9 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   fabText: {
-    fontSize: fontSizes.md,
+    fontSize: fontSizes['14'],
     fontFamily: fontFamilies.bold,
     color: colors.textInverse,
-    letterSpacing: letterSpacings.button,
+    letterSpacing: letterSpacings.buttonSm,
   },
 });

@@ -54,21 +54,24 @@ function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
 }
 
 function mapApiDashboard(d: ApiRestaurantDashboard): RestaurantDashboard {
+  const todayListings = d.today_listings.map(mapApiDonation);
+  const todayPortions = d.today_portions
+    ?? todayListings.reduce((sum, item) => sum + item.quantityOriginal, 0);
   return {
-    restaurantName: d.restaurant_name,
-    livesImpacted: d.lives_impacted,
+    restaurantName:    d.restaurant_name ?? '',
+    livesImpacted:     d.lives_impacted,
     donationsThisYear: d.donations_this_year,
-    growthPctThisWeek: d.growth_pct_this_week,
-    claimRatePct: d.claim_rate_pct,
-    activeCount: d.active_count,
-    claimedToday: d.claimed_today,
-    thisWeekDonations: d.this_week_donations,
-    thisWeekMeals: d.this_week_meals,
-    thisWeekInactive: d.this_week_inactive,
-    todayPortions: d.today_portions,
-    todayListings: d.today_listings.map(mapApiDonation),
-    yesterdayListings: d.yesterday_listings.map(mapApiDonation),
-    yesterdayFed: d.yesterday_fed,
+    growthPctThisWeek: d.growth_pct_this_week ?? 0,
+    claimRatePct:      d.claim_rate_pct,
+    activeCount:       d.active_count,
+    claimedToday:      d.claimed_today,
+    thisWeekDonations: d.this_week_donations ?? 0,
+    thisWeekMeals:     d.this_week_meals ?? 0,
+    thisWeekInactive:  d.this_week_inactive ?? 0,
+    todayPortions,
+    todayListings,
+    yesterdayListings: (d.yesterday_listings ?? []).map(mapApiDonation),
+    yesterdayFed:      d.yesterday_fed ?? 0,
   };
 }
 
@@ -168,13 +171,15 @@ export const getDonationSummary = async (): Promise<DonationSummary> => {
 };
 
 export const getDashboard = async (): Promise<RestaurantDashboard> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 500));
-  return mapApiDashboard(MOCK_RESTAURANT_DASHBOARD);
-  /* REAL API:
-  const res = await api.get('/restaurant/dashboard/');
-  return mapApiDashboard(res.data.data);
-  */
+  const [dashRes, profileRes] = await Promise.all([
+    api.get('/restaurant/dashboard/'),
+    api.get('/restaurant/profile/'),
+  ]);
+  const d: ApiRestaurantDashboard = {
+    ...dashRes.data.data,
+    restaurant_name: profileRes.data.data.name as string,
+  };
+  return mapApiDashboard(d);
 };
 
 export const getDonations = async (
