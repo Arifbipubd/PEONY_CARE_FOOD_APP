@@ -15,7 +15,6 @@ import {
   MOCK_RESTAURANT_DONATIONS,
   MOCK_DONATION_SUMMARY,
   MOCK_RESTAURANT_PROFILE,
-  MOCK_PUBLIC_RESTAURANTS,
 } from '../mock/restaurantData';
 import { api } from './api';
 
@@ -140,6 +139,22 @@ function mapApiRestaurantDetail(d: ApiRestaurantDetail): PublicRestaurant {
 }
 
 // ─── Service functions ────────────────────────────────────────────────────────
+
+export const getApprovalStatus = async (): Promise<{
+  isApproved: boolean;
+  isVerified: boolean;
+  submittedAt: string;
+  approvedAt: string | null;
+}> => {
+  const res = await api.get('/restaurant/approval-status/');
+  const d = res.data.data;
+  return {
+    isApproved:  d.is_approved,
+    isVerified:  d.is_verified,
+    submittedAt: d.submitted_at,
+    approvedAt:  d.approved_at ?? null,
+  };
+};
 
 export const getDonationSummary = async (): Promise<DonationSummary> => {
   await new Promise((r) => setTimeout(r, 300));

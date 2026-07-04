@@ -46,6 +46,7 @@ async function autoRegister(
       address:         pending.address,
       contact_name:    pending.contactName,
       contact_email:   pending.email,
+      contact_phone:   pending.contactPhone,
     },
     token,
   );
