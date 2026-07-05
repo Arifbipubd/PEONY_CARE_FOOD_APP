@@ -102,8 +102,8 @@ export interface ClaimHistoryItem {
   id: string;
   foodName: string;
   restaurantName: string;
-  photoUrl: string;
-  sponsorDisplayName: string | null;
+  photoUrl?: string;
+  sponsorDisplayName?: string | null;
   status: ClaimHistoryItemStatus;
   claimedAt: string;
   pickupWindow: string;
@@ -124,8 +124,8 @@ export interface ReceiverProfile {
   id: string;
   displayName: string;
   phone: string;
-  email: string;
-  isVerified: boolean;
+  photoUrl: string | null;
+  browseRadiusKm: number;
   memberSince: string;
   daysActive: number;
   totalClaims: number;
@@ -138,15 +138,20 @@ export interface RecentPlace {
   id: string;
   name: string;
   area: string;
-  address: string;
+  placeType: string;
+  latitude: number;
+  longitude: number;
   visitedAt: string;
-  iconColor: string;
 }
 
 export interface LocationSettings {
   searchRadiusKm: number;
+  radiusOptionsKm: number[];
   locationServicesEnabled: boolean;
   saveLocationHistory: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  recentPlacesCount: number;
   recentPlaces: RecentPlace[];
 }
 
@@ -159,14 +164,15 @@ export interface PublicRestaurant {
   postalCode: string;
   latitude: number;
   longitude: number;
-  cuisineType: string;
-  distanceKm: number;
-  closesAt: string;
-  openingHours: string;
-  about: string;
-  photoUrl: string;
+  photoUrl: string | null;
   isVerified: boolean;
-  totalFoodShared: number;
+  distanceKm: number;
+  mealCount: number;
+  cuisineType?: string;
+  closesAt?: string;
+  openingHours?: string;
+  about?: string;
+  totalFoodShared?: number;
 }
 
 // ─── Restaurant-side types ────────────────────────────────────────────────────
@@ -212,6 +218,10 @@ export interface RestaurantDonation {
   foodQrImageUrl: string | null;
   claimsCount: number;
   createdAt: string;
+  sponsorDisplayName?: string | null;
+  sponsorInitials?: string | null;
+  noShowCount?: number;
+  expiredCount?: number;
   claims?: Array<{
     id: string;
     receiverName: string;
@@ -220,13 +230,39 @@ export interface RestaurantDonation {
   }>;
 }
 
+export interface DonationSummary {
+  activeCount: number;
+  pastCount: number;
+  inactiveCount: number;
+  weeklyMeals: number;
+}
+
+export interface CreateDonationPayload {
+  name: string;
+  description: string;
+  category: string;
+  unit: string;
+  quantityOriginal: number;
+  pickupStart: string;
+  pickupEnd: string;
+  photoUrl?: string | null;
+}
+
 export interface RestaurantDashboard {
+  restaurantName: string;
   livesImpacted: number;
   donationsThisYear: number;
+  growthPctThisWeek: number;
   claimRatePct: number;
   activeCount: number;
   claimedToday: number;
+  thisWeekDonations: number;
+  thisWeekMeals: number;
+  thisWeekInactive: number;
+  todayPortions: number;
   todayListings: RestaurantDonation[];
+  yesterdayListings: RestaurantDonation[];
+  yesterdayFed: number;
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

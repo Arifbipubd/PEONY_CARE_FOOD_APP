@@ -4,13 +4,23 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Claim } from '../../types';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../../constants/theme';
+import {
+  colors,
+  spacing,
+  radius,
+  fontSizes,
+  fontWeights,
+  fontFamilies,
+  letterSpacings,
+} from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
@@ -50,20 +60,17 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
 
         {/* Success icon */}
         <View style={styles.successCircle}>
-          <Ionicons name="checkmark" size={44} color={colors.textInverse} />
+          <Ionicons name="checkmark" size={52} color={colors.textInverse} />
         </View>
 
         <Text style={styles.heading}>Meal claimed!</Text>
         <Text style={styles.subheading}>
-          Show this QR at the counter to collect your complementary meal.
+          Show this QR at the counter to collect your meal.
         </Text>
 
         {/* Claim QR card */}
         <View style={styles.qrCard}>
-          {/* QR placeholder */}
-          <View style={styles.qrPlaceholder}>
-            <Ionicons name="qr-code-outline" size={80} color={colors.borderDefault} />
-          </View>
+          <Ionicons name="qr-code" size={160} color={colors.textPrimary} />
           <Text style={styles.claimCodeLabel}>CLAIM CODE</Text>
           <Text style={styles.claimCode}>{claimCode(claim)}</Text>
         </View>
@@ -75,8 +82,8 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
 
           {/* Row 1 — restaurant + food */}
           <View style={styles.detailRow}>
-            <View style={[styles.detailIcon, { backgroundColor: '#FCE4E4' }]}>
-              <Ionicons name="restaurant-outline" size={16} color={colors.accentPrimary} />
+            <View style={[styles.detailIcon, { backgroundColor: colors.avatarBg }]}>
+              <MaterialCommunityIcons name="silverware-fork-knife" size={16} color={colors.accentPrimary} />
             </View>
             <View style={styles.detailText}>
               <Text style={styles.detailPrimary}>{claim.restaurantName}</Text>
@@ -88,8 +95,8 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
 
           {/* Row 2 — address + map link */}
           <View style={styles.detailRow}>
-            <View style={[styles.detailIcon, { backgroundColor: colors.borderDefault }]}>
-              <Ionicons name="location-outline" size={16} color={colors.textMuted} />
+            <View style={[styles.detailIcon, { backgroundColor: colors.surfaceSecondary }]}>
+              <Ionicons name="location" size={16} color={colors.textMuted} />
             </View>
             <View style={styles.detailText}>
               <Text style={styles.detailPrimary}>{claim.pickupAddress}</Text>
@@ -104,8 +111,8 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
 
           {/* Row 3 — time window */}
           <View style={styles.detailRow}>
-            <View style={[styles.detailIcon, { backgroundColor: '#FEF9E7' }]}>
-              <Ionicons name="time-outline" size={16} color={colors.warningYellow} />
+            <View style={[styles.detailIcon, { backgroundColor: colors.goldLight }]}>
+              <Ionicons name="time" size={16} color={colors.warningYellow} />
             </View>
             <View style={styles.detailText}>
               <Text style={styles.detailPrimary}>Today, {claim.pickupWindow}</Text>
@@ -131,6 +138,7 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
       {/* Action buttons */}
       <View style={styles.actions}>
         <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={goHome}>
+          <Ionicons name="home" size={18} color={colors.textInverse} style={styles.btnIcon} />
           <Text style={styles.primaryBtnText}>Back to browse</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -138,6 +146,7 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
           activeOpacity={0.7}
           onPress={() => navigation.getParent()?.navigate('History')}
         >
+          <MaterialCommunityIcons name="history" size={18} color={colors.textPrimary} style={styles.btnIcon} />
           <Text style={styles.secondaryBtnText}>View in history</Text>
         </TouchableOpacity>
       </View>
@@ -155,8 +164,6 @@ const styles = StyleSheet.create({
     zIndex: 10,
     width: 36,
     height: 36,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -169,26 +176,29 @@ const styles = StyleSheet.create({
   },
 
   successCircle: {
-    width: 88,
-    height: 88,
+    width: 124,
+    height: 124,
     borderRadius: radius.pill,
     backgroundColor: colors.successGreen,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing['2xl'],
   },
 
   heading: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   subheading: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
     color: colors.textMuted,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 21,
+    paddingHorizontal: spacing.md,
     marginBottom: spacing['2xl'],
   },
 
@@ -199,36 +209,31 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     alignItems: 'center',
     paddingVertical: spacing['2xl'],
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing['2xl'],
     marginBottom: spacing['2xl'],
-    gap: spacing.sm,
-  },
-  qrPlaceholder: {
-    width: 160,
-    height: 160,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surfaceSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
+    gap: spacing.xs,
   },
   claimCodeLabel: {
+    fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes.xs,
     color: colors.textMuted,
-    fontWeight: fontWeights.semiBold,
     letterSpacing: 1,
+    marginTop: spacing.md,
   },
   claimCode: {
-    fontSize: fontSizes.xl,
+    fontFamily: Platform.select({ ios: 'Courier New', android: 'monospace' }),
+    fontSize: fontSizes.lg,
     fontWeight: fontWeights.bold,
     color: colors.textPrimary,
-    letterSpacing: 2,
+    letterSpacing: 1.02,
+    marginTop: spacing.xs,
   },
 
   sectionLabel: {
     alignSelf: 'flex-start',
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
+    letterSpacing: -0.425,
     color: colors.textPrimary,
     marginBottom: spacing.md,
   },
@@ -248,70 +253,83 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   detailIcon: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  detailText: { flex: 1, gap: spacing.xs },
+  detailText: { flex: 1 },
   detailPrimary: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semiBold,
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['14'],
+    letterSpacing: -0.21,
     color: colors.textPrimary,
+    marginBottom: 2,
   },
   detailSecondary: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
     color: colors.textMuted,
   },
   mapLink: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semiBold,
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['14'],
     color: colors.accentPrimary,
   },
-  divider: { height: 1, backgroundColor: colors.borderDefault, marginLeft: 56 + spacing.lg },
+  divider: { height: 1, backgroundColor: colors.borderDefault },
 
   limitBox: {
     width: '100%',
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: radius.sm,
-    padding: spacing.md,
+    backgroundColor: colors.surfaceTertiary,
+    borderRadius: radius.input,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     marginBottom: spacing.lg,
   },
   limitText: {
+    fontFamily: fontFamilies.regular,
     fontSize: fontSizes.sm,
-    color: colors.textMuted,
+    color: colors.textPrimary,
     lineHeight: 20,
-    textAlign: 'center',
   },
 
   actions: {
     paddingHorizontal: spacing['2xl'],
     paddingBottom: spacing.lg,
-    gap: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderDefault,
-    paddingTop: spacing.md,
+    paddingTop: spacing['3xl'],
+    gap: spacing.md,
   },
   primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.accentPrimary,
     borderRadius: radius.card,
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-  },
-  primaryBtnText: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
-    color: colors.textInverse,
+    height: 54,
+    gap: spacing.sm,
   },
   secondaryBtn: {
-    borderRadius: radius.card,
-    paddingVertical: spacing.lg,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.card,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    height: 54,
+    gap: spacing.sm,
+  },
+  btnIcon: {},
+  primaryBtnText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.md,
+    letterSpacing: letterSpacings.button,
+    color: colors.textInverse,
   },
   secondaryBtnText: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
+    letterSpacing: letterSpacings.button,
     color: colors.textPrimary,
   },
 });

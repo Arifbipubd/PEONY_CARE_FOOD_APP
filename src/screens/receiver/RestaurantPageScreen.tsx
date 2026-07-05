@@ -6,14 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { getFoodByRestaurant } from '../../services/receiver';
-import { getPublicRestaurant } from '../../services/restaurant';
+import { getPublicRestaurantDetail } from '../../services/restaurant';
 import { PublicRestaurant, FoodItem } from '../../types';
 import { colors, spacing, radius, fontSizes, fontWeights, layout } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
@@ -45,6 +44,73 @@ function sponsorLine(item: FoodItem): string {
   return 'Direct from restaurant';
 }
 
+function RestaurantSkeleton() {
+  const opacity = usePulse();
+  return (
+    <View style={styles.screen}>
+      <ScrollView showsVerticalScrollIndicator={false} scrollEnabled={false}>
+        <SkeletonBox opacity={opacity} height={260} borderRadius={0} />
+        <View style={rSkelStyles.content}>
+          <View style={rSkelStyles.nameRow}>
+            <SkeletonBox opacity={opacity} height={22} style={rSkelStyles.nameFlex} />
+            <SkeletonBox opacity={opacity} width={64} height={26} borderRadius={10} />
+          </View>
+          <SkeletonBox opacity={opacity} width={120} height={26} borderRadius={22} />
+          <View style={rSkelStyles.metaRow}>
+            <SkeletonBox opacity={opacity} width={80} height={14} />
+            <SkeletonBox opacity={opacity} width={100} height={14} />
+          </View>
+          <View style={rSkelStyles.divider} />
+          {[0, 1].map((i) => (
+            <View key={i} style={rSkelStyles.foodRow}>
+              <SkeletonBox opacity={opacity} width={72} height={72} borderRadius={12} />
+              <View style={rSkelStyles.foodRowText}>
+                <SkeletonBox opacity={opacity} width={140} height={15} />
+                <SkeletonBox opacity={opacity} width={100} height={13} style={rSkelStyles.foodRowSub} />
+                <SkeletonBox opacity={opacity} width={60} height={22} borderRadius={10} style={rSkelStyles.foodRowSub} />
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const rSkelStyles = StyleSheet.create({
+  content: {
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing.lg,
+    gap: spacing.md,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  nameFlex: { flex: 1 },
+  metaRow: {
+    flexDirection: 'row',
+    gap: spacing['2xl'],
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.borderDefault,
+    marginVertical: spacing.sm,
+  },
+  foodRow: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+    alignItems: 'flex-start',
+    paddingVertical: spacing.md,
+  },
+  foodRowText: {
+    flex: 1,
+    gap: 6,
+  },
+  foodRowSub: { marginTop: 2 },
+});
+
 export default function RestaurantPageScreen({ navigation, route }: Props) {
   const { restaurantId, distanceKm } = route.params;
   const insets = useSafeAreaInsets();
@@ -54,22 +120,15 @@ export default function RestaurantPageScreen({ navigation, route }: Props) {
   const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      getPublicRestaurant(restaurantId),
-      getFoodByRestaurant(restaurantId),
-    ]).then(([rest, items]) => {
-      setRestaurant(rest);
-      setFoods(items);
+    getPublicRestaurantDetail(restaurantId).then(({ restaurant, foods }) => {
+      setRestaurant(restaurant);
+      setFoods(foods);
       setLoading(false);
     });
   }, [restaurantId]);
 
   if (loading) {
-    return (
-      <View style={styles.loaderWrap}>
-        <ActivityIndicator color={colors.accentPrimary} />
-      </View>
-    );
+    return <RestaurantSkeleton />;
   }
 
   if (!restaurant) return null;
@@ -83,7 +142,7 @@ export default function RestaurantPageScreen({ navigation, route }: Props) {
         {/* Hero image + back button */}
         <View>
           <Image
-            source={{ uri: restaurant.photoUrl }}
+            source={{ uri: restaurant.photoUrl ?? undefined }}
             style={styles.image}
             resizeMode="cover"
           />
@@ -130,7 +189,7 @@ export default function RestaurantPageScreen({ navigation, route }: Props) {
               </View>
             )}
 
-            {restaurant.openingHours.length > 0 && (
+            {(restaurant.openingHours?.length ?? 0) > 0 && (
               <View style={styles.infoRow}>
                 <Ionicons name="time-outline" size={15} color={colors.textMuted} />
                 <Text style={styles.infoText}>{restaurant.openingHours}</Text>
@@ -206,7 +265,6 @@ export default function RestaurantPageScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   screen:     { flex: 1, backgroundColor: colors.surface },
-  loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   image: {
     width: '100%',
