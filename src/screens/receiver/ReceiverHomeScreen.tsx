@@ -596,7 +596,6 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
   },
   tabLabelActive: {
