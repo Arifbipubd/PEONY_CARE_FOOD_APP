@@ -191,12 +191,34 @@ export interface ApiRestaurantDonation {
   food_qr_image_url: string | null;
   claims_count: number;
   created_at: string;
+  sponsor_display_name?: string | null;
+  sponsor_initials?: string | null;
+  no_show_count?: number;
+  expired_count?: number;
   claims?: Array<{
     id: string;
     receiver_name: string;
     claimed_at: string;
     status: string;
   }>;
+}
+
+export interface ApiDonationSummary {
+  active_count: number;
+  past_count: number;
+  inactive_count: number;
+  weekly_meals: number;
+}
+
+export interface ApiCreateDonationPayload {
+  name: string;
+  description: string;
+  category: string;
+  unit: string;
+  quantity_original: number;
+  pickup_start: string;
+  pickup_end: string;
+  photo_url?: string | null;
 }
 
 export interface ApiRestaurantDashboard {
@@ -206,6 +228,15 @@ export interface ApiRestaurantDashboard {
   active_count: number;
   claimed_today: number;
   today_listings: ApiRestaurantDonation[];
+  // Fields not yet returned by the backend — optional with safe defaults
+  restaurant_name?: string;
+  growth_pct_this_week?: number;
+  this_week_donations?: number;
+  this_week_meals?: number;
+  this_week_inactive?: number;
+  today_portions?: number;
+  yesterday_listings?: ApiRestaurantDonation[];
+  yesterday_fed?: number;
 }
 
 export interface ApiNotification {

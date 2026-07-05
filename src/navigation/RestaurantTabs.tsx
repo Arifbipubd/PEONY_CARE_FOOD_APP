@@ -1,38 +1,66 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import RestaurantDashboardScreen from '../screens/restaurant/RestaurantDashboardScreen';
 import DonationListScreen        from '../screens/restaurant/DonationListScreen';
 import DonationDetailScreen      from '../screens/restaurant/DonationDetailScreen';
 import PostDonationScreen        from '../screens/restaurant/PostDonationScreen';
+import PostDonationSuccessScreen from '../screens/restaurant/PostDonationSuccessScreen';
 import TodaysClaimsScreen        from '../screens/restaurant/TodaysClaimsScreen';
 import NotificationsScreen       from '../screens/shared/NotificationsScreen';
 import RestaurantProfileScreen   from '../screens/restaurant/RestaurantProfileScreen';
 import { colors, fontSizes }     from '../constants/theme';
+import { useNotificationStore }  from '../store/notificationStore';
 
-const Tab         = createBottomTabNavigator();
-const ManageStack = createNativeStackNavigator();
+export type RestaurantTabParamList = {
+  Home:       undefined;
+  Donations:  undefined;
+  Alerts:     undefined;
+  Profile:    undefined;
+};
 
-function ManageNavigator() {
+export type DonationsStackParamList = {
+  DonationList:          undefined;
+  DonationDetail:        { donationId: string };
+  PostDonation:          undefined;
+  PostDonationSuccess:   {
+    foodName:     string;
+    quantity:     number;
+    unit:         string;
+    category:     string;
+    pickupWindow: string;
+    donationId:   string;
+  };
+  TodaysClaims:          undefined;
+};
+
+const Tab            = createBottomTabNavigator<RestaurantTabParamList>();
+const DonationsStack = createNativeStackNavigator<DonationsStackParamList>();
+
+function DonationsNavigator() {
   return (
-    <ManageStack.Navigator screenOptions={{ headerShown: false }}>
-      <ManageStack.Screen name="DonationList"   component={DonationListScreen} />
-      <ManageStack.Screen name="DonationDetail" component={DonationDetailScreen} />
-      <ManageStack.Screen name="PostDonation"   component={PostDonationScreen} />
-    </ManageStack.Navigator>
+    <DonationsStack.Navigator screenOptions={{ headerShown: false }}>
+      <DonationsStack.Screen name="DonationList"   component={DonationListScreen} />
+      <DonationsStack.Screen name="DonationDetail" component={DonationDetailScreen} />
+      <DonationsStack.Screen name="PostDonation"        component={PostDonationScreen} />
+      <DonationsStack.Screen name="PostDonationSuccess" component={PostDonationSuccessScreen} />
+      <DonationsStack.Screen name="TodaysClaims"        component={TodaysClaimsScreen} />
+    </DonationsStack.Navigator>
   );
 }
 
 const TAB_ICONS = {
-  Home:    { active: 'home'          as const, inactive: 'home-outline'          as const },
-  Manage:  { active: 'restaurant'   as const, inactive: 'restaurant-outline'    as const },
-  Claims:  { active: 'receipt'      as const, inactive: 'receipt-outline'       as const },
-  Alerts:  { active: 'notifications' as const, inactive: 'notifications-outline' as const },
-  Profile: { active: 'person-circle' as const, inactive: 'person-circle-outline' as const },
+  Home:      { active: 'home'              as const, inactive: 'home-outline'           as const },
+  Donations: { active: 'receipt'           as const, inactive: 'receipt-outline'        as const },
+  Alerts:    { active: 'notifications'     as const, inactive: 'notifications-outline'  as const },
+  Profile:   { active: 'person'            as const, inactive: 'person-outline'         as const },
 };
 
 export default function RestaurantTabs() {
+  const { unreadCount } = useNotificationStore();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -48,10 +76,28 @@ export default function RestaurantTabs() {
         },
       })}
     >
-      <Tab.Screen name="Home"    component={RestaurantDashboardScreen} />
-      <Tab.Screen name="Manage"  component={ManageNavigator} />
-      <Tab.Screen name="Claims"  component={TodaysClaimsScreen} />
-      <Tab.Screen name="Alerts"  component={NotificationsScreen} />
+      <Tab.Screen name="Home"      component={RestaurantDashboardScreen} />
+      <Tab.Screen
+        name="Donations"
+        component={DonationsNavigator}
+        options={({ route }) => {
+          const focused = getFocusedRouteNameFromRoute(route);
+          const hideTabBar = focused === 'PostDonation' || focused === 'PostDonationSuccess';
+          return {
+            tabBarStyle: hideTabBar
+              ? { display: 'none' }
+              : { borderTopColor: colors.borderDefault },
+          };
+        }}
+      />
+      <Tab.Screen
+        name="Alerts"
+        component={NotificationsScreen}
+        options={{
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.accentPrimary, fontSize: fontSizes.xs },
+        }}
+      />
       <Tab.Screen name="Profile" component={RestaurantProfileScreen} />
     </Tab.Navigator>
   );
