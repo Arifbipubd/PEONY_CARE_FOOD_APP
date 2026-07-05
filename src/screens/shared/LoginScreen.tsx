@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import Button from '../../components/Button';
 import Input from '../../components/Input';
 import LogoBadge from '../../components/LogoBadge';
 import { sendOtp } from '../../services/auth';
+import { ApiError } from '../../services/api';
 import { colors, spacing, fontSizes, fontWeights } from '../../constants/theme';
 import SgFlag from '../../components/SgFlag';
 
@@ -26,11 +27,28 @@ export default function LoginScreen({ navigation }: Props) {
   const [phone, setPhone]     = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
+  const [rateLimitSecs, setRateLimitSecs] = useState(0);
+
+  useEffect(() => {
+    if (rateLimitSecs <= 0) return;
+    const t = setTimeout(() => {
+      setRateLimitSecs((s) => {
+        const next = s - 1;
+        if (next <= 0) setError('');
+        return next;
+      });
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [rateLimitSecs]);
 
   const cleaned = phone.trim().replace(/\s/g, '');
+  const isValidSgPhone = /^[689]\d{7}$/.test(cleaned);
+  const phoneError =
+    cleaned.length > 0 && !/^[689]/.test(cleaned) ? 'Must start with 6, 8 or 9' :
+    cleaned.length > 8                             ? 'Must be exactly 8 digits'  : '';
 
   async function handleSend() {
-    if (cleaned.length < 8) { setError('Enter a valid phone number'); return; }
+    if (!isValidSgPhone) { setError('Enter a valid Singapore number'); return; }
     setError('');
     setLoading(true);
     try {
@@ -38,7 +56,13 @@ export default function LoginScreen({ navigation }: Props) {
       await sendOtp(fullPhone, 'LOGIN');
       navigation.navigate('Otp', { phone: fullPhone, purpose: 'LOGIN' });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to send code. Try again.');
+      if (err instanceof ApiError && err.code === 'OTP_RATE_LIMITED') {
+        const secs = (err.details?.retry_after_seconds as number) ?? 60;
+        setRateLimitSecs(secs);
+        setError(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to send code. Try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -67,7 +91,7 @@ export default function LoginScreen({ navigation }: Props) {
             onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
             placeholder="91234567"
             keyboardType="number-pad"
-            error={error}
+            error={phoneError || (rateLimitSecs > 0 && error ? `${error} Retry in ${rateLimitSecs}s.` : error)}
             leftSection={
               <>
                 <SgFlag size={24} />
@@ -80,7 +104,7 @@ export default function LoginScreen({ navigation }: Props) {
             label="Send code"
             onPress={handleSend}
             loading={loading}
-            disabled={cleaned.length < 8}
+            disabled={!isValidSgPhone}
             style={styles.btn}
             rightIcon={<Ionicons name="arrow-forward" size={20} color={colors.textInverse} />}
           />

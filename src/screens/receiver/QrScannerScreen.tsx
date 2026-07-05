@@ -12,6 +12,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { claimFood } from '../../services/receiver';
+import { ApiError } from '../../services/api';
+import { useLocation } from '../../hooks/useLocation';
 import { colors, spacing, radius, fontSizes, fontWeights } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
@@ -25,6 +27,7 @@ const CORNER_WIDTH   = 3;
 
 export default function QrScannerScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { lat, lng } = useLocation();
   const [permission, requestPermission] = useCameraPermissions();
   const [torch,   setTorch]   = useState(false);
   const [scanned, setScanned] = useState(false);
@@ -54,11 +57,29 @@ export default function QrScannerScreen({ navigation }: Props) {
   const handleScan = async (qrPayload: string) => {
     if (scanned) return;
     setScanned(true);
+
+    const foodId = qrPayload.split('|')[0] ?? '';
+    if (!foodId || lat === null || lng === null) {
+      navigation.navigate('ScanError');
+      return;
+    }
+
     try {
-      const claim = await claimFood('', qrPayload);
+      const claim = await claimFood(foodId, qrPayload, lat, lng);
       navigation.navigate('ClaimSuccess', { claim });
-    } catch {
-      setScanned(false);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.code === 'DAILY_LIMIT_REACHED') {
+          const resetsAt = (err.details?.resets_at as string) ?? '';
+          navigation.navigate('DailyLimit', { resetsAt });
+        } else if (err.code === 'FOOD_UNAVAILABLE' || err.code === 'RACE_CONDITION') {
+          navigation.navigate('FoodUnavailable');
+        } else {
+          navigation.navigate('ScanError');
+        }
+      } else {
+        setScanned(false);
+      }
     }
   };
 
