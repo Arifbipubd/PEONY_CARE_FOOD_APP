@@ -170,10 +170,10 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
   const { photoUrl } = useProfileStore();
 
   useEffect(() => {
-    getReceiverProfile().then((p) => {
-      setProfile(p);
-      setLoading(false);
-    });
+    getReceiverProfile()
+      .then((p) => { setProfile(p); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   async function handleLogout() {

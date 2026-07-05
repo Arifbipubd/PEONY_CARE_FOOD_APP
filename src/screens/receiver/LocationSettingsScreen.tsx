@@ -125,14 +125,16 @@ export default function LocationSettingsScreen({ navigation }: Props) {
   const [recentPlaces, setRecentPlaces] = useState<RecentPlace[]>([]);
 
   useEffect(() => {
-    getLocationSettings().then((s) => {
-      setSettings(s);
-      setRadius(s.searchRadiusKm);
-      setLocationSvc(s.locationServicesEnabled);
-      setSaveHistory(s.saveLocationHistory);
-      setRecentPlaces(s.recentPlaces);
-      setLoading(false);
-    });
+    getLocationSettings()
+      .then((s) => {
+        setSettings(s);
+        setRadius(s.searchRadiusKm);
+        setLocationSvc(s.locationServicesEnabled);
+        setSaveHistory(s.saveLocationHistory);
+        setRecentPlaces(s.recentPlaces);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) {

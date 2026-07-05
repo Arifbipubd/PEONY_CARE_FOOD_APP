@@ -120,11 +120,10 @@ export default function RestaurantPageScreen({ navigation, route }: Props) {
   const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
-    getPublicRestaurantDetail(restaurantId).then(({ restaurant, foods }) => {
-      setRestaurant(restaurant);
-      setFoods(foods);
-      setLoading(false);
-    });
+    getPublicRestaurantDetail(restaurantId)
+      .then(({ restaurant, foods }) => { setRestaurant(restaurant); setFoods(foods); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [restaurantId]);
 
   if (loading) {

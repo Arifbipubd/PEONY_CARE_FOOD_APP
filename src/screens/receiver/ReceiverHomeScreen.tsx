@@ -245,18 +245,18 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchData = useCallback(() => {
-    Promise.all([
+    Promise.allSettled([
       browseFood(lat ?? undefined, lng ?? undefined),
       getDailyLimit(),
       getNearbyRestaurants(lat ?? undefined, lng ?? undefined),
       getReceiverProfile(),
       getNotifications(),
     ]).then(([items, limit, rests, profile, notifications]) => {
-      setFoods(items);
-      setDailyLimit(limit);
-      setRestaurants(rests);
-      setProfile({ displayName: profile.displayName });
-      setNotifications(notifications);
+      if (items.status === 'fulfilled')         setFoods(items.value);
+      if (limit.status === 'fulfilled')         setDailyLimit(limit.value);
+      if (rests.status === 'fulfilled')         setRestaurants(rests.value);
+      if (profile.status === 'fulfilled')       setProfile({ displayName: profile.value.displayName });
+      if (notifications.status === 'fulfilled') setNotifications(notifications.value);
       setLoading(false);
     });
   }, [lat, lng, setProfile, setNotifications]);

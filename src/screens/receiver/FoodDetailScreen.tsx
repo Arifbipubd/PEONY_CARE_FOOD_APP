@@ -95,9 +95,9 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
   const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
-    Promise.all([getFoodDetail(foodId), getDailyLimit()]).then(([item, limit]) => {
-      setFood(item);
-      setDailyLimit(limit);
+    Promise.allSettled([getFoodDetail(foodId), getDailyLimit()]).then(([item, limit]) => {
+      if (item.status === 'fulfilled')  setFood(item.value);
+      if (limit.status === 'fulfilled') setDailyLimit(limit.value);
       setLoading(false);
     });
   }, [foodId]);
