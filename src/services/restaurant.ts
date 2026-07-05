@@ -205,7 +205,7 @@ export const createDonation = async (payload: CreateDonationPayload): Promise<Re
     description:       payload.description,
     category:          payload.category,
     unit:              payload.unit,
-    quantity_original: payload.quantityOriginal,
+    quantity:          payload.quantityOriginal,
     pickup_start:      payload.pickupStart,
     pickup_end:        payload.pickupEnd,
     photo_url:         payload.photoUrl ?? null,
