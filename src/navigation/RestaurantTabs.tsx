@@ -7,6 +7,7 @@ import RestaurantDashboardScreen from '../screens/restaurant/RestaurantDashboard
 import DonationListScreen        from '../screens/restaurant/DonationListScreen';
 import DonationDetailScreen      from '../screens/restaurant/DonationDetailScreen';
 import PostDonationScreen        from '../screens/restaurant/PostDonationScreen';
+import PostDonationSuccessScreen from '../screens/restaurant/PostDonationSuccessScreen';
 import TodaysClaimsScreen        from '../screens/restaurant/TodaysClaimsScreen';
 import NotificationsScreen       from '../screens/shared/NotificationsScreen';
 import RestaurantProfileScreen   from '../screens/restaurant/RestaurantProfileScreen';
@@ -21,10 +22,18 @@ export type RestaurantTabParamList = {
 };
 
 export type DonationsStackParamList = {
-  DonationList:   undefined;
-  DonationDetail: { donationId: string };
-  PostDonation:   undefined;
-  TodaysClaims:   undefined;
+  DonationList:          undefined;
+  DonationDetail:        { donationId: string };
+  PostDonation:          undefined;
+  PostDonationSuccess:   {
+    foodName:     string;
+    quantity:     number;
+    unit:         string;
+    category:     string;
+    pickupWindow: string;
+    donationId:   string;
+  };
+  TodaysClaims:          undefined;
 };
 
 const Tab            = createBottomTabNavigator<RestaurantTabParamList>();
@@ -35,8 +44,9 @@ function DonationsNavigator() {
     <DonationsStack.Navigator screenOptions={{ headerShown: false }}>
       <DonationsStack.Screen name="DonationList"   component={DonationListScreen} />
       <DonationsStack.Screen name="DonationDetail" component={DonationDetailScreen} />
-      <DonationsStack.Screen name="PostDonation"   component={PostDonationScreen} />
-      <DonationsStack.Screen name="TodaysClaims"   component={TodaysClaimsScreen} />
+      <DonationsStack.Screen name="PostDonation"        component={PostDonationScreen} />
+      <DonationsStack.Screen name="PostDonationSuccess" component={PostDonationSuccessScreen} />
+      <DonationsStack.Screen name="TodaysClaims"        component={TodaysClaimsScreen} />
     </DonationsStack.Navigator>
   );
 }
@@ -70,11 +80,15 @@ export default function RestaurantTabs() {
       <Tab.Screen
         name="Donations"
         component={DonationsNavigator}
-        options={({ route }) => ({
-          tabBarStyle: getFocusedRouteNameFromRoute(route) === 'PostDonation'
-            ? { display: 'none' }
-            : { borderTopColor: colors.borderDefault },
-        })}
+        options={({ route }) => {
+          const focused = getFocusedRouteNameFromRoute(route);
+          const hideTabBar = focused === 'PostDonation' || focused === 'PostDonationSuccess';
+          return {
+            tabBarStyle: hideTabBar
+              ? { display: 'none' }
+              : { borderTopColor: colors.borderDefault },
+          };
+        }}
       />
       <Tab.Screen
         name="Alerts"
