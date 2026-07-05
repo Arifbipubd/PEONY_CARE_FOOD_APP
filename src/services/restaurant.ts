@@ -2,10 +2,11 @@
 
 import {
   RestaurantDashboard, RestaurantDonation, RestaurantProfile, PublicRestaurant, FoodItem,
+  DonationSummary, CreateDonationPayload,
 } from '../types';
 import {
   ApiRestaurantDonation, ApiRestaurantDashboard, ApiPublicRestaurant,
-  ApiRestaurantDetail, ApiRestaurantMealSummary,
+  ApiRestaurantDetail, ApiRestaurantMealSummary, ApiDonationSummary,
 } from '../types/api';
 import {
   MOCK_RESTAURANT_DASHBOARD,
