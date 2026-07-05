@@ -79,9 +79,11 @@ export default function PostDonationScreen({ navigation }: Props) {
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [timeTarget,    setTimeTarget]    = useState<'from' | 'until'>('from');
 
-  const [showQrModal,  setShowQrModal]  = useState(false);
-  const [qrData,       setQrData]       = useState('');
-  const [postedName,   setPostedName]   = useState('');
+  const [showQrModal,       setShowQrModal]       = useState(false);
+  const [qrData,            setQrData]            = useState('');
+  const [postedName,        setPostedName]        = useState('');
+  const [postedId,          setPostedId]          = useState('');
+  const [postedPickupWindow, setPostedPickupWindow] = useState('');
 
   const unit = UNITS[unitIndex]!;
 
@@ -143,6 +145,8 @@ export default function PostDonationScreen({ navigation }: Props) {
       });
       setQrData(result.foodQrData);
       setPostedName(result.name);
+      setPostedId(result.id);
+      setPostedPickupWindow(result.pickupWindow);
       setShowQrModal(true);
     } catch (err) {
       const msg = err instanceof ApiError
@@ -335,7 +339,7 @@ export default function PostDonationScreen({ navigation }: Props) {
         visible={showQrModal}
         transparent
         animationType="slide"
-        onRequestClose={() => { setShowQrModal(false); navigation.goBack(); }}
+        onRequestClose={() => setShowQrModal(false)}
       >
         <View style={styles.overlay}>
           <View style={styles.qrSheet}>
@@ -350,7 +354,17 @@ export default function PostDonationScreen({ navigation }: Props) {
             <Text style={styles.qrHint}>Receivers scan this to claim the meal</Text>
             <TouchableOpacity
               style={styles.doneBtn}
-              onPress={() => { setShowQrModal(false); navigation.goBack(); }}
+              onPress={() => {
+                setShowQrModal(false);
+                navigation.navigate('PostDonationSuccess', {
+                  foodName:     name.trim(),
+                  quantity:     Number(quantity),
+                  unit,
+                  category,
+                  pickupWindow: postedPickupWindow,
+                  donationId:   postedId,
+                });
+              }}
               activeOpacity={0.85}
             >
               <Text style={styles.doneBtnText}>Done</Text>
