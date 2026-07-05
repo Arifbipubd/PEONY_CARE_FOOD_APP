@@ -11,11 +11,13 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createDonation } from '../../services/restaurant';
+import { ApiError } from '../../services/api';
 import { FoodCategory } from '../../types';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, layout,
@@ -77,6 +79,10 @@ export default function PostDonationScreen({ navigation }: Props) {
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [timeTarget,    setTimeTarget]    = useState<'from' | 'until'>('from');
 
+  const [showQrModal,  setShowQrModal]  = useState(false);
+  const [qrData,       setQrData]       = useState('');
+  const [postedName,   setPostedName]   = useState('');
+
   const unit = UNITS[unitIndex]!;
 
   const bc = (field: string) =>
@@ -125,7 +131,7 @@ export default function PostDonationScreen({ navigation }: Props) {
     }
     setSubmitting(true);
     try {
-      await createDonation({
+      const result = await createDonation({
         name:             name.trim(),
         description:      notes.trim(),
         category,
@@ -133,11 +139,16 @@ export default function PostDonationScreen({ navigation }: Props) {
         quantityOriginal: Number(quantity),
         pickupStart:      buildIsoTime(pickupFrom),
         pickupEnd:        buildIsoTime(pickupUntil),
-        photoUrl:         photoUri,
+        photoUrl:         'https://placehold.co/400x300.jpg',
       });
-      navigation.goBack();
-    } catch {
-      Alert.alert('Error', 'Failed to post donation. Please try again.');
+      setQrData(result.foodQrData);
+      setPostedName(result.name);
+      setShowQrModal(true);
+    } catch (err) {
+      const msg = err instanceof ApiError
+        ? `${err.code}: ${err.message}\n${JSON.stringify(err.details ?? {})}`
+        : String(err);
+      Alert.alert('Error', msg);
     } finally {
       setSubmitting(false);
     }
@@ -318,6 +329,35 @@ export default function PostDonationScreen({ navigation }: Props) {
           )}
         </TouchableOpacity>
       </ScrollView>
+
+      {/* ── QR success modal ─────────────────────────────────────────────── */}
+      <Modal
+        visible={showQrModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => { setShowQrModal(false); navigation.goBack(); }}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.qrSheet}>
+            <Ionicons name="checkmark-circle" size={36} color={colors.successGreen} />
+            <Text style={styles.qrTitle}>Donation posted!</Text>
+            <Text style={styles.qrSub}>{postedName}</Text>
+            <View style={styles.qrBox}>
+              {qrData ? (
+                <QRCode value={qrData} size={200} />
+              ) : null}
+            </View>
+            <Text style={styles.qrHint}>Receivers scan this to claim the meal</Text>
+            <TouchableOpacity
+              style={styles.doneBtn}
+              onPress={() => { setShowQrModal(false); navigation.goBack(); }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.doneBtnText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── Unit picker modal ─────────────────────────────────────────────── */}
       <Modal
@@ -628,5 +668,59 @@ const styles = StyleSheet.create({
   },
   timeList: {
     maxHeight: 300,
+  },
+  qrSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
+    paddingHorizontal: 28,
+    paddingTop: spacing['2xl'],
+    paddingBottom: spacing['4xl'],
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  qrTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['2xl'],
+    color: colors.textPrimary,
+    marginTop: spacing.sm,
+  },
+  qrSub: {
+    fontFamily: fontFamilies.medium,
+    fontSize: fontSizes.md,
+    color: colors.textMuted,
+  },
+  qrBox: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    padding: spacing.xl,
+    borderRadius: radius.card,
+    backgroundColor: colors.surface,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  qrHint: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes.sm,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  doneBtn: {
+    marginTop: spacing.lg,
+    width: '100%',
+    height: layout.buttonHeight,
+    borderRadius: radius.card,
+    backgroundColor: colors.accentPrimary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  doneBtnText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.md,
+    color: colors.textInverse,
+    letterSpacing: letterSpacings.button,
   },
 });
