@@ -29,8 +29,8 @@ export interface ApiFoodItem {
   restaurant: ApiRestaurantRef;
   sponsorship_type: string;
   sponsor_display_name: string | null;
-  is_halal: boolean;
-  is_vegetarian: boolean;
+  is_halal?: boolean;
+  is_vegetarian?: boolean;
 }
 
 export interface ApiClaimProgress {
@@ -68,8 +68,8 @@ export interface ApiClaimHistoryItem {
   id: string;
   food_name: string;
   restaurant_name: string;
-  photo_url: string;
-  sponsor_display_name: string | null;
+  photo_url?: string;
+  sponsor_display_name?: string | null;
   status: string;
   claimed_at: string;
   pickup_window: string;
@@ -102,17 +102,22 @@ export interface ApiReceiverProfile {
 
 export interface ApiRecentPlace {
   id: string;
-  name: string;
-  area: string;
-  address: string;
+  place_name: string;
+  area_label: string;
+  place_type: string;
+  latitude: number;
+  longitude: number;
   visited_at: string;
-  icon_color: string;
 }
 
 export interface ApiLocationSettings {
-  search_radius_km: number;
+  browse_radius_km: number;
+  radius_options_km: number[];
   location_services_enabled: boolean;
   save_location_history: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  recent_places_count: number;
   recent_places: ApiRecentPlace[];
 }
 
@@ -123,14 +128,48 @@ export interface ApiPublicRestaurant {
   postal_code: string;
   latitude: number;
   longitude: number;
-  cuisine_type: string;
-  distance_km: number;
-  closes_at: string;
-  opening_hours: string;
-  about: string;
-  photo_url: string;
+  photo_url: string | null;
   is_verified: boolean;
-  total_food_shared: number;
+  distance_km: number;
+  active_meal_count?: number;
+  cuisine_type?: string;
+  closes_at?: string;
+  opening_hours?: string;
+  about?: string;
+  total_food_shared?: number;
+  meal_count?: number;
+}
+
+export interface ApiRestaurantMealSummary {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  photo_url: string | null;
+  quantity_available: number;
+  pickup_start: string;
+  pickup_end: string;
+  pickup_window: string;
+  sponsorship_type: string;
+  sponsor_display_name: string | null;
+}
+
+export interface ApiRestaurantDetail {
+  id: string;
+  name: string;
+  address: string;
+  postal_code: string;
+  latitude: number;
+  longitude: number;
+  photo_url: string | null;
+  about: string;
+  opening_hours: string;
+  contact_phone: string;
+  is_verified: boolean;
+  distance_km: number;
+  active_meal_count: number;
+  categories: string[];
+  available_meals: ApiRestaurantMealSummary[];
 }
 
 export interface ApiRestaurantDonation {
@@ -152,12 +191,34 @@ export interface ApiRestaurantDonation {
   food_qr_image_url: string | null;
   claims_count: number;
   created_at: string;
+  sponsor_display_name?: string | null;
+  sponsor_initials?: string | null;
+  no_show_count?: number;
+  expired_count?: number;
   claims?: Array<{
     id: string;
     receiver_name: string;
     claimed_at: string;
     status: string;
   }>;
+}
+
+export interface ApiDonationSummary {
+  active_count: number;
+  past_count: number;
+  inactive_count: number;
+  weekly_meals: number;
+}
+
+export interface ApiCreateDonationPayload {
+  name: string;
+  description: string;
+  category: string;
+  unit: string;
+  quantity_original: number;
+  pickup_start: string;
+  pickup_end: string;
+  photo_url?: string | null;
 }
 
 export interface ApiRestaurantDashboard {
@@ -167,6 +228,15 @@ export interface ApiRestaurantDashboard {
   active_count: number;
   claimed_today: number;
   today_listings: ApiRestaurantDonation[];
+  // Fields not yet returned by the backend — optional with safe defaults
+  restaurant_name?: string;
+  growth_pct_this_week?: number;
+  this_week_donations?: number;
+  this_week_meals?: number;
+  this_week_inactive?: number;
+  today_portions?: number;
+  yesterday_listings?: ApiRestaurantDonation[];
+  yesterday_fed?: number;
 }
 
 export interface ApiNotification {

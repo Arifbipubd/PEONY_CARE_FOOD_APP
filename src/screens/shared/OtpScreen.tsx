@@ -19,18 +19,19 @@ import {
   registerDonor,
   registerRestaurant,
 } from '../../services/auth';
+import { ApiError } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { UserRole } from '../../types';
 import LogoBadge from '../../components/LogoBadge';
-import { colors, spacing, fontSizes, fontWeights, fontFamilies, lineHeights, letterSpacings, radius } from '../../constants/theme';
+import { colors, spacing, fontSizes, fontFamilies, lineHeights, letterSpacings, radius } from '../../constants/theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Otp'>;
   route: RouteProp<AuthStackParamList, 'Otp'>;
 };
 
-const CODE_LENGTH    = 6;
-const RESEND_SECONDS = 30;
+const CODE_LENGTH    = 4;
+const RESEND_SECONDS = 60;
 
 async function autoRegister(
   pending: PendingRegistration,
@@ -45,6 +46,7 @@ async function autoRegister(
       address:         pending.address,
       contact_name:    pending.contactName,
       contact_email:   pending.email,
+      contact_phone:   pending.contactPhone,
     },
     token,
   );
@@ -54,11 +56,12 @@ export default function OtpScreen({ navigation, route }: Props) {
   const { phone, purpose, pendingRegistration } = route.params;
   const { setAuth } = useAuthStore();
 
-  const [code, setCode]       = useState('');
-  const [focused, setFocused] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
-  const [seconds, setSeconds] = useState(RESEND_SECONDS);
+  const [code, setCode]             = useState('');
+  const [focused, setFocused]       = useState(false);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState('');
+  const [seconds, setSeconds]       = useState(RESEND_SECONDS);
+  const [rateLimitSecs, setRateLimitSecs] = useState(0);
   const inputRef = useRef<TextInput>(null);
 
   // The box that shows the cursor: next empty slot, capped at last box
@@ -70,8 +73,20 @@ export default function OtpScreen({ navigation, route }: Props) {
     return () => clearTimeout(t);
   }, [seconds]);
 
+  useEffect(() => {
+    if (rateLimitSecs <= 0) return;
+    const t = setTimeout(() => {
+      setRateLimitSecs((s) => {
+        const next = s - 1;
+        if (next <= 0) setError('');
+        return next;
+      });
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [rateLimitSecs]);
+
   async function handleVerify() {
-    if (code.length < CODE_LENGTH) { setError('Enter all 6 digits'); return; }
+    if (code.length < CODE_LENGTH) { setError('Enter all 4 digits'); return; }
     setLoading(true);
     setError('');
     try {
@@ -84,7 +99,11 @@ export default function OtpScreen({ navigation, route }: Props) {
 
       if (result.isNewUser && result.registrationToken && pendingRegistration) {
         const reg = await autoRegister(pendingRegistration, result.registrationToken);
-        setAuth(reg.accessToken, reg.refreshToken, reg.user as { id: string; phone: string; role: UserRole });
+        navigation.navigate('Permissions', {
+          accessToken:  reg.accessToken,
+          refreshToken: reg.refreshToken,
+          user:         reg.user as { id: string; phone: string; role: UserRole },
+        });
         return;
       }
 
@@ -104,7 +123,13 @@ export default function OtpScreen({ navigation, route }: Props) {
       setCode('');
       inputRef.current?.focus();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to resend. Try again.');
+      if (err instanceof ApiError && err.code === 'OTP_RATE_LIMITED') {
+        const secs = (err.details?.retry_after_seconds as number) ?? 60;
+        setRateLimitSecs(secs);
+        setError(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to resend. Try again.');
+      }
     }
   }
 
@@ -162,7 +187,11 @@ export default function OtpScreen({ navigation, route }: Props) {
           autoFocus
         />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <Text style={styles.error}>
+            {rateLimitSecs > 0 ? `${error} Retry in ${rateLimitSecs}s.` : error}
+          </Text>
+        ) : null}
 
         <TouchableOpacity onPress={handleResend} disabled={seconds > 0}>
           <Text style={styles.resendText}>
@@ -202,7 +231,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     lineHeight: lineHeights.subheading,
     letterSpacing: letterSpacings.subheading,
     color: colors.textPrimary,
@@ -210,12 +238,10 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: fontFamilies.regular,
     fontSize: 14,
-    fontWeight: fontWeights.regular,
     color: colors.textMuted,
   },
   phoneBold: {
     fontFamily: fontFamilies.semiBold,
-    fontWeight: fontWeights.semiBold,
     color: colors.textPrimary,
   },
   codeRow: {
@@ -239,7 +265,6 @@ const styles = StyleSheet.create({
   digitText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     color: colors.textPrimary,
   },
   hiddenInput: {
@@ -260,7 +285,6 @@ const styles = StyleSheet.create({
   },
   resendLink: {
     fontFamily: fontFamilies.semiBold,
-    fontWeight: fontWeights.semiBold,
     color: colors.accentPrimary,
   },
   resendDisabled: {

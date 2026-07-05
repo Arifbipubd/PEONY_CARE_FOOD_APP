@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,16 +8,17 @@ import {
   FlatList,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
+import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useProfileStore } from '../../store/profileStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import FoodCard from '../../components/FoodCard';
-import FilterSheet, { FilterState, DEFAULT_FILTERS, matchesFilters } from '../../components/FilterSheet';
-import { browseFood, getDailyLimit, getReceiverProfile } from '../../services/receiver';
+import FilterSheet, { FilterState, DEFAULT_FILTERS } from '../../components/FilterSheet';
+import { browseFood, getDailyLimit, getReceiverProfile, searchFood, updateReceiverLocation } from '../../services/receiver';
+import { useLocation } from '../../hooks/useLocation';
 import { getNearbyRestaurants } from '../../services/restaurant';
 import { getNotifications } from '../../services/notifications';
 import { FoodItem, FoodCategory, DailyLimitStatus, PublicRestaurant } from '../../types';
@@ -93,7 +94,6 @@ const emptyStyles = StyleSheet.create({
   heading: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.lg,       // 17px
-    fontWeight: fontWeights.bold,
     letterSpacing: -0.425,        // component-specific, not in letterSpacings scale
     color: colors.textPrimary,
     textAlign: 'center',
@@ -102,7 +102,6 @@ const emptyStyles = StyleSheet.create({
   body: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes['14'],    // 14px
-    fontWeight: fontWeights.regular,
     lineHeight: lineHeights.body, // 21px
     color: colors.textMuted,
     textAlign: 'center',
@@ -121,8 +120,108 @@ const emptyStyles = StyleSheet.create({
   ctaBtnText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['14'],    // 14px
-    fontWeight: fontWeights.bold,
     color: colors.accentPrimary,
+  },
+});
+
+function HomeSkeleton() {
+  const opacity = usePulse();
+  return (
+    <SafeAreaView style={styles.screen}>
+      <View style={skelStyles.top}>
+        <View style={skelStyles.headerRow}>
+          <SkeletonBox opacity={opacity} width={130} height={26} />
+          <SkeletonBox opacity={opacity} width={40} height={40} borderRadius={100} />
+        </View>
+        <SkeletonBox opacity={opacity} width={140} height={26} borderRadius={100} />
+        <View style={skelStyles.searchRow}>
+          <SkeletonBox opacity={opacity} height={48} borderRadius={14} style={skelStyles.searchFlex} />
+          <SkeletonBox opacity={opacity} width={48} height={48} borderRadius={14} />
+        </View>
+        <View style={skelStyles.tabRow}>
+          <SkeletonBox opacity={opacity} height={30} borderRadius={8} style={skelStyles.tabFlex} />
+          <SkeletonBox opacity={opacity} height={30} borderRadius={8} style={skelStyles.tabFlex} />
+        </View>
+        <View style={skelStyles.chipsRow}>
+          {[60, 56, 70, 60, 64].map((w, i) => (
+            <SkeletonBox key={i} opacity={opacity} width={w} height={30} borderRadius={22} />
+          ))}
+        </View>
+      </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={skelStyles.cards}
+        scrollEnabled={false}
+      >
+        {[0, 1, 2].map((i) => (
+          <View key={i} style={skelStyles.card}>
+            <SkeletonBox opacity={opacity} height={160} borderRadius={18} />
+            <View style={skelStyles.cardBody}>
+              <View style={skelStyles.cardTitleRow}>
+                <SkeletonBox opacity={opacity} width={160} height={16} />
+                <SkeletonBox opacity={opacity} width={60} height={22} borderRadius={10} />
+              </View>
+              <SkeletonBox opacity={opacity} width={110} height={13} style={skelStyles.cardMeta} />
+              <View style={skelStyles.cardChips}>
+                <SkeletonBox opacity={opacity} width={60} height={22} borderRadius={10} />
+                <SkeletonBox opacity={opacity} width={80} height={22} borderRadius={10} />
+              </View>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const skelStyles = StyleSheet.create({
+  top: {
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing.lg,
+    gap: spacing.md,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  searchRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  searchFlex: { flex: 1 },
+  tabRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    paddingBottom: spacing.md,
+  },
+  tabFlex: { flex: 1 },
+  chipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  cards: {
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing.lg,
+    gap: spacing.md,
+  },
+  card: { gap: 0 },
+  cardBody: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardMeta: { marginTop: 2 },
+  cardChips: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 2,
   },
 });
 
@@ -131,21 +230,25 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const { unreadCount, setNotifications } = useNotificationStore();
   const name = displayName || 'Sarah';
   const firstName = name.split(' ')[0];
+  const { lat, lng, loading: locLoading } = useLocation();
+  const locationPatched = useRef(false);
 
   const [activeTab, setActiveTab]       = useState<Tab>('meals');
   const [filters, setFilters]           = useState<FilterState>(DEFAULT_FILTERS);
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
   const [searchQuery, setSearchQuery]   = useState('');
   const [foods, setFoods]               = useState<FoodItem[]>([]);
+  const [searchResults, setSearchResults] = useState<FoodItem[] | null>(null);
   const [restaurants, setRestaurants]   = useState<PublicRestaurant[]>([]);
   const [dailyLimit, setDailyLimit]     = useState<DailyLimitStatus | null>(null);
   const [loading, setLoading]           = useState(true);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     Promise.all([
-      browseFood(),
+      browseFood(lat ?? undefined, lng ?? undefined),
       getDailyLimit(),
-      getNearbyRestaurants(),
+      getNearbyRestaurants(lat ?? undefined, lng ?? undefined),
       getReceiverProfile(),
       getNotifications(),
     ]).then(([items, limit, rests, profile, notifications]) => {
@@ -156,20 +259,63 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
       setNotifications(notifications);
       setLoading(false);
     });
-  }, []);
+  }, [lat, lng, setProfile, setNotifications]);
 
-  const filtered = foods.filter((f) => {
-    if (!matchesFilters(f, filters)) return false;
-    if (searchQuery.trim() && !f.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+  useEffect(() => {
+    if (locLoading || lat === null || lng === null || locationPatched.current) return;
+    locationPatched.current = true;
+    updateReceiverLocation(lat, lng).catch(() => {});
+  }, [locLoading, lat, lng]);
+
+  useEffect(() => {
+    if (locLoading) return;
+    fetchData();
+  }, [locLoading, fetchData]);
+
+  useEffect(() => {
+    const hasQuery = searchQuery.trim() !== '';
+    const hasCategory = filters.category !== null;
+    const hasRadiusChange = filters.maxDistanceKm !== DEFAULT_FILTERS.maxDistanceKm;
+
+    if (!hasQuery && !hasCategory && !hasRadiusChange) {
+      setSearchResults(null);
+      return;
+    }
+
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+
+    searchTimerRef.current = setTimeout(() => {
+      searchFood(
+        searchQuery.trim(),
+        filters.category ?? undefined,
+        lat ?? undefined,
+        lng ?? undefined,
+        filters.maxDistanceKm,
+      )
+        .then(setSearchResults)
+        .catch(() => {});
+    }, 300);
+
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [searchQuery, filters.category, filters.maxDistanceKm, lat, lng]);
+
+  const displayedFoods = searchResults ?? foods;
+  const filtered = displayedFoods.filter((f) => {
+    const { showOnly } = filters;
+    if (showOnly.sponsored && f.sponsorshipType === 'DIRECT') return false;
+    if (showOnly.halal && !f.isHalal) return false;
+    if (showOnly.vegetarian && !f.isVegetarian) return false;
+    if (showOnly.pickupUnder1h) {
+      const msLeft = new Date(f.pickupEnd).getTime() - Date.now();
+      if (!(msLeft > 0 && msLeft <= 60 * 60 * 1000)) return false;
+    }
     return true;
   });
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.screen}>
-        <ActivityIndicator style={styles.loader} color={colors.accentPrimary} />
-      </SafeAreaView>
-    );
+    return <HomeSkeleton />;
   }
 
   return (
@@ -291,20 +437,30 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
                 distanceKm: item.distanceKm,
               })}
             >
-              <Image
-                source={{ uri: item.photoUrl }}
-                style={styles.restaurantCardImage}
-                resizeMode="cover"
-              />
+              <View>
+                <Image
+                  source={{ uri: item.photoUrl ?? undefined }}
+                  style={styles.restaurantCardImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.restaurantCardBadgeWrap}>
+                  <View style={styles.restaurantCardBadge}>
+                    <Text style={styles.restaurantCardBadgeText}>{item.mealCount} meals</Text>
+                  </View>
+                </View>
+              </View>
               <View style={styles.restaurantCardBody}>
                 <Text style={styles.restaurantCardName}>{item.name}</Text>
                 <Text style={styles.restaurantCardCuisine}>{item.cuisineType}</Text>
                 <View style={styles.restaurantCardMeta}>
-                  <View style={styles.restaurantCardMetaLeft}>
-                    <Ionicons name="location-outline" size={13} color={colors.textMuted} />
+                  <View style={styles.restaurantCardMetaItem}>
+                    <Ionicons name="navigate" size={12} color={colors.textMuted} />
                     <Text style={styles.restaurantCardMetaText}>{item.distanceKm.toFixed(1)} km</Text>
                   </View>
-                  <Text style={styles.restaurantCardMetaText}>Open · until {item.closesAt}</Text>
+                  <View style={styles.restaurantCardMetaItem}>
+                    <Ionicons name="time" size={12} color={colors.textMuted} />
+                    <Text style={styles.restaurantCardMetaText}>Open · until {item.closesAt}</Text>
+                  </View>
                 </View>
               </View>
             </TouchableOpacity>
@@ -329,7 +485,6 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
-  loader: { flex: 1 },
 
   top: {
     paddingHorizontal: spacing['2xl'],
@@ -347,7 +502,6 @@ const styles = StyleSheet.create({
   greeting: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
     letterSpacing: letterSpacings.bodyBold,
     color: colors.textPrimary,
   },
@@ -385,7 +539,6 @@ const styles = StyleSheet.create({
   claimsText: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['12'],
-    fontWeight: fontWeights.semiBold,
     color: colors.successGreen,
   },
 
@@ -448,13 +601,11 @@ const styles = StyleSheet.create({
   },
   tabLabelActive: {
     fontFamily: fontFamilies.semiBold,
-    fontWeight: fontWeights.semiBold,
     color: colors.accentPrimary,
   },
   tabCount: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
     color: colors.textMuted,
   },
   tabCountActive: {
@@ -505,35 +656,59 @@ const styles = StyleSheet.create({
   },
   restaurantCardImage: {
     width: '100%',
-    height: layout.cardImageHeight,
+    height: 140,              // component-specific — Figma: 140px (food cards are 170px)
     backgroundColor: colors.borderDefault,
+  },
+  restaurantCardBadgeWrap: {
+    position: 'absolute',
+    top: spacing.md,
+    right: spacing.md,
+  },
+  restaurantCardBadge: {
+    backgroundColor: colors.accentPrimary,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,    // component-specific
+    paddingVertical: 5,       // component-specific
+    shadowColor: colors.accentPrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  restaurantCardBadgeText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.xs,       // 11px
+    color: colors.textInverse,
   },
   restaurantCardBody: {
     padding: spacing.md,
-    gap: spacing.xs,
+    gap: 4,                   // component-specific — cuisine margin-top: 4px in Figma
   },
   restaurantCardName: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes.md,       // 15px
+    letterSpacing: -0.225,        // component-specific
     color: colors.textPrimary,
   },
   restaurantCardCuisine: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes.sm,       // 13px
     color: colors.textMuted,
   },
   restaurantCardMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.xs,
+    gap: 8,                   // component-specific — items left-aligned with gap
   },
-  restaurantCardMetaLeft: {
+  restaurantCardMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 4,                   // component-specific
   },
   restaurantCardMetaText: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],    // 12px
     color: colors.textMuted,
+    includeFontPadding: false,
   },
 });
