@@ -10,12 +10,18 @@ import PostDonationScreen        from '../screens/restaurant/PostDonationScreen'
 import PostDonationSuccessScreen from '../screens/restaurant/PostDonationSuccessScreen';
 import TodaysClaimsScreen        from '../screens/restaurant/TodaysClaimsScreen';
 import NotificationsScreen       from '../screens/shared/NotificationsScreen';
-import RestaurantProfileScreen   from '../screens/restaurant/RestaurantProfileScreen';
+import RestaurantProfileScreen         from '../screens/restaurant/RestaurantProfileScreen';
+import RestaurantDeleteAccountScreen   from '../screens/restaurant/RestaurantDeleteAccountScreen';
+import RestaurantExportDataScreen      from '../screens/restaurant/RestaurantExportDataScreen';
+import RestaurantHelpFaqScreen         from '../screens/restaurant/RestaurantHelpFaqScreen';
 import { colors, fontSizes }     from '../constants/theme';
 import { useNotificationStore }  from '../store/notificationStore';
 
 export type ProfileStackParamList = {
-  RestaurantProfile: undefined;
+  RestaurantProfile:        undefined;
+  RestaurantDeleteAccount:  undefined;
+  RestaurantExportData:     undefined;
+  RestaurantHelpFaq:        undefined;
 };
 
 export type RestaurantTabParamList = {
@@ -47,7 +53,10 @@ const ProfileStack   = createNativeStackNavigator<ProfileStackParamList>();
 function ProfileNavigator() {
   return (
     <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
-      <ProfileStack.Screen name="RestaurantProfile" component={RestaurantProfileScreen} />
+      <ProfileStack.Screen name="RestaurantProfile"       component={RestaurantProfileScreen} />
+      <ProfileStack.Screen name="RestaurantDeleteAccount" component={RestaurantDeleteAccountScreen} />
+      <ProfileStack.Screen name="RestaurantExportData"    component={RestaurantExportDataScreen} />
+      <ProfileStack.Screen name="RestaurantHelpFaq"       component={RestaurantHelpFaqScreen} />
     </ProfileStack.Navigator>
   );
 }

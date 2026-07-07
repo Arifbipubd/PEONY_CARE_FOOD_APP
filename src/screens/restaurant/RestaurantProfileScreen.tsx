@@ -268,6 +268,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
             iconColor={colors.textPrimary}
             iconBg={colors.surfaceSecondary}
             title="Help & FAQ"
+            onPress={() => navigation.navigate('RestaurantHelpFaq')}
           />
           <View style={styles.divider} />
           <ProfileRow
@@ -276,6 +277,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
             iconBg={colors.surfaceSecondary}
             title="Download my data"
             subtitle="Get a copy of your business data"
+            onPress={() => navigation.navigate('RestaurantExportData')}
           />
           <View style={styles.divider} />
           <ProfileRow
@@ -284,6 +286,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
             iconBg={colors.accentLight}
             title="Delete account"
             subtitle="Permanently remove your restaurant"
+            onPress={() => navigation.navigate('RestaurantDeleteAccount')}
             danger
           />
         </View>
