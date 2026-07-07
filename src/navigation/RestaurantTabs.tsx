@@ -14,6 +14,10 @@ import RestaurantProfileScreen   from '../screens/restaurant/RestaurantProfileSc
 import { colors, fontSizes }     from '../constants/theme';
 import { useNotificationStore }  from '../store/notificationStore';
 
+export type ProfileStackParamList = {
+  RestaurantProfile: undefined;
+};
+
 export type RestaurantTabParamList = {
   Home:       undefined;
   Donations:  undefined;
@@ -38,6 +42,15 @@ export type DonationsStackParamList = {
 
 const Tab            = createBottomTabNavigator<RestaurantTabParamList>();
 const DonationsStack = createNativeStackNavigator<DonationsStackParamList>();
+const ProfileStack   = createNativeStackNavigator<ProfileStackParamList>();
+
+function ProfileNavigator() {
+  return (
+    <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+      <ProfileStack.Screen name="RestaurantProfile" component={RestaurantProfileScreen} />
+    </ProfileStack.Navigator>
+  );
+}
 
 function DonationsNavigator() {
   return (
@@ -98,7 +111,7 @@ export default function RestaurantTabs() {
           tabBarBadgeStyle: { backgroundColor: colors.accentPrimary, fontSize: fontSizes.xs },
         }}
       />
-      <Tab.Screen name="Profile" component={RestaurantProfileScreen} />
+      <Tab.Screen name="Profile" component={ProfileNavigator} />
     </Tab.Navigator>
   );
 }

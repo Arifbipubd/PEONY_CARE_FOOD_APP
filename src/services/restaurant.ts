@@ -247,6 +247,10 @@ export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
     isApproved: p.is_approved,
     isVerified: p.is_verified,
     totalFoodShared: p.total_food_shared,
+    peopleFed: p.people_fed,
+    claimRatePct: p.claim_rate_pct,
+    rating: p.rating,
+    reviewCount: p.review_count,
   };
   /* REAL API:
   const res = await api.get('/restaurant/profile/');

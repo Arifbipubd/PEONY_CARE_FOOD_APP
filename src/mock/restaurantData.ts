@@ -520,4 +520,8 @@ export const MOCK_RESTAURANT_PROFILE = {
   is_approved: true,
   is_verified: true,
   total_food_shared: 1240,
+  people_fed: 312,
+  claim_rate_pct: 96,
+  rating: 4.8,
+  review_count: 128,
 };

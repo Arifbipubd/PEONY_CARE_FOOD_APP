@@ -195,6 +195,10 @@ export interface RestaurantProfile {
   isApproved: boolean;
   isVerified: boolean;
   totalFoodShared: number;
+  peopleFed: number;
+  claimRatePct: number;
+  rating: number;
+  reviewCount: number;
 }
 
 // RestaurantDonation is a food listing from the restaurant's own management view.
