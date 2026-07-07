@@ -14,6 +14,7 @@ import RestaurantProfileScreen         from '../screens/restaurant/RestaurantPro
 import RestaurantDeleteAccountScreen   from '../screens/restaurant/RestaurantDeleteAccountScreen';
 import RestaurantExportDataScreen      from '../screens/restaurant/RestaurantExportDataScreen';
 import RestaurantHelpFaqScreen         from '../screens/restaurant/RestaurantHelpFaqScreen';
+import RestaurantTermsPrivacyScreen    from '../screens/restaurant/RestaurantTermsPrivacyScreen';
 import { colors, fontSizes }     from '../constants/theme';
 import { useNotificationStore }  from '../store/notificationStore';
 
@@ -22,6 +23,7 @@ export type ProfileStackParamList = {
   RestaurantDeleteAccount:  undefined;
   RestaurantExportData:     undefined;
   RestaurantHelpFaq:        undefined;
+  RestaurantTermsPrivacy:   undefined;
 };
 
 export type RestaurantTabParamList = {
@@ -57,6 +59,7 @@ function ProfileNavigator() {
       <ProfileStack.Screen name="RestaurantDeleteAccount" component={RestaurantDeleteAccountScreen} />
       <ProfileStack.Screen name="RestaurantExportData"    component={RestaurantExportDataScreen} />
       <ProfileStack.Screen name="RestaurantHelpFaq"       component={RestaurantHelpFaqScreen} />
+      <ProfileStack.Screen name="RestaurantTermsPrivacy" component={RestaurantTermsPrivacyScreen} />
     </ProfileStack.Navigator>
   );
 }

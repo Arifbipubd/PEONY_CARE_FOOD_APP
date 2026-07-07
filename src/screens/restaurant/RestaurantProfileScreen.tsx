@@ -272,6 +272,14 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
           />
           <View style={styles.divider} />
           <ProfileRow
+            iconName="document-text"
+            iconColor={colors.textPrimary}
+            iconBg={colors.surfaceSecondary}
+            title="Terms & privacy"
+            onPress={() => navigation.navigate('RestaurantTermsPrivacy')}
+          />
+          <View style={styles.divider} />
+          <ProfileRow
             iconName="download"
             iconColor={colors.textPrimary}
             iconBg={colors.surfaceSecondary}
