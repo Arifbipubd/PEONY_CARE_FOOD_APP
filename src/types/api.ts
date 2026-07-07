@@ -221,6 +221,29 @@ export interface ApiCreateDonationPayload {
   photo_url?: string | null;
 }
 
+export interface ApiRestaurantProfile {
+  id: string;
+  name: string;
+  address: string;
+  postal_code: string;
+  latitude: number;
+  longitude: number;
+  uen: string;
+  contact_name: string;
+  contact_email: string;
+  contact_phone: string;
+  opening_hours: string;
+  about: string;
+  photo_url: string | null;
+  is_approved: boolean;
+  is_verified: boolean;
+  total_food_shared: number;
+  people_fed: number;
+  claim_rate_pct: number;
+  rating: number;
+  review_count: number;
+}
+
 export interface ApiRestaurantDashboard {
   lives_impacted: number;
   donations_this_year: number;

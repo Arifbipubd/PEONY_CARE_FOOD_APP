@@ -7,6 +7,7 @@ import {
 import {
   ApiRestaurantDonation, ApiRestaurantDashboard, ApiPublicRestaurant,
   ApiRestaurantDetail, ApiRestaurantMealSummary, ApiDonationSummary,
+  ApiRestaurantProfile,
 } from '../types/api';
 import {
   MOCK_RESTAURANT_DASHBOARD,
@@ -227,9 +228,8 @@ export const getTodaysClaims = async (): Promise<{ total: number; claims: Restau
 };
 
 export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 400));
-  const p = MOCK_RESTAURANT_PROFILE;
+  const res = await api.get('/restaurant/profile/');
+  const p: ApiRestaurantProfile = res.data.data;
   return {
     id: p.id,
     name: p.name,
@@ -252,11 +252,6 @@ export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
     rating: p.rating,
     reviewCount: p.review_count,
   };
-  /* REAL API:
-  const res = await api.get('/restaurant/profile/');
-  const p = res.data.data;
-  return { ...same mapping as above... };
-  */
 };
 
 export const getNearbyRestaurants = async (

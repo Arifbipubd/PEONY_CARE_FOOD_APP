@@ -191,7 +191,7 @@ export interface RestaurantProfile {
   contactPhone: string;
   openingHours: string;
   about: string;
-  photoUrl: string;
+  photoUrl: string | null;
   isApproved: boolean;
   isVerified: boolean;
   totalFoodShared: number;
