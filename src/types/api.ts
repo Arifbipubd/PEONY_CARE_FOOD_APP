@@ -193,12 +193,21 @@ export interface ApiRestaurantDonation {
   created_at: string;
   sponsor_display_name?: string | null;
   sponsor_initials?: string | null;
+  no_show_count?: number;
+  expired_count?: number;
   claims?: Array<{
     id: string;
     receiver_name: string;
     claimed_at: string;
     status: string;
   }>;
+}
+
+export interface ApiDonationSummary {
+  active_count: number;
+  past_count: number;
+  inactive_count: number;
+  weekly_meals: number;
 }
 
 export interface ApiRestaurantDashboard {

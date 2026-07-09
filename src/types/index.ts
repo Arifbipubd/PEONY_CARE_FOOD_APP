@@ -220,12 +220,21 @@ export interface RestaurantDonation {
   createdAt: string;
   sponsorDisplayName?: string | null;
   sponsorInitials?: string | null;
+  noShowCount?: number;
+  expiredCount?: number;
   claims?: Array<{
     id: string;
     receiverName: string;
     claimedAt: string;
     status: ClaimStatus;
   }>;
+}
+
+export interface DonationSummary {
+  activeCount: number;
+  pastCount: number;
+  inactiveCount: number;
+  weeklyMeals: number;
 }
 
 export interface RestaurantDashboard {

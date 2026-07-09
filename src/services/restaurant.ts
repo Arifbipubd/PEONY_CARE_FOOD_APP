@@ -4,14 +4,16 @@
 
 import {
   RestaurantDashboard, RestaurantDonation, RestaurantProfile, PublicRestaurant, FoodItem,
+  DonationSummary,
 } from '../types';
 import {
   ApiRestaurantDonation, ApiRestaurantDashboard, ApiPublicRestaurant,
-  ApiRestaurantDetail, ApiRestaurantMealSummary,
+  ApiRestaurantDetail, ApiRestaurantMealSummary, ApiDonationSummary,
 } from '../types/api';
 import {
   MOCK_RESTAURANT_DASHBOARD,
   MOCK_RESTAURANT_DONATIONS,
+  MOCK_DONATION_SUMMARY,
   MOCK_RESTAURANT_PROFILE,
   MOCK_PUBLIC_RESTAURANTS,
 } from '../mock/restaurantData';
@@ -41,6 +43,8 @@ function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
     createdAt: d.created_at,
     sponsorDisplayName: d.sponsor_display_name ?? null,
     sponsorInitials: d.sponsor_initials ?? null,
+    noShowCount: d.no_show_count,
+    expiredCount: d.expired_count,
     claims: d.claims?.map((c) => ({
       id: c.id,
       receiverName: c.receiver_name,
@@ -136,6 +140,17 @@ function mapApiRestaurantDetail(d: ApiRestaurantDetail): PublicRestaurant {
 }
 
 // ─── Service functions ────────────────────────────────────────────────────────
+
+export const getDonationSummary = async (): Promise<DonationSummary> => {
+  await new Promise((r) => setTimeout(r, 300));
+  const s: ApiDonationSummary = MOCK_DONATION_SUMMARY;
+  return {
+    activeCount:  s.active_count,
+    pastCount:    s.past_count,
+    inactiveCount: s.inactive_count,
+    weeklyMeals:  s.weekly_meals,
+  };
+};
 
 export const getDashboard = async (): Promise<RestaurantDashboard> => {
   // MOCK:
