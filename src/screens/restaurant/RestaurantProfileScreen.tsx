@@ -233,6 +233,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
             iconBg={colors.goldLight}
             title="Public page"
             subtitle="View as customers see you"
+            onPress={() => navigation.navigate('RestaurantPublicPage')}
           />
           <View style={styles.divider} />
           <ProfileRow

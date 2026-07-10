@@ -9,10 +9,7 @@ import {
   ApiRestaurantDetail, ApiRestaurantMealSummary, ApiDonationSummary,
   ApiRestaurantProfile,
 } from '../types/api';
-import {
-  MOCK_RESTAURANT_DASHBOARD,
-  MOCK_RESTAURANT_PROFILE,
-} from '../mock/restaurantData';
+import { MOCK_RESTAURANT_DASHBOARD } from '../mock/restaurantData';
 import { api } from './api';
 
 // ─── Mappers ─────────────────────────────────────────────────────────────────
@@ -241,16 +238,16 @@ export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
     contactName: p.contact_name,
     contactEmail: p.contact_email,
     contactPhone: p.contact_phone,
-    openingHours: p.opening_hours,
-    about: p.about,
+    openingHours: p.opening_hours ?? '',
+    about: p.about ?? '',
     photoUrl: p.photo_url,
     isApproved: p.is_approved,
     isVerified: p.is_verified,
-    totalFoodShared: p.total_food_shared,
-    peopleFed: p.people_fed,
-    claimRatePct: p.claim_rate_pct,
-    rating: p.rating,
-    reviewCount: p.review_count,
+    totalFoodShared: p.total_food_shared ?? 0,
+    peopleFed: p.people_fed ?? 0,
+    claimRatePct: p.claim_rate_pct ?? 0,
+    rating: p.rating ?? 0,
+    reviewCount: p.review_count ?? 0,
   };
 };
 
