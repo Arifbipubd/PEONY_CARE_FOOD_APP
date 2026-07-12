@@ -9,6 +9,8 @@ export interface ApiRestaurantRef {
   latitude: number;
   longitude: number;
   is_verified: boolean;
+  rating?: number;
+  review_count?: number;
 }
 
 export interface ApiFoodItem {

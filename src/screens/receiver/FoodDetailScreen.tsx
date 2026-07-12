@@ -158,6 +158,14 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
               <Ionicons name="storefront" size={16} color={colors.accentPrimary} />
               <Text style={styles.restaurantName}>{food.restaurantName}</Text>
             </TouchableOpacity>
+            {food.restaurantRating != null && (
+              <View style={styles.ratingRow}>
+                <Ionicons name="star" size={12} color={colors.warningYellow} />
+                <Text style={styles.ratingText}>
+                  {food.restaurantRating.toFixed(1)} · {food.restaurantReviewCount ?? 0} reviews
+                </Text>
+              </View>
+            )}
             <View style={styles.infoRow}>
               <Ionicons name="location" size={14} color={colors.textMuted} />
               <Text style={styles.restaurantAddress}>{food.restaurantAddress}</Text>
@@ -342,6 +350,18 @@ const styles = StyleSheet.create({
 
   restaurantBlock:   { gap: spacing.sm },
   restaurantNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: spacing.xs,
+  },
+  ratingText: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    color: colors.textMuted,
+    includeFontPadding: false,
+  },
   infoRow:           { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   restaurantName: {
     fontFamily: fontFamilies.medium,

@@ -51,6 +51,8 @@ export interface FoodItem {
   restaurantLatitude: number;
   restaurantLongitude: number;
   restaurantIsVerified: boolean;
+  restaurantRating?: number;
+  restaurantReviewCount?: number;
   name: string;
   description: string;
   category: FoodCategory;
