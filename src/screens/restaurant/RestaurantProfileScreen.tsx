@@ -217,6 +217,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
             iconBg={colors.avatarBg}
             title="Restaurant details"
             subtitle="Name, address, hours"
+            onPress={() => navigation.navigate('EditRestaurantDetails')}
           />
           <View style={styles.divider} />
           <ProfileRow

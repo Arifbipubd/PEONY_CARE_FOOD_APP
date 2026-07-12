@@ -15,17 +15,19 @@ import RestaurantDeleteAccountScreen   from '../screens/restaurant/RestaurantDel
 import RestaurantExportDataScreen      from '../screens/restaurant/RestaurantExportDataScreen';
 import RestaurantHelpFaqScreen         from '../screens/restaurant/RestaurantHelpFaqScreen';
 import RestaurantTermsPrivacyScreen    from '../screens/restaurant/RestaurantTermsPrivacyScreen';
-import RestaurantPublicPageScreen      from '../screens/restaurant/RestaurantPublicPageScreen';
+import RestaurantPublicPageScreen           from '../screens/restaurant/RestaurantPublicPageScreen';
+import EditRestaurantDetailsScreen          from '../screens/restaurant/EditRestaurantDetailsScreen';
 import { colors, fontSizes }     from '../constants/theme';
 import { useNotificationStore }  from '../store/notificationStore';
 
 export type ProfileStackParamList = {
-  RestaurantProfile:        undefined;
-  RestaurantDeleteAccount:  undefined;
-  RestaurantExportData:     undefined;
-  RestaurantHelpFaq:        undefined;
-  RestaurantTermsPrivacy:   undefined;
-  RestaurantPublicPage:     undefined;
+  RestaurantProfile:          undefined;
+  RestaurantDeleteAccount:    undefined;
+  RestaurantExportData:       undefined;
+  RestaurantHelpFaq:          undefined;
+  RestaurantTermsPrivacy:     undefined;
+  RestaurantPublicPage:       undefined;
+  EditRestaurantDetails:      undefined;
 };
 
 export type RestaurantTabParamList = {
@@ -62,7 +64,8 @@ function ProfileNavigator() {
       <ProfileStack.Screen name="RestaurantExportData"    component={RestaurantExportDataScreen} />
       <ProfileStack.Screen name="RestaurantHelpFaq"       component={RestaurantHelpFaqScreen} />
       <ProfileStack.Screen name="RestaurantTermsPrivacy" component={RestaurantTermsPrivacyScreen} />
-      <ProfileStack.Screen name="RestaurantPublicPage"   component={RestaurantPublicPageScreen} />
+      <ProfileStack.Screen name="RestaurantPublicPage"       component={RestaurantPublicPageScreen} />
+      <ProfileStack.Screen name="EditRestaurantDetails"      component={EditRestaurantDetailsScreen} />
     </ProfileStack.Navigator>
   );
 }

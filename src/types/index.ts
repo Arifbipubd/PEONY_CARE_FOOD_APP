@@ -191,7 +191,11 @@ export interface RestaurantProfile {
   contactName: string;
   contactEmail: string;
   contactPhone: string;
+  cuisineType?: string;
   openingHours: string;
+  opensAt?: string;
+  closesAt?: string;
+  openDays?: string[];
   about: string;
   photoUrl: string | null;
   isApproved: boolean;
