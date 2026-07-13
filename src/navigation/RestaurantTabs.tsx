@@ -10,9 +10,27 @@ import PostDonationScreen        from '../screens/restaurant/PostDonationScreen'
 import PostDonationSuccessScreen from '../screens/restaurant/PostDonationSuccessScreen';
 import TodaysClaimsScreen        from '../screens/restaurant/TodaysClaimsScreen';
 import NotificationsScreen       from '../screens/shared/NotificationsScreen';
-import RestaurantProfileScreen   from '../screens/restaurant/RestaurantProfileScreen';
+import RestaurantProfileScreen         from '../screens/restaurant/RestaurantProfileScreen';
+import RestaurantDeleteAccountScreen   from '../screens/restaurant/RestaurantDeleteAccountScreen';
+import RestaurantExportDataScreen      from '../screens/restaurant/RestaurantExportDataScreen';
+import RestaurantHelpFaqScreen         from '../screens/restaurant/RestaurantHelpFaqScreen';
+import RestaurantTermsPrivacyScreen    from '../screens/restaurant/RestaurantTermsPrivacyScreen';
+import RestaurantPublicPageScreen           from '../screens/restaurant/RestaurantPublicPageScreen';
+import EditRestaurantDetailsScreen          from '../screens/restaurant/EditRestaurantDetailsScreen';
+import RestaurantLocationScreen             from '../screens/restaurant/RestaurantLocationScreen';
 import { colors, fontSizes }     from '../constants/theme';
 import { useNotificationStore }  from '../store/notificationStore';
+
+export type ProfileStackParamList = {
+  RestaurantProfile:          undefined;
+  RestaurantDeleteAccount:    undefined;
+  RestaurantExportData:       undefined;
+  RestaurantHelpFaq:          undefined;
+  RestaurantTermsPrivacy:     undefined;
+  RestaurantPublicPage:       undefined;
+  EditRestaurantDetails: undefined;
+  RestaurantLocation:    { latitude: number; longitude: number; address: string };
+};
 
 export type RestaurantTabParamList = {
   Home:       undefined;
@@ -38,6 +56,22 @@ export type DonationsStackParamList = {
 
 const Tab            = createBottomTabNavigator<RestaurantTabParamList>();
 const DonationsStack = createNativeStackNavigator<DonationsStackParamList>();
+const ProfileStack   = createNativeStackNavigator<ProfileStackParamList>();
+
+function ProfileNavigator() {
+  return (
+    <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+      <ProfileStack.Screen name="RestaurantProfile"       component={RestaurantProfileScreen} />
+      <ProfileStack.Screen name="RestaurantDeleteAccount" component={RestaurantDeleteAccountScreen} />
+      <ProfileStack.Screen name="RestaurantExportData"    component={RestaurantExportDataScreen} />
+      <ProfileStack.Screen name="RestaurantHelpFaq"       component={RestaurantHelpFaqScreen} />
+      <ProfileStack.Screen name="RestaurantTermsPrivacy" component={RestaurantTermsPrivacyScreen} />
+      <ProfileStack.Screen name="RestaurantPublicPage"       component={RestaurantPublicPageScreen} />
+      <ProfileStack.Screen name="EditRestaurantDetails"      component={EditRestaurantDetailsScreen} />
+      <ProfileStack.Screen name="RestaurantLocation"         component={RestaurantLocationScreen} />
+    </ProfileStack.Navigator>
+  );
+}
 
 function DonationsNavigator() {
   return (
@@ -98,7 +132,7 @@ export default function RestaurantTabs() {
           tabBarBadgeStyle: { backgroundColor: colors.accentPrimary, fontSize: fontSizes.xs },
         }}
       />
-      <Tab.Screen name="Profile" component={RestaurantProfileScreen} />
+      <Tab.Screen name="Profile" component={ProfileNavigator} />
     </Tab.Navigator>
   );
 }

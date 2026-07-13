@@ -7,11 +7,9 @@ import {
 import {
   ApiRestaurantDonation, ApiRestaurantDashboard, ApiPublicRestaurant,
   ApiRestaurantDetail, ApiRestaurantMealSummary, ApiDonationSummary,
+  ApiRestaurantProfile,
 } from '../types/api';
-import {
-  MOCK_RESTAURANT_DASHBOARD,
-  MOCK_RESTAURANT_PROFILE,
-} from '../mock/restaurantData';
+import { MOCK_RESTAURANT_DASHBOARD } from '../mock/restaurantData';
 import { api } from './api';
 
 // ─── Mappers ─────────────────────────────────────────────────────────────────
@@ -226,10 +224,59 @@ export const getTodaysClaims = async (): Promise<{ total: number; claims: Restau
   */
 };
 
+export interface UpdateRestaurantProfilePayload {
+  name?:          string;
+  address?:       string;
+  latitude?:      number;
+  longitude?:     number;
+  contactPhone?:  string;
+  contactEmail?:  string;
+  openingHours?:  string;
+  about?:         string;
+}
+
+export const updateRestaurantProfile = async (
+  payload: UpdateRestaurantProfilePayload,
+): Promise<RestaurantProfile> => {
+  const body: Record<string, unknown> = {};
+  if (payload.name         != null) body.name          = payload.name;
+  if (payload.address      != null) body.address        = payload.address;
+  if (payload.latitude     != null) body.latitude       = payload.latitude;
+  if (payload.longitude    != null) body.longitude      = payload.longitude;
+  if (payload.contactPhone != null) body.contact_phone  = payload.contactPhone;
+  if (payload.contactEmail != null) body.contact_email  = payload.contactEmail;
+  if (payload.openingHours != null) body.opening_hours  = payload.openingHours;
+  if (payload.about        != null) body.about          = payload.about;
+
+  const res = await api.patch('/restaurant/profile/', body);
+  const p: ApiRestaurantProfile = res.data.data;
+  return {
+    id:             p.id,
+    name:           p.name,
+    address:        p.address,
+    postalCode:     p.postal_code,
+    latitude:       p.latitude,
+    longitude:      p.longitude,
+    uen:            p.uen,
+    contactName:    p.contact_name,
+    contactEmail:   p.contact_email,
+    contactPhone:   p.contact_phone,
+    openingHours:   p.opening_hours ?? '',
+    about:          p.about ?? '',
+    photoUrl:       p.photo_url,
+    isApproved:     p.is_approved,
+    isVerified:     p.is_verified,
+    totalFoodShared: p.total_food_shared ?? 0,
+    peopleFed:      p.people_fed ?? 0,
+    claimRatePct:   p.claim_rate_pct ?? 0,
+    rating:         p.rating ?? 0,
+    reviewCount:    p.review_count ?? 0,
+  };
+};
+
 export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 400));
-  const p = MOCK_RESTAURANT_PROFILE;
+  const res = await api.get('/restaurant/profile/');
+  const p: ApiRestaurantProfile = res.data.data;
   return {
     id: p.id,
     name: p.name,
@@ -241,18 +288,17 @@ export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
     contactName: p.contact_name,
     contactEmail: p.contact_email,
     contactPhone: p.contact_phone,
-    openingHours: p.opening_hours,
-    about: p.about,
+    openingHours: p.opening_hours ?? '',
+    about: p.about ?? '',
     photoUrl: p.photo_url,
     isApproved: p.is_approved,
     isVerified: p.is_verified,
-    totalFoodShared: p.total_food_shared,
+    totalFoodShared: p.total_food_shared ?? 0,
+    peopleFed: p.people_fed ?? 0,
+    claimRatePct: p.claim_rate_pct ?? 0,
+    rating: p.rating ?? 0,
+    reviewCount: p.review_count ?? 0,
   };
-  /* REAL API:
-  const res = await api.get('/restaurant/profile/');
-  const p = res.data.data;
-  return { ...same mapping as above... };
-  */
 };
 
 export const getNearbyRestaurants = async (

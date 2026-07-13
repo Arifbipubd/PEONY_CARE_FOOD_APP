@@ -51,6 +51,8 @@ export interface FoodItem {
   restaurantLatitude: number;
   restaurantLongitude: number;
   restaurantIsVerified: boolean;
+  restaurantRating?: number;
+  restaurantReviewCount?: number;
   name: string;
   description: string;
   category: FoodCategory;
@@ -189,12 +191,20 @@ export interface RestaurantProfile {
   contactName: string;
   contactEmail: string;
   contactPhone: string;
+  cuisineType?: string;
   openingHours: string;
+  opensAt?: string;
+  closesAt?: string;
+  openDays?: string[];
   about: string;
-  photoUrl: string;
+  photoUrl: string | null;
   isApproved: boolean;
   isVerified: boolean;
   totalFoodShared: number;
+  peopleFed: number;
+  claimRatePct: number;
+  rating: number;
+  reviewCount: number;
 }
 
 // RestaurantDonation is a food listing from the restaurant's own management view.

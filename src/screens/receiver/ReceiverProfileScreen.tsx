@@ -162,18 +162,18 @@ const pSkelStyles = StyleSheet.create({
 });
 
 export default function ReceiverProfileScreen({ navigation }: Props) {
-  const { refreshToken, clearAuth } = useAuthStore();
+  const { refreshToken, clearAuth, user } = useAuthStore();
   const { unreadCount } = useNotificationStore();
   const [profile, setProfile] = useState<ReceiverProfile | null>(null);
   const [loading, setLoading]   = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
-  const { photoUrl } = useProfileStore();
+  const { photoUrl, displayName: storedName } = useProfileStore();
 
   useEffect(() => {
-    getReceiverProfile().then((p) => {
-      setProfile(p);
-      setLoading(false);
-    });
+    getReceiverProfile()
+      .then((p) => { setProfile(p); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   async function handleLogout() {
@@ -189,7 +189,19 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
     return <ProfileSkeleton />;
   }
 
-  if (!profile) return null;
+  const effectiveProfile: ReceiverProfile = profile ?? {
+    id: user?.id ?? '',
+    displayName: storedName || 'Receiver',
+    phone: user?.phone ?? '',
+    photoUrl: null,
+    browseRadiusKm: 5,
+    memberSince: '',
+    daysActive: 0,
+    totalClaims: 0,
+    lastClaimDate: null,
+    lifetimeMeals: 0,
+    restaurantsCount: 0,
+  };
 
   const accountRows: MenuRow[] = [
     {
@@ -273,7 +285,7 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
             {photoUrl ? (
               <Image source={{ uri: photoUrl }} style={styles.avatarImage} resizeMode="cover" />
             ) : (
-              <Text style={styles.avatarText}>{initials(profile.displayName)}</Text>
+              <Text style={styles.avatarText}>{initials(effectiveProfile.displayName)}</Text>
             )}
           </View>
           <TouchableOpacity style={styles.cameraBtn} onPress={() => navigation.navigate('EditProfile')} activeOpacity={0.8}>
@@ -282,31 +294,31 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
         </View>
 
         {/* Name */}
-        <Text style={styles.name}>{profile.displayName}</Text>
+        <Text style={styles.name}>{effectiveProfile.displayName}</Text>
 
         {/* Phone row */}
         <View style={styles.phoneRow}>
           <SgFlag size={16} />
-          <Text style={styles.phone}>{formatSGPhone(profile.phone)}</Text>
+          <Text style={styles.phone}>{formatSGPhone(effectiveProfile.phone)}</Text>
         </View>
 
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
             <Text style={[styles.statNumber, { color: colors.accentPrimary }]}>
-              {profile.lifetimeMeals}
+              {effectiveProfile.lifetimeMeals}
             </Text>
             <Text style={styles.statLabel}>MEALS</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={[styles.statNumber, { color: colors.goldDark }]}>
-              {profile.restaurantsCount}
+              {effectiveProfile.restaurantsCount}
             </Text>
             <Text style={styles.statLabel}>RESTAURANTS</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={[styles.statNumber, { color: colors.textPrimary }]}>
-              {profile.daysActive}
+              {effectiveProfile.daysActive}
             </Text>
             <Text style={styles.statLabel}>DAYS</Text>
           </View>
@@ -339,7 +351,7 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
         {/* Member since pill */}
         <View style={styles.memberPill}>
           <Ionicons name="calendar-outline" size={14} color={colors.accentPrimary} />
-          <Text style={styles.memberText}>Member since {profile.memberSince}</Text>
+          <Text style={styles.memberText}>Member since {effectiveProfile.memberSince}</Text>
         </View>
 
         {/* Log out */}

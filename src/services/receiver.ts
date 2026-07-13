@@ -22,6 +22,8 @@ function mapApiFoodItem(d: ApiFoodItem): FoodItem {
     restaurantLatitude: d.restaurant.latitude,
     restaurantLongitude: d.restaurant.longitude,
     restaurantIsVerified: d.restaurant.is_verified,
+    restaurantRating: d.restaurant.rating,
+    restaurantReviewCount: d.restaurant.review_count,
     name: d.name,
     description: d.description,
     category: d.category as FoodItem['category'],

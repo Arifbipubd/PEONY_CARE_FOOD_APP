@@ -122,9 +122,9 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
   const { unreadCount } = useNotificationStore();
 
   useEffect(() => {
-    Promise.all([getClaimHistory(), getReceiverProfile()]).then(([h, p]) => {
-      setHistory(h);
-      setProfile(p);
+    Promise.allSettled([getClaimHistory(), getReceiverProfile()]).then(([h, p]) => {
+      if (h.status === 'fulfilled') setHistory(h.value);
+      if (p.status === 'fulfilled') setProfile(p.value);
       setLoading(false);
     });
   }, []);
