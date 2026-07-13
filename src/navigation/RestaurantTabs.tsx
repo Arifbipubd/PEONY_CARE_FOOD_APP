@@ -17,6 +17,7 @@ import RestaurantHelpFaqScreen         from '../screens/restaurant/RestaurantHel
 import RestaurantTermsPrivacyScreen    from '../screens/restaurant/RestaurantTermsPrivacyScreen';
 import RestaurantPublicPageScreen           from '../screens/restaurant/RestaurantPublicPageScreen';
 import EditRestaurantDetailsScreen          from '../screens/restaurant/EditRestaurantDetailsScreen';
+import RestaurantLocationScreen             from '../screens/restaurant/RestaurantLocationScreen';
 import { colors, fontSizes }     from '../constants/theme';
 import { useNotificationStore }  from '../store/notificationStore';
 
@@ -27,7 +28,8 @@ export type ProfileStackParamList = {
   RestaurantHelpFaq:          undefined;
   RestaurantTermsPrivacy:     undefined;
   RestaurantPublicPage:       undefined;
-  EditRestaurantDetails:      undefined;
+  EditRestaurantDetails: undefined;
+  RestaurantLocation:    { latitude: number; longitude: number; address: string };
 };
 
 export type RestaurantTabParamList = {
@@ -66,6 +68,7 @@ function ProfileNavigator() {
       <ProfileStack.Screen name="RestaurantTermsPrivacy" component={RestaurantTermsPrivacyScreen} />
       <ProfileStack.Screen name="RestaurantPublicPage"       component={RestaurantPublicPageScreen} />
       <ProfileStack.Screen name="EditRestaurantDetails"      component={EditRestaurantDetailsScreen} />
+      <ProfileStack.Screen name="RestaurantLocation"         component={RestaurantLocationScreen} />
     </ProfileStack.Navigator>
   );
 }

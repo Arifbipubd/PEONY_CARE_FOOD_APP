@@ -13,7 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getRestaurantProfile } from '../../services/restaurant';
+import { setOnConfirm } from './RestaurantLocationScreen';
+import { getRestaurantProfile, updateRestaurantProfile } from '../../services/restaurant';
 import { RestaurantProfile } from '../../types';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
@@ -175,6 +176,8 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
   const [name, setName]         = useState('');
   const [cuisine, setCuisine]   = useState('');
   const [address, setAddress]   = useState('');
+  const [lat, setLat]           = useState(0);
+  const [lng, setLng]           = useState(0);
   const [phone, setPhone]       = useState('');
   const [email, setEmail]       = useState('');
   const [opensAt, setOpensAt]   = useState('10:00');
@@ -189,6 +192,8 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
         setName(p.name);
         setCuisine(p.cuisineType ?? '');
         setAddress(p.address);
+        setLat(p.latitude);
+        setLng(p.longitude);
         setPhone(p.contactPhone.replace('+65', '').trim());
         setEmail(p.contactEmail);
         setOpensAt(p.opensAt ?? '10:00');
@@ -208,10 +213,34 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
     });
   }, []);
 
-  const handleSave = useCallback(() => {
-    // API call wired later
-    navigation.goBack();
-  }, [navigation]);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = useCallback(async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const openingHours = [
+        `${opensAt}–${closesAt}`,
+        Array.from(openDays).join(', '),
+      ].filter(Boolean).join(' · ');
+
+      await updateRestaurantProfile({
+        name,
+        address,
+        latitude:     lat || undefined,
+        longitude:    lng || undefined,
+        contactPhone: phone ? `+65${phone}` : undefined,
+        contactEmail: email || undefined,
+        openingHours,
+        about,
+      });
+      navigation.goBack();
+    } catch {
+      // API error — stay on screen, user can retry
+    } finally {
+      setSaving(false);
+    }
+  }, [saving, name, address, lat, lng, phone, email, opensAt, closesAt, openDays, about, navigation]);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -307,7 +336,22 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
               value={address}
               onChangeText={setAddress}
             />
-            <TouchableOpacity style={styles.mapLink} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.mapLink}
+              activeOpacity={0.7}
+              onPress={() => {
+                setOnConfirm((result) => {
+                  setLat(result.latitude);
+                  setLng(result.longitude);
+                  setAddress(result.address);
+                });
+                navigation.navigate('RestaurantLocation', {
+                  latitude: lat || 1.3521,
+                  longitude: lng || 103.8198,
+                  address,
+                });
+              }}
+            >
               <Ionicons name="map" size={13} color={colors.accentPrimary} />
               <Text style={styles.mapLinkText}>Set exact pin on map</Text>
             </TouchableOpacity>
@@ -365,9 +409,9 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
 
       {/* Save button */}
       <SafeAreaView edges={['bottom']} style={styles.saveWrap}>
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.85} disabled={saving}>
           <Ionicons name="checkmark" size={18} color={colors.textInverse} />
-          <Text style={styles.saveBtnText}>Save changes</Text>
+          <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save changes'}</Text>
         </TouchableOpacity>
       </SafeAreaView>
 

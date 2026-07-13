@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo, useMemo } from 'react';
+import React, { useState, useCallback, memo, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { getRestaurantProfile } from '../../services/restaurant';
 import { RestaurantProfile } from '../../types';
@@ -124,12 +125,15 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
   const { refreshToken, clearAuth } = useAuthStore();
   const { unreadCount }             = useNotificationStore();
 
-  useEffect(() => {
-    getRestaurantProfile()
-      .then(setProfile)
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      getRestaurantProfile()
+        .then(setProfile)
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }, []),
+  );
 
   const initials = useMemo(
     () => (profile ? getInitials(profile.name) : ''),
