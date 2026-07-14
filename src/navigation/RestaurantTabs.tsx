@@ -28,8 +28,9 @@ export type ProfileStackParamList = {
   RestaurantHelpFaq:          undefined;
   RestaurantTermsPrivacy:     undefined;
   RestaurantPublicPage:       undefined;
-  EditRestaurantDetails: undefined;
-  RestaurantLocation:    { latitude: number; longitude: number; address: string };
+  EditRestaurantDetails:      undefined;
+  RestaurantLocation:         { latitude: number; longitude: number; address: string };
+  TodaysClaims:               undefined;
 };
 
 export type RestaurantTabParamList = {
@@ -51,7 +52,6 @@ export type DonationsStackParamList = {
     pickupWindow: string;
     donationId:   string;
   };
-  TodaysClaims:          undefined;
 };
 
 const Tab            = createBottomTabNavigator<RestaurantTabParamList>();
@@ -65,10 +65,11 @@ function ProfileNavigator() {
       <ProfileStack.Screen name="RestaurantDeleteAccount" component={RestaurantDeleteAccountScreen} />
       <ProfileStack.Screen name="RestaurantExportData"    component={RestaurantExportDataScreen} />
       <ProfileStack.Screen name="RestaurantHelpFaq"       component={RestaurantHelpFaqScreen} />
-      <ProfileStack.Screen name="RestaurantTermsPrivacy" component={RestaurantTermsPrivacyScreen} />
-      <ProfileStack.Screen name="RestaurantPublicPage"       component={RestaurantPublicPageScreen} />
-      <ProfileStack.Screen name="EditRestaurantDetails"      component={EditRestaurantDetailsScreen} />
-      <ProfileStack.Screen name="RestaurantLocation"         component={RestaurantLocationScreen} />
+      <ProfileStack.Screen name="RestaurantTermsPrivacy"  component={RestaurantTermsPrivacyScreen} />
+      <ProfileStack.Screen name="RestaurantPublicPage"    component={RestaurantPublicPageScreen} />
+      <ProfileStack.Screen name="EditRestaurantDetails"   component={EditRestaurantDetailsScreen} />
+      <ProfileStack.Screen name="RestaurantLocation"      component={RestaurantLocationScreen} />
+      <ProfileStack.Screen name="TodaysClaims"            component={TodaysClaimsScreen} />
     </ProfileStack.Navigator>
   );
 }
@@ -80,7 +81,6 @@ function DonationsNavigator() {
       <DonationsStack.Screen name="DonationDetail" component={DonationDetailScreen} />
       <DonationsStack.Screen name="PostDonation"        component={PostDonationScreen} />
       <DonationsStack.Screen name="PostDonationSuccess" component={PostDonationSuccessScreen} />
-      <DonationsStack.Screen name="TodaysClaims"        component={TodaysClaimsScreen} />
     </DonationsStack.Navigator>
   );
 }

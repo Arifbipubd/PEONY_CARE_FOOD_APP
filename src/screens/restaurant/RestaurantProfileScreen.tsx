@@ -154,7 +154,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
   }, [navigation]);
 
   const navToClaims = useCallback(() => {
-    (navigation.getParent() as any)?.navigate('Donations', { screen: 'TodaysClaims' });
+    navigation.navigate('TodaysClaims');
   }, [navigation]);
 
   if (loading) return <ProfileSkeleton />;
