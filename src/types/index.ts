@@ -284,6 +284,49 @@ export interface RestaurantDashboard {
   yesterdayFed: number;
 }
 
+// ─── Analytics ───────────────────────────────────────────────────────────────
+
+export interface AnalyticsDish {
+  id: string;
+  name: string;
+  photoUrl: string | null;
+  mealCount: number;
+  claimRatePct: number;
+}
+
+export interface AnalyticsSponsor {
+  id: string;
+  displayName: string;
+  initials: string | null;
+  sponsoredCount: number;
+  totalAmountSGD: number;
+  isAnonymous: boolean;
+}
+
+export interface WeeklyMealPoint {
+  week: string;
+  meals: number;
+}
+
+export interface ClaimRatePoint {
+  week: string;
+  ratePct: number;
+}
+
+export interface RestaurantAnalytics {
+  livesFed: number;
+  totalDonations: number;
+  claimRatePct: number;
+  growthPctThisWeek: number;
+  directCount: number;
+  sponsoredCount: number;
+  weeklyMeals: WeeklyMealPoint[];
+  claimRateTrend: ClaimRatePoint[];
+  heatmap: number[][];
+  topDishes: AnalyticsDish[];
+  topSponsors: AnalyticsSponsor[];
+}
+
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export interface AppNotification {

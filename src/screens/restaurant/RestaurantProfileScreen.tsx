@@ -255,6 +255,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
             iconColor={colors.textPrimary}
             iconBg={colors.surfaceSecondary}
             title="Analytics"
+            onPress={() => navigation.navigate('RestaurantAnalytics')}
           />
         </View>
 

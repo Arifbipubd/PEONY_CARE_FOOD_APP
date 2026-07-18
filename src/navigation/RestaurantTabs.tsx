@@ -19,6 +19,7 @@ import RestaurantPublicPageScreen           from '../screens/restaurant/Restaura
 import EditRestaurantDetailsScreen          from '../screens/restaurant/EditRestaurantDetailsScreen';
 import RestaurantLocationScreen             from '../screens/restaurant/RestaurantLocationScreen';
 import MenuPhotosScreen                     from '../screens/restaurant/MenuPhotosScreen';
+import RestaurantAnalyticsScreen            from '../screens/restaurant/RestaurantAnalyticsScreen';
 import { colors, fontSizes }     from '../constants/theme';
 import { useNotificationStore }  from '../store/notificationStore';
 
@@ -32,6 +33,7 @@ export type ProfileStackParamList = {
   EditRestaurantDetails:      undefined;
   RestaurantLocation:         { latitude: number; longitude: number; address: string };
   MenuPhotos:                 undefined;
+  RestaurantAnalytics:        undefined;
   TodaysClaims:               undefined;
 };
 
@@ -72,6 +74,7 @@ function ProfileNavigator() {
       <ProfileStack.Screen name="EditRestaurantDetails"   component={EditRestaurantDetailsScreen} />
       <ProfileStack.Screen name="RestaurantLocation"      component={RestaurantLocationScreen} />
       <ProfileStack.Screen name="MenuPhotos"              component={MenuPhotosScreen} />
+      <ProfileStack.Screen name="RestaurantAnalytics"     component={RestaurantAnalyticsScreen} />
       <ProfileStack.Screen name="TodaysClaims"            component={TodaysClaimsScreen} />
     </ProfileStack.Navigator>
   );

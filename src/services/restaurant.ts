@@ -2,7 +2,7 @@
 
 import {
   RestaurantDashboard, RestaurantDonation, RestaurantProfile, PublicRestaurant, FoodItem,
-  DonationSummary, CreateDonationPayload,
+  DonationSummary, CreateDonationPayload, RestaurantAnalytics,
 } from '../types';
 import {
   ApiRestaurantDonation, ApiRestaurantDashboard, ApiPublicRestaurant,
@@ -220,6 +220,57 @@ export const getTodaysClaims = async (): Promise<{ total: number; claims: Restau
   };
   /* REAL API:
   const res = await api.get('/restaurant/claims/today/');
+  return res.data.data;
+  */
+};
+
+export const getAnalytics = async (): Promise<RestaurantAnalytics> => {
+  // MOCK:
+  await new Promise((r) => setTimeout(r, 400));
+  return {
+    livesFed: 1248,
+    totalDonations: 156,
+    claimRatePct: 96,
+    growthPctThisWeek: 24,
+    directCount: 96,
+    sponsoredCount: 60,
+    weeklyMeals: [
+      { week: 'W1', meals: 22 },
+      { week: 'W2', meals: 28 },
+      { week: 'W3', meals: 35 },
+      { week: 'W4', meals: 42 },
+      { week: 'W5', meals: 54 },
+      { week: 'W6', meals: 62 },
+      { week: 'W7', meals: 186 },
+    ],
+    claimRateTrend: [
+      { week: 'W1', ratePct: 72 },
+      { week: 'W2', ratePct: 75 },
+      { week: 'W3', ratePct: 80 },
+      { week: 'W4', ratePct: 82 },
+      { week: 'W5', ratePct: 88 },
+      { week: 'W6', ratePct: 92 },
+      { week: 'W7', ratePct: 96 },
+    ],
+    heatmap: [
+      [1, 2, 1, 2, 3, 2, 3],
+      [2, 1, 3, 2, 3, 3, 3],
+      [1, 2, 2, 3, 2, 3, 3],
+      [2, 3, 2, 3, 3, 3, 3],
+    ],
+    topDishes: [
+      { id: '1', name: 'Chicken Rice', photoUrl: 'https://picsum.photos/seed/chicken/44', mealCount: 428, claimRatePct: 100 },
+      { id: '2', name: 'Laksa', photoUrl: 'https://picsum.photos/seed/laksa/44', mealCount: 312, claimRatePct: 94 },
+      { id: '3', name: 'Kaya Toast Set', photoUrl: 'https://picsum.photos/seed/kaya/44', mealCount: 218, claimRatePct: 88 },
+    ],
+    topSponsors: [
+      { id: '1', displayName: 'John Tan', initials: 'JT', sponsoredCount: 28, totalAmountSGD: 420, isAnonymous: false },
+      { id: '2', displayName: 'Camila R.', initials: 'CR', sponsoredCount: 14, totalAmountSGD: 280, isAnonymous: false },
+      { id: '3', displayName: 'Anonymous donors', initials: null, sponsoredCount: 18, totalAmountSGD: 0, isAnonymous: true },
+    ],
+  };
+  /* REAL API:
+  const res = await api.get('/restaurant/analytics/');
   return res.data.data;
   */
 };
