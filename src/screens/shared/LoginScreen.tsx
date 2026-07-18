@@ -17,7 +17,7 @@ import LogoBadge from '../../components/LogoBadge';
 import { sendOtp } from '../../services/auth';
 import { ApiError } from '../../services/api';
 import { colors, spacing, fontSizes, fontWeights } from '../../constants/theme';
-import SgFlag from '../../components/SgFlag';
+import CountryPicker, { CountryOption, COUNTRIES } from '../../components/CountryPicker';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'>;
@@ -25,6 +25,7 @@ type Props = {
 
 export default function LoginScreen({ navigation }: Props) {
   const [phone, setPhone]     = useState('');
+  const [country, setCountry] = useState<CountryOption>(COUNTRIES[0]);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [rateLimitSecs, setRateLimitSecs] = useState(0);
@@ -42,17 +43,22 @@ export default function LoginScreen({ navigation }: Props) {
   }, [rateLimitSecs]);
 
   const cleaned = phone.trim().replace(/\s/g, '');
-  const isValidSgPhone = /^[689]\d{7}$/.test(cleaned);
-  const phoneError =
-    cleaned.length > 0 && !/^[689]/.test(cleaned) ? 'Must start with 6, 8 or 9' :
-    cleaned.length > 8                             ? 'Must be exactly 8 digits'  : '';
+  const isSg = country.code === 'SG';
+  const isValidPhone = isSg
+    ? /^[689]\d{7}$/.test(cleaned)
+    : /^1[3-9]\d{8}$/.test(cleaned);
+  const phoneError = isSg
+    ? (cleaned.length > 0 && !/^[689]/.test(cleaned) ? 'Must start with 6, 8 or 9' :
+       cleaned.length > 8 ? 'Must be exactly 8 digits' : '')
+    : (cleaned.length > 0 && !/^1[3-9]/.test(cleaned) ? 'Must start with 13–19' :
+       cleaned.length > 10 ? 'Must be exactly 10 digits' : '');
 
   async function handleSend() {
-    if (!isValidSgPhone) { setError('Enter a valid Singapore number'); return; }
+    if (!isValidPhone) { setError(`Enter a valid ${country.label} number`); return; }
     setError('');
     setLoading(true);
     try {
-      const fullPhone = `+65${cleaned}`;
+      const fullPhone = `${country.dial}${cleaned}`;
       await sendOtp(fullPhone, 'LOGIN');
       navigation.navigate('Otp', { phone: fullPhone, purpose: 'LOGIN' });
     } catch (err: unknown) {
@@ -89,14 +95,11 @@ export default function LoginScreen({ navigation }: Props) {
             label="Mobile number"
             value={phone}
             onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
-            placeholder="91234567"
+            placeholder={isSg ? '91234567' : '1712345678'}
             keyboardType="number-pad"
             error={phoneError || (rateLimitSecs > 0 && error ? `${error} Retry in ${rateLimitSecs}s.` : error)}
             leftSection={
-              <>
-                <SgFlag size={24} />
-                <Text style={styles.prefix}>+65</Text>
-              </>
+              <CountryPicker selected={country} onSelect={(c) => { setCountry(c); setPhone(''); setError(''); }} />
             }
           />
 
@@ -104,7 +107,7 @@ export default function LoginScreen({ navigation }: Props) {
             label="Send code"
             onPress={handleSend}
             loading={loading}
-            disabled={!isValidSgPhone}
+            disabled={!isValidPhone}
             style={styles.btn}
             rightIcon={<Ionicons name="arrow-forward" size={20} color={colors.textInverse} />}
           />
@@ -143,11 +146,6 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.bold,
     color: colors.textPrimary,
     textAlign: 'center',
-  },
-  prefix: {
-    fontSize: fontSizes.md,
-    color: colors.textPrimary,
-    fontWeight: fontWeights.medium,
   },
   btn: { marginTop: spacing.xs },
   switchRow: {

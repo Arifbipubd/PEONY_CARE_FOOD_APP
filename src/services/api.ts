@@ -1,7 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/authStore';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000/api/v1';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
 
 export class ApiError extends Error {
   constructor(
@@ -20,10 +20,13 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach Bearer token to every request
+// Attach Bearer token + log every outgoing request
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (__DEV__) {
+    console.log(`[API] --> ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, config.data ?? '');
+  }
   return config;
 });
 
@@ -41,8 +44,16 @@ interface RetryConfig extends InternalAxiosRequestConfig {
 }
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    if (__DEV__) {
+      console.log(`[API] <-- ${res.status} ${res.config.url}`, res.data);
+    }
+    return res;
+  },
   async (error: AxiosError<{ error?: { code: string; message: string; details?: Record<string, unknown> } }>) => {
+    if (__DEV__) {
+      console.log(`[API] ERR ${error.response?.status ?? 'network'} ${error.config?.url}`, error.response?.data ?? error.message);
+    }
     const original = error.config as RetryConfig | undefined;
 
     // --- 401: try token refresh ---

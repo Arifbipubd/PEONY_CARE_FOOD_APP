@@ -15,7 +15,7 @@ import { AuthStackParamList } from '../../navigation/AuthStack';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import LogoBadge from '../../components/LogoBadge';
-import SgFlag from '../../components/SgFlag';
+import CountryPicker, { CountryOption, COUNTRIES } from '../../components/CountryPicker';
 import { sendOtp } from '../../services/auth';
 import { ApiError } from '../../services/api';
 import {
@@ -32,6 +32,7 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
   const [address, setAddress]               = useState('');
   const [contactName, setContactName]       = useState('');
   const [phone, setPhone]                   = useState('');
+  const [country, setCountry]               = useState<CountryOption>(COUNTRIES[0]);
   const [email, setEmail]                   = useState('');
   const [termsAccepted, setTermsAccepted]   = useState(false);
   const [loading, setLoading]               = useState(false);
@@ -51,17 +52,22 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
   }, [rateLimitSecs]);
 
   const cleaned = phone.trim().replace(/\s/g, '');
-  const isValidSgPhone = /^[689]\d{7}$/.test(cleaned);
-  const phoneError =
-    cleaned.length > 0 && !/^[689]/.test(cleaned) ? 'Must start with 6, 8 or 9' :
-    cleaned.length > 8                             ? 'Must be exactly 8 digits'  : '';
+  const isSg = country.code === 'SG';
+  const isValidPhone = isSg
+    ? /^[689]\d{7}$/.test(cleaned)
+    : /^1[3-9]\d{8}$/.test(cleaned);
+  const phoneError = isSg
+    ? (cleaned.length > 0 && !/^[689]/.test(cleaned) ? 'Must start with 6, 8 or 9' :
+       cleaned.length > 8 ? 'Must be exactly 8 digits' : '')
+    : (cleaned.length > 0 && !/^1[3-9]/.test(cleaned) ? 'Must start with 13–19' :
+       cleaned.length > 10 ? 'Must be exactly 10 digits' : '');
 
   const canSubmit =
     restaurantName.trim().length > 0 &&
     uen.trim().length > 0 &&
     address.trim().length > 0 &&
     contactName.trim().length > 0 &&
-    isValidSgPhone &&
+    isValidPhone &&
     termsAccepted;
 
   const clearError = useCallback(() => setError(''), []);
@@ -71,12 +77,12 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
     if (!uen.trim())             { setError('UEN is required'); return; }
     if (!address.trim())         { setError('Address is required'); return; }
     if (!contactName.trim())     { setError('Contact name is required'); return; }
-    if (!isValidSgPhone)         { setError('Enter a valid Singapore number'); return; }
+    if (!isValidPhone)            { setError(`Enter a valid ${country.label} number`); return; }
     if (!termsAccepted)          { setError('You must agree to the Terms and Privacy Policy'); return; }
     setError('');
     setLoading(true);
     try {
-      const fullPhone = `+65${cleaned}`;
+      const fullPhone = `${country.dial}${cleaned}`;
       await sendOtp(fullPhone, 'REGISTER');
       navigation.navigate('Otp', {
         phone: fullPhone,
@@ -162,14 +168,11 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
               label="Mobile number"
               value={phone}
               onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); clearError(); }}
-              placeholder="8765 4321"
+              placeholder={isSg ? '91234567' : '1712345678'}
               keyboardType="number-pad"
               error={phoneError}
               leftSection={
-                <>
-                  <SgFlag size={24} />
-                  <Text style={styles.prefix}>+65</Text>
-                </>
+                <CountryPicker selected={country} onSelect={(c) => { setCountry(c); setPhone(''); clearError(); }} />
               }
             />
             <Input
@@ -263,11 +266,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['12'],
     color: colors.accentPrimary,
-  },
-  prefix: {
-    fontFamily: fontFamilies.regular,
-    fontSize: fontSizes['14'],
-    color: colors.textPrimary,
   },
   checkboxRow: {
     flexDirection: 'row',
