@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import ReceiverHomeEmptyScreen from './ReceiverHomeEmptyScreen';
 import {
   View,
   Text,
@@ -233,6 +234,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const { lat, lng, loading: locLoading } = useLocation();
   const locationPatched = useRef(false);
 
+  const [skipEmpty, setSkipEmpty]        = useState(false);
   const [activeTab, setActiveTab]       = useState<Tab>('meals');
   const [filters, setFilters]           = useState<FilterState>(DEFAULT_FILTERS);
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
@@ -314,8 +316,26 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
     return true;
   });
 
+  const handleNotifications = useCallback(
+    () => navigation.getParent()?.navigate('Alerts' as never),
+    [navigation],
+  );
+  const handleBrowseWithout = useCallback(() => setSkipEmpty(true), []);
+
   if (loading) {
     return <HomeSkeleton />;
+  }
+
+  if (foods.length === 0 && restaurants.length === 0 && !skipEmpty) {
+    return (
+      <ReceiverHomeEmptyScreen
+        firstName={firstName}
+        unreadCount={unreadCount}
+        dailyLimit={dailyLimit}
+        onNotificationsPress={handleNotifications}
+        onBrowseWithout={handleBrowseWithout}
+      />
+    );
   }
 
   return (
