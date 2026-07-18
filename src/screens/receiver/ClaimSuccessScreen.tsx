@@ -79,6 +79,14 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
 
   const goHome = () => navigation.navigate('ReceiverHome');
 
+  const goReview = () =>
+    navigation.navigate('WriteReview', {
+      claimId: claim.claimId,
+      restaurantName: claim.restaurantName,
+      restaurantPhotoUrl: claim.restaurantPhotoUrl,
+      foodName: claim.foodName,
+    });
+
   // Confetti origin: top inset + scroll paddingTop + half the success circle height
   const confettiOriginY = insets.top + 72 + 62;
 
@@ -182,7 +190,7 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
 
       {/* Action buttons */}
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={goHome}>
+        <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={goReview}>
           <Ionicons name="star" size={18} color={colors.textInverse} />
           <Text style={styles.primaryBtnText}>Rate this restaurant</Text>
         </TouchableOpacity>

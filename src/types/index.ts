@@ -86,7 +86,9 @@ export interface Claim {
   claimId: string;
   status: ClaimStatus;
   foodName: string;
+  restaurantId: string;
   restaurantName: string;
+  restaurantPhotoUrl: string | null;
   pickupAddress: string;
   distanceKm: number;
   pickupWindow: string;
@@ -98,6 +100,13 @@ export interface Claim {
     canClaim: boolean;
     resetsAt: string;
   };
+}
+
+export interface ReviewPayload {
+  claimId: string;
+  rating: number;
+  tags: string[];
+  comment: string;
 }
 
 export interface ClaimHistoryItem {
