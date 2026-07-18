@@ -30,6 +30,7 @@ const CONTENT_W  = SW - spacing['2xl'] * 2;
 const TILE_SIZE  = Math.floor((CONTENT_W - 8) / 2);
 const CAROUSEL_H = Math.round(CONTENT_W * 0.68);
 
+// Change to [] to preview the empty state
 const MOCK_PHOTOS = [
   'https://picsum.photos/seed/menu1/800/540',
   'https://picsum.photos/seed/menu2/800/540',
@@ -39,24 +40,193 @@ const ADD_SLOT = '__ADD__';
 
 type GridItem = string;
 
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+type EmptyProps = {
+  onAddPhoto: () => void;
+  onPostDonation: () => void;
+};
+
+const EmptyMenuPhotos = React.memo(({ onAddPhoto, onPostDonation }: EmptyProps) => (
+  <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={es.scroll}>
+
+    {/* Illustration */}
+    <View style={es.illoWrap}>
+      <MaterialCommunityIcons name="image-multiple" size={44} color={colors.accentPrimary} />
+    </View>
+
+    {/* Hero text */}
+    <Text style={es.eyebrow}>Your public menu</Text>
+    <Text style={es.title}>No menu photos yet</Text>
+    <Text style={es.sub}>
+      {"Snap your menu board, paper menu, or a couple of dish shots. Donors see these when they're deciding to sponsor a meal here."}
+    </Text>
+
+    {/* WHY UPLOAD MENU PHOTOS? */}
+    <View style={es.whySection}>
+      <View style={es.whyLabelRow}>
+        <MaterialCommunityIcons name="lightbulb-on-outline" size={14} color={colors.textMuted} />
+        <Text style={es.whyLabel}>WHY UPLOAD MENU PHOTOS?</Text>
+      </View>
+
+      {/* Benefit rows */}
+      <View style={es.benefitRow}>
+        <Ionicons name="eye" size={18} color={colors.accentPrimary} style={es.benefitIcon} />
+        <Text style={es.benefitText}>
+          <Text style={es.benefitBold}>{'Donors see them first.'}</Text>
+          {' A clear menu helps them decide to sponsor here.'}
+        </Text>
+      </View>
+
+      <View style={es.benefitRow}>
+        <MaterialCommunityIcons name="camera-plus" size={18} color={colors.accentPrimary} style={es.benefitIcon} />
+        <Text style={es.benefitText}>
+          <Text style={es.benefitBold}>{'Up to 10 photos.'}</Text>
+          {' Add more anytime, reorder or remove them.'}
+        </Text>
+      </View>
+
+      <View style={es.benefitRow}>
+        <MaterialCommunityIcons name="sync" size={18} color={colors.accentPrimary} style={es.benefitIcon} />
+        <Text style={es.benefitText}>
+          <Text style={es.benefitBold}>{'Updates apply instantly'}</Text>
+          {' — donors always see your latest menu.'}
+        </Text>
+      </View>
+    </View>
+
+    {/* Not ready link */}
+    <TouchableOpacity style={es.notReadyRow} onPress={onPostDonation} activeOpacity={0.7} hitSlop={8}>
+      <Text style={es.notReadyMuted}>Not ready?{'  '}</Text>
+      <Text style={es.notReadyLink}>Post a donation instead</Text>
+      <Ionicons name="arrow-forward" size={14} color={colors.accentPrimary} />
+    </TouchableOpacity>
+
+  </ScrollView>
+));
+
+const es = StyleSheet.create({
+  scroll: {
+    alignItems: 'center',
+    paddingHorizontal: spacing['2xl'],
+    paddingBottom: 32,
+  },
+
+  // Illustration
+  illoWrap: {
+    width: 128,
+    height: 128,
+    borderRadius: 32,
+    backgroundColor: colors.avatarBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing['2xl'],
+    marginBottom: 4,
+  },
+
+  // Hero
+  eyebrow: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  title: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['2xl'],
+    letterSpacing: -0.6,
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  sub: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
+    lineHeight: 21,
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingHorizontal: 8,
+    marginTop: 6,
+  },
+
+  // WHY section
+  whySection: {
+    alignSelf: 'stretch',
+    marginTop: spacing['3xl'],
+  },
+  whyLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  whyLabel: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['12'],
+    letterSpacing: 0.96,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+  },
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    marginBottom: spacing.xl,
+  },
+  benefitIcon: { marginTop: 1 },
+  benefitText: {
+    flex: 1,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    lineHeight: 18,
+    color: colors.textPrimary,
+  },
+  benefitBold: {
+    fontFamily: fontFamilies.bold,
+  },
+
+  // Not ready link
+  notReadyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing['2xl'],
+  },
+  notReadyMuted: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
+    color: colors.textMuted,
+  },
+  notReadyLink: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['14'],
+    color: colors.accentPrimary,
+  },
+});
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
+
 export default function MenuPhotosScreen({ navigation }: Props) {
   const [photos, setPhotos]               = useState<string[]>(MOCK_PHOTOS);
   const [carouselIndex, setCarouselIndex] = useState(0);
 
-  const slotsLeft = useMemo(() => MAX_PHOTOS - photos.length, [photos.length]);
-
-  const gridData = useMemo<GridItem[]>(
+  const isEmpty    = photos.length === 0;
+  const slotsLeft  = useMemo(() => MAX_PHOTOS - photos.length, [photos.length]);
+  const gridData   = useMemo<GridItem[]>(
     () => (photos.length < MAX_PHOTOS ? [...photos, ADD_SLOT] : photos),
     [photos],
   );
 
-  const handleBack         = useCallback(() => navigation.goBack(), [navigation]);
-  const handleDelete       = useCallback(
+  const handleBack        = useCallback(() => navigation.goBack(), [navigation]);
+  const handleDelete      = useCallback(
     (uri: string) => setPhotos(prev => prev.filter(p => p !== uri)),
     [],
   );
-  const handleAddPhotoTile = useCallback(() => { /* TODO: launch image picker */ }, []);
-  const handleAddPhotosBtn = useCallback(() => { /* TODO: launch image picker */ }, []);
+  const handleAddPhoto    = useCallback(() => { /* TODO: launch image picker */ }, []);
+  const handlePostDonation = useCallback(
+    () => (navigation.getParent() as any)?.navigate('Donations', { screen: 'PostDonation' }),
+    [navigation],
+  );
 
   const handleCarouselScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -66,7 +236,7 @@ export default function MenuPhotosScreen({ navigation }: Props) {
     [photos.length],
   );
 
-  // ─── Grid item ────────────────────────────────────────────────────────────────
+  // ─── Grid item ──────────────────────────────────────────────────────────────
 
   const renderGridItem = useCallback(({ item }: { item: GridItem }) => {
     if (item === ADD_SLOT) {
@@ -74,7 +244,7 @@ export default function MenuPhotosScreen({ navigation }: Props) {
         <TouchableOpacity
           style={styles.addTile}
           activeOpacity={0.75}
-          onPress={handleAddPhotoTile}
+          onPress={handleAddPhoto}
         >
           <MaterialCommunityIcons name="image-plus" size={28} color={colors.textMuted} />
           <Text style={styles.addTileTitle}>Add photo</Text>
@@ -98,7 +268,7 @@ export default function MenuPhotosScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
     );
-  }, [handleAddPhotoTile, handleDelete, slotsLeft]);
+  }, [handleAddPhoto, handleDelete, slotsLeft]);
 
   const keyExtractor = useCallback(
     (item: GridItem, idx: number) => `grid-${idx}-${item.slice(-8)}`,
@@ -108,7 +278,7 @@ export default function MenuPhotosScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
 
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      {/* ── Header ────────────────────────────────────────────────────────── */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={handleBack} hitSlop={8}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
@@ -117,94 +287,104 @@ export default function MenuPhotosScreen({ navigation }: Props) {
         <View style={styles.backBtn} />
       </View>
 
-      {/* ── Scrollable body ─────────────────────────────────────────────────── */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
-      >
-        {/* Hero */}
-        <Text style={styles.eyebrow}>Your public menu</Text>
-        <Text style={styles.heroTitle}>Menu photos</Text>
-        <Text style={styles.heroDesc}>
-          {'Upload photos of your menu board, paper menu, or dish shots. Donors browse these when deciding to sponsor.'}
-        </Text>
+      {/* ── Empty state ───────────────────────────────────────────────────── */}
+      {isEmpty && (
+        <EmptyMenuPhotos onAddPhoto={handleAddPhoto} onPostDonation={handlePostDonation} />
+      )}
 
-        {/* HOW DONORS SEE YOUR MENU */}
-        <View style={styles.previewLabelRow}>
-          <Ionicons name="eye" size={14} color={colors.textMuted} />
-          <Text style={styles.previewLabel}>HOW DONORS SEE YOUR MENU</Text>
-        </View>
+      {/* ── Filled state ──────────────────────────────────────────────────── */}
+      {!isEmpty && (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        <View style={[styles.carouselWrap, { height: CAROUSEL_H }]}>
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={handleCarouselScroll}
-            scrollEventThrottle={16}
-          >
-            {photos.map((uri, idx) => (
-              <Image
+          {/* Hero */}
+          <Text style={styles.eyebrow}>Your public menu</Text>
+          <Text style={styles.heroTitle}>Menu photos</Text>
+          <Text style={styles.heroDesc}>
+            {'Upload photos of your menu board, paper menu, or dish shots. Donors browse these when deciding to sponsor.'}
+          </Text>
+
+          {/* HOW DONORS SEE YOUR MENU */}
+          <View style={styles.previewLabelRow}>
+            <Ionicons name="eye" size={14} color={colors.textMuted} />
+            <Text style={styles.previewLabel}>HOW DONORS SEE YOUR MENU</Text>
+          </View>
+
+          <View style={[styles.carouselWrap, { height: CAROUSEL_H }]}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onScroll={handleCarouselScroll}
+              scrollEventThrottle={16}
+            >
+              {photos.map((uri, idx) => (
+                <Image
+                  key={idx}
+                  source={{ uri }}
+                  style={{ width: CONTENT_W, height: CAROUSEL_H }}
+                  resizeMode="cover"
+                />
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Dot indicators */}
+          <View style={styles.dotsRow}>
+            {photos.map((_, idx) => (
+              <View
                 key={idx}
-                source={{ uri }}
-                style={{ width: CONTENT_W, height: CAROUSEL_H }}
-                resizeMode="cover"
+                style={[styles.dot, idx === carouselIndex && styles.dotActive]}
               />
             ))}
-          </ScrollView>
-        </View>
+          </View>
 
-        {/* Dot indicators */}
-        <View style={styles.dotsRow}>
-          {photos.map((_, idx) => (
-            <View
-              key={idx}
-              style={[styles.dot, idx === carouselIndex && styles.dotActive]}
-            />
-          ))}
-        </View>
-
-        <Text style={styles.previewHint}>
-          {`Swipe to see all ${photos.length} photos exactly as they appear on your donor-facing page.`}
-        </Text>
-
-        {/* Your photos — section header */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Your photos</Text>
-          <Text style={styles.sectionCount}>{photos.length} uploaded · max {MAX_PHOTOS}</Text>
-        </View>
-
-        {/* Photo grid */}
-        <FlatList
-          data={gridData}
-          keyExtractor={keyExtractor}
-          renderItem={renderGridItem}
-          numColumns={2}
-          columnWrapperStyle={styles.columnWrapper}
-          scrollEnabled={false}
-          removeClippedSubviews={false}
-          maxToRenderPerBatch={MAX_PHOTOS + 1}
-          windowSize={3}
-        />
-
-        {/* Reorder hint */}
-        <View style={styles.hintRow}>
-          <Ionicons name="swap-vertical" size={14} color={colors.textMuted} />
-          <Text style={styles.hintText}>
-            {'Long-press a photo to reorder. Photo #1 is the first one donors see.'}
+          <Text style={styles.previewHint}>
+            {`Swipe to see all ${photos.length} photos exactly as they appear on your donor-facing page.`}
           </Text>
-        </View>
-      </ScrollView>
 
-      {/* ── Sticky bottom button ─────────────────────────────────────────────── */}
+          {/* Your photos — section header */}
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Your photos</Text>
+            <Text style={styles.sectionCount}>{photos.length} uploaded · max {MAX_PHOTOS}</Text>
+          </View>
+
+          {/* Photo grid */}
+          <FlatList
+            data={gridData}
+            keyExtractor={keyExtractor}
+            renderItem={renderGridItem}
+            numColumns={2}
+            columnWrapperStyle={styles.columnWrapper}
+            scrollEnabled={false}
+            removeClippedSubviews={false}
+            maxToRenderPerBatch={MAX_PHOTOS + 1}
+            windowSize={3}
+          />
+
+          {/* Reorder hint */}
+          <View style={styles.hintRow}>
+            <Ionicons name="swap-vertical" size={14} color={colors.textMuted} />
+            <Text style={styles.hintText}>
+              {'Long-press a photo to reorder. Photo #1 is the first one donors see.'}
+            </Text>
+          </View>
+        </ScrollView>
+      )}
+
+      {/* ── Sticky bottom button ──────────────────────────────────────────── */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={styles.addBtn}
           activeOpacity={0.85}
-          onPress={handleAddPhotosBtn}
+          onPress={handleAddPhoto}
         >
-          <Ionicons name="images" size={18} color={colors.textInverse} />
-          <Text style={styles.addBtnText}>Add photos</Text>
+          {isEmpty
+            ? <MaterialCommunityIcons name="image-plus" size={18} color={colors.textInverse} />
+            : <Ionicons name="images" size={18} color={colors.textInverse} />
+          }
+          <Text style={styles.addBtnText}>
+            {isEmpty ? 'Add menu photo' : 'Add photos'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -232,13 +412,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // ── Scroll container
+  // ── Scroll container (filled state)
   scroll: {
     paddingHorizontal: spacing['2xl'],
     paddingBottom: 32,
   },
 
-  // ── Hero
+  // ── Hero (filled)
   eyebrow: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['12'],
@@ -261,7 +441,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing['2xl'],
   },
 
-  // ── Donor preview
+  // ── Donor preview (filled)
   previewLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -305,7 +485,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing['2xl'],
   },
 
-  // ── Your photos
+  // ── Your photos (filled)
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -324,7 +504,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
-  // ── Grid
+  // ── Grid (filled)
   columnWrapper: { gap: 8, marginBottom: 8 },
 
   photoTile: {
@@ -367,7 +547,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
-  // ── Reorder hint
+  // ── Reorder hint (filled)
   hintRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -382,7 +562,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
-  // ── Bottom bar
+  // ── Bottom bar (shared)
   bottomBar: {
     paddingHorizontal: spacing['2xl'],
     paddingTop: spacing.lg,
