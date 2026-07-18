@@ -8,9 +8,12 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
+  ActivityIndicator,
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { saveMenuPhotos } from '../../services/restaurant';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -30,11 +33,7 @@ const CONTENT_W  = SW - spacing['2xl'] * 2;
 const TILE_SIZE  = Math.floor((CONTENT_W - 8) / 2);
 const CAROUSEL_H = Math.round(CONTENT_W * 0.68);
 
-// Change to [] to preview the empty state
-const MOCK_PHOTOS = [
-  'https://picsum.photos/seed/menu1/800/540',
-  'https://picsum.photos/seed/menu2/800/540',
-];
+const MOCK_PHOTOS: string[] = [];
 
 const ADD_SLOT = '__ADD__';
 
@@ -43,11 +42,10 @@ type GridItem = string;
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 type EmptyProps = {
-  onAddPhoto: () => void;
   onPostDonation: () => void;
 };
 
-const EmptyMenuPhotos = React.memo(({ onAddPhoto, onPostDonation }: EmptyProps) => (
+const EmptyMenuPhotos = React.memo(({ onPostDonation }: EmptyProps) => (
   <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={es.scroll}>
 
     {/* Illustration */}
@@ -208,21 +206,51 @@ const es = StyleSheet.create({
 
 export default function MenuPhotosScreen({ navigation }: Props) {
   const [photos, setPhotos]               = useState<string[]>(MOCK_PHOTOS);
+  const [savedPhotos, setSavedPhotos]     = useState<string[]>(MOCK_PHOTOS);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [saving, setSaving]               = useState(false);
 
-  const isEmpty    = photos.length === 0;
-  const slotsLeft  = useMemo(() => MAX_PHOTOS - photos.length, [photos.length]);
-  const gridData   = useMemo<GridItem[]>(
+  const isEmpty     = photos.length === 0;
+  const hasUnsaved  = useMemo(
+    () => photos.join('|') !== savedPhotos.join('|'),
+    [photos, savedPhotos],
+  );
+  const slotsLeft   = useMemo(() => MAX_PHOTOS - photos.length, [photos.length]);
+  const gridData    = useMemo<GridItem[]>(
     () => (photos.length < MAX_PHOTOS ? [...photos, ADD_SLOT] : photos),
     [photos],
   );
 
-  const handleBack        = useCallback(() => navigation.goBack(), [navigation]);
-  const handleDelete      = useCallback(
+  const handleBack   = useCallback(() => navigation.goBack(), [navigation]);
+
+  const handleDelete = useCallback(
     (uri: string) => setPhotos(prev => prev.filter(p => p !== uri)),
     [],
   );
-  const handleAddPhoto    = useCallback(() => { /* TODO: launch image picker */ }, []);
+
+  const handleAddPhoto = useCallback(async () => {
+    const remaining = MAX_PHOTOS - photos.length;
+    if (remaining <= 0) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: remaining,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      setPhotos(prev => [...prev, ...result.assets.map(a => a.uri)].slice(0, MAX_PHOTOS));
+    }
+  }, [photos.length]);
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    try {
+      await saveMenuPhotos(photos);
+      setSavedPhotos(photos);
+    } finally {
+      setSaving(false);
+    }
+  }, [photos]);
   const handlePostDonation = useCallback(
     () => (navigation.getParent() as any)?.navigate('Donations', { screen: 'PostDonation' }),
     [navigation],
@@ -289,7 +317,7 @@ export default function MenuPhotosScreen({ navigation }: Props) {
 
       {/* ── Empty state ───────────────────────────────────────────────────── */}
       {isEmpty && (
-        <EmptyMenuPhotos onAddPhoto={handleAddPhoto} onPostDonation={handlePostDonation} />
+        <EmptyMenuPhotos onPostDonation={handlePostDonation} />
       )}
 
       {/* ── Filled state ──────────────────────────────────────────────────── */}
@@ -373,19 +401,32 @@ export default function MenuPhotosScreen({ navigation }: Props) {
 
       {/* ── Sticky bottom button ──────────────────────────────────────────── */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={styles.addBtn}
-          activeOpacity={0.85}
-          onPress={handleAddPhoto}
-        >
-          {isEmpty
-            ? <MaterialCommunityIcons name="image-plus" size={18} color={colors.textInverse} />
-            : <Ionicons name="images" size={18} color={colors.textInverse} />
-          }
-          <Text style={styles.addBtnText}>
-            {isEmpty ? 'Add menu photo' : 'Add photos'}
-          </Text>
-        </TouchableOpacity>
+        {hasUnsaved ? (
+          <TouchableOpacity
+            style={[styles.addBtn, saving && styles.addBtnDisabled]}
+            activeOpacity={0.85}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving
+              ? <ActivityIndicator size="small" color={colors.textInverse} />
+              : <Ionicons name="checkmark" size={18} color={colors.textInverse} />
+            }
+            <Text style={styles.addBtnText}>
+              {saving ? 'Saving…' : 'Save changes'}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.addBtn, photos.length >= MAX_PHOTOS && styles.addBtnDisabled]}
+            activeOpacity={0.85}
+            onPress={handleAddPhoto}
+            disabled={photos.length >= MAX_PHOTOS}
+          >
+            <MaterialCommunityIcons name="image-plus" size={18} color={colors.textInverse} />
+            <Text style={styles.addBtnText}>Add photos</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
     </SafeAreaView>
@@ -579,6 +620,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     height: 54,
     gap: 8,
+  },
+  addBtnDisabled: {
+    opacity: 0.7,
   },
   addBtnText: {
     fontFamily: fontFamilies.bold,

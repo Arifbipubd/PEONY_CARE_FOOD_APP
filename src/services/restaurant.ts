@@ -325,6 +325,15 @@ export const updateRestaurantProfile = async (
   };
 };
 
+export const saveMenuPhotos = async (uris: string[]): Promise<void> => {
+  // MOCK:
+  await new Promise((r) => setTimeout(r, 600));
+  return;
+  /* REAL API:
+  await api.patch('/restaurant/menu-photos/', { photo_urls: uris });
+  */
+};
+
 export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
   const res = await api.get('/restaurant/profile/');
   const p: ApiRestaurantProfile = res.data.data;

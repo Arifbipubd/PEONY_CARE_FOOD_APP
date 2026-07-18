@@ -7,6 +7,7 @@ import {
   ScrollView,
   FlatList,
   Modal,
+  Image,
   StyleSheet,
   ActivityIndicator,
   Alert,
@@ -305,15 +306,21 @@ export default function PostDonationScreen({ navigation }: Props) {
 
         {/* PHOTO */}
         <TouchableOpacity style={styles.photoBox} onPress={handlePickPhoto} activeOpacity={0.8}>
-          <Ionicons
-            name={photoUri ? 'checkmark-circle' : 'camera'}
-            size={32}
-            color={photoUri ? colors.successGreen : colors.textMuted}
-          />
-          <Text style={styles.photoTitle}>{photoUri ? 'Photo added' : 'Add a photo'}</Text>
-          <Text style={styles.photoSub}>
-            {photoUri ? 'Tap to change' : 'Helps food get claimed faster'}
-          </Text>
+          {photoUri ? (
+            <>
+              <Image source={{ uri: photoUri }} style={styles.photoPreview} resizeMode="cover" />
+              <View style={styles.photoOverlay}>
+                <Ionicons name="camera" size={16} color={colors.textInverse} />
+                <Text style={styles.photoChangeText}>Change</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <Ionicons name="camera" size={32} color={colors.textMuted} />
+              <Text style={styles.photoTitle}>Add a photo</Text>
+              <Text style={styles.photoSub}>Helps food get claimed faster</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         {/* POST DONATION */}
@@ -608,6 +615,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: spacing.sm,
+    overflow: 'hidden',
+  },
+  photoPreview: {
+    width: '100%',
+    height: '100%',
+  },
+  photoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingVertical: spacing.sm,
+  },
+  photoChangeText: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes.sm,
+    color: colors.textInverse,
   },
   photoTitle: {
     fontFamily: fontFamilies.semiBold,

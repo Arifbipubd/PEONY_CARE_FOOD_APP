@@ -26,6 +26,7 @@ type Props = {
 };
 
 const DELTA = { latitudeDelta: 0.008, longitudeDelta: 0.008 };
+const SG_DEFAULT = { latitude: 1.3521, longitude: 103.8198 };
 
 type LocationResult = { latitude: number; longitude: number; address: string };
 let _onConfirm: ((result: LocationResult) => void) | null = null;
@@ -63,7 +64,9 @@ const AddressCard = memo(({ address, postalCode, lat, lng }: AddressCardProps) =
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function RestaurantLocationScreen({ navigation, route }: Props) {
-  const { latitude: initLat, longitude: initLng, address: initAddr } = route.params;
+  const { latitude: rawLat, longitude: rawLng, address: initAddr } = route.params;
+  const initLat = rawLat || SG_DEFAULT.latitude;
+  const initLng = rawLng || SG_DEFAULT.longitude;
 
   const [pin, setPin]             = useState({ latitude: initLat, longitude: initLng });
   const [region, setRegion]       = useState<Region>({ ...DELTA, latitude: initLat, longitude: initLng });
@@ -128,11 +131,12 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
 
   const handleConfirm = useCallback(() => {
     if (_onConfirm) {
-      _onConfirm({ latitude: pin.latitude, longitude: pin.longitude, address });
+      const fullAddress = postalCode ? `${address}, Singapore ${postalCode}` : address;
+      _onConfirm({ latitude: pin.latitude, longitude: pin.longitude, address: fullAddress });
       _onConfirm = null;
     }
     navigation.goBack();
-  }, [navigation, pin, address]);
+  }, [navigation, pin, address, postalCode]);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
