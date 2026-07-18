@@ -73,7 +73,7 @@ export default function QrScannerScreen({ navigation }: Props) {
           const resetsAt = (err.details?.resets_at as string) ?? '';
           navigation.navigate('DailyLimit', { resetsAt });
         } else if (err.code === 'FOOD_UNAVAILABLE' || err.code === 'RACE_CONDITION') {
-          navigation.navigate('FoodUnavailable');
+          navigation.navigate('FoodUnavailable', {});
         } else {
           navigation.navigate('ScanError');
         }

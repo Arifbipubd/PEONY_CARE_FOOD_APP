@@ -34,7 +34,7 @@ export type HomeStackParamList = {
   RestaurantPage:  { restaurantId: string; distanceKm?: number };
   QrScanner:       undefined;
   ClaimSuccess:    { claim: Claim };
-  FoodUnavailable: undefined;
+  FoodUnavailable: { nearbyCount?: number };
   DailyLimit:      { resetsAt: string };
   ScanError:       undefined;
   OfflineError:    undefined;
