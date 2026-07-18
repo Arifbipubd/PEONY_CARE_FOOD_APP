@@ -14,12 +14,15 @@ import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { ProfileStackParamList } from '../../navigation/RestaurantTabs';
 import { colors, spacing, radius, fontSizes, fontFamilies, letterSpacings } from '../../constants/theme';
 
+type LocationParamList = {
+  RestaurantLocation: { latitude: number; longitude: number; address: string };
+};
+
 type Props = {
-  navigation: NativeStackNavigationProp<ProfileStackParamList, 'RestaurantLocation'>;
-  route:      RouteProp<ProfileStackParamList, 'RestaurantLocation'>;
+  navigation: NativeStackNavigationProp<LocationParamList, 'RestaurantLocation'>;
+  route:      RouteProp<LocationParamList, 'RestaurantLocation'>;
 };
 
 const DELTA = { latitudeDelta: 0.008, longitudeDelta: 0.008 };

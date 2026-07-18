@@ -18,6 +18,7 @@ import LogoBadge from '../../components/LogoBadge';
 import CountryPicker, { CountryOption, COUNTRIES } from '../../components/CountryPicker';
 import { sendOtp } from '../../services/auth';
 import { ApiError } from '../../services/api';
+import { setOnConfirm } from '../restaurant/RestaurantLocationScreen';
 import {
   colors, spacing, fontSizes, fontFamilies, letterSpacings, radius,
 } from '../../constants/theme';
@@ -34,6 +35,8 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
   const [phone, setPhone]                   = useState('');
   const [country, setCountry]               = useState<CountryOption>(COUNTRIES[0]);
   const [email, setEmail]                   = useState('');
+  const [lat, setLat]                        = useState(0);
+  const [lng, setLng]                        = useState(0);
   const [termsAccepted, setTermsAccepted]   = useState(false);
   const [loading, setLoading]               = useState(false);
   const [error, setError]                   = useState('');
@@ -152,7 +155,22 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
                 placeholder="443 Joo Chiat Rd, Singapore"
                 leftIcon={<Ionicons name="location" size={18} color={colors.textMuted} />}
               />
-              <TouchableOpacity style={styles.pinRow} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.pinRow}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setOnConfirm((result) => {
+                    setLat(result.latitude);
+                    setLng(result.longitude);
+                    setAddress(result.address);
+                  });
+                  navigation.navigate('RestaurantLocation', {
+                    latitude:  lat || 1.3521,
+                    longitude: lng || 103.8198,
+                    address,
+                  });
+                }}
+              >
                 <Ionicons name="bookmark" size={14} color={colors.accentPrimary} />
                 <Text style={styles.pinText}>Pin exact location on map</Text>
               </TouchableOpacity>

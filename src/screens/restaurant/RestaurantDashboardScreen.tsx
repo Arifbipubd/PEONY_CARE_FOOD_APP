@@ -167,7 +167,7 @@ type EmptyProps = {
 
 const EmptyDashboard = React.memo(({ restaurantName, navigation }: EmptyProps) => {
   const goAddPhotos = useCallback(
-    () => navigation.navigate('Profile', { screen: 'EditRestaurantDetails' } as never),
+    () => navigation.navigate('Profile', { screen: 'MenuPhotos' } as never),
     [navigation],
   );
   const goPost = useCallback(
@@ -530,9 +530,14 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
 
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.avatar}>
+        <TouchableOpacity
+          style={styles.avatar}
+          onPress={() => navigation.navigate('Profile')}
+          hitSlop={8}
+          activeOpacity={0.7}
+        >
           <Text style={styles.avatarText}>{initials}</Text>
-        </View>
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.bellBtn}
           onPress={() => navigation.navigate('Alerts')}
