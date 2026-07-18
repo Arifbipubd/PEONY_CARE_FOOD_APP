@@ -29,6 +29,7 @@ export const colors = {
   successGreenLight: '#ECFDF5',
   warningYellow:      '#F59E0B',
   warningYellowLight: '#FFFBEB',
+  warningYellowBorder: '#FDE68A',  // yellow-200 — ACTION REQUIRED card border
   errorRed:        '#D31B1B',
   dangerRed:       '#DC2626',  // destructive actions — delete account, trash icon
   accentLightBorder: '#FECACA', // border on accentLight (red-200) — danger card

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { getDashboard } from '../../services/restaurant';
 import { RestaurantDashboard, RestaurantDonation } from '../../types';
@@ -136,6 +137,364 @@ const DonationRow = React.memo(({ item }: { item: RestaurantDonation }) => {
   );
 });
 
+// ─── Empty / new-restaurant dashboard ────────────────────────────────────────
+
+const STEPS = [
+  {
+    num: 1,
+    done: true,
+    title: 'Create your account',
+    sub: 'Signed up and verified with ACRA',
+  },
+  {
+    num: 2,
+    done: false,
+    title: 'Add menu photos',
+    sub: 'Required — donors see this before sponsoring',
+  },
+  {
+    num: 3,
+    done: false,
+    title: 'Post your first donation',
+    sub: 'Once your menu is up, list surplus food for receivers',
+  },
+] as const;
+
+type EmptyProps = {
+  restaurantName: string;
+  navigation: BottomTabNavigationProp<RestaurantTabParamList, 'Home'>;
+};
+
+const EmptyDashboard = React.memo(({ restaurantName, navigation }: EmptyProps) => {
+  const goAddPhotos = useCallback(
+    () => navigation.navigate('Profile', { screen: 'EditRestaurantDetails' } as never),
+    [navigation],
+  );
+  const goPost = useCallback(
+    () => navigation.navigate('Donations', { screen: 'PostDonation' } as never),
+    [navigation],
+  );
+  const goClaims = useCallback(
+    () => navigation.navigate('Profile', { screen: 'TodaysClaims' } as never),
+    [navigation],
+  );
+  const handleStepPress = useCallback(
+    (num: number) => { if (num === 2) goAddPhotos(); else if (num === 3) goPost(); },
+    [goAddPhotos, goPost],
+  );
+
+  return (
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={es.scroll}>
+
+      {/* Account verified chip */}
+      <View style={es.chip}>
+        <MaterialCommunityIcons name="check-decagram" size={14} color={colors.accentPrimary} />
+        <Text style={es.chipText}>Account verified</Text>
+      </View>
+
+      {/* Welcome title + subtitle */}
+      <Text style={es.title}>{'Welcome to Peony Care,\n' + restaurantName + ' 🌸'}</Text>
+      <Text style={es.subtitle}>
+        {"You're all set up. Complete one quick step to start receiving donations."}
+      </Text>
+
+      {/* ACTION REQUIRED card */}
+      <View style={es.warnCard}>
+        <View style={es.warnLabelRow}>
+          <Ionicons name="warning" size={14} color={colors.pickupOrange} />
+          <Text style={es.warnLabel}>ACTION REQUIRED</Text>
+        </View>
+        <Text style={es.warnTitle}>Add menu photos to receive donations</Text>
+        <Text style={es.warnBody}>
+          {"Donors can't sponsor meals here until they see your menu. Upload a photo of your menu board or a few dish shots to go live."}
+        </Text>
+        <TouchableOpacity style={es.warnBtn} activeOpacity={0.85} onPress={goAddPhotos}>
+          <Ionicons name="images" size={16} color={colors.textInverse} />
+          <Text style={es.warnBtnText}>Add menu photos</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* GET STARTED steps */}
+      <Text style={es.getStartedLabel}>GET STARTED</Text>
+
+      {STEPS.map((step, idx) => (
+        <React.Fragment key={step.num}>
+          <TouchableOpacity
+            style={es.stepRow}
+            activeOpacity={step.done ? 1 : 0.75}
+            onPress={() => handleStepPress(step.num)}
+            disabled={step.done}
+          >
+            {step.done ? (
+              <View style={es.doneCircle}>
+                <Ionicons name="checkmark" size={14} color={colors.textInverse} />
+              </View>
+            ) : (
+              <View style={es.numCircle}>
+                <Text style={es.numText}>{step.num}</Text>
+              </View>
+            )}
+
+            <View style={es.stepContent}>
+              <Text style={es.stepTitle}>{step.title}</Text>
+              <Text style={es.stepSub}>{step.sub}</Text>
+            </View>
+
+            {step.done ? (
+              <View style={es.doneCircle}>
+                <Ionicons name="checkmark" size={14} color={colors.textInverse} />
+              </View>
+            ) : (
+              <Ionicons name="arrow-forward" size={18} color={colors.accentPrimary} />
+            )}
+          </TouchableOpacity>
+          {idx < STEPS.length - 1 && <View style={es.stepDivider} />}
+        </React.Fragment>
+      ))}
+
+      {/* YOUR IMPACT SO FAR */}
+      <View style={es.impactHeader}>
+        <Text style={es.impactLabel}>YOUR IMPACT SO FAR</Text>
+        <TouchableOpacity onPress={goClaims} hitSlop={8}>
+          <Text style={es.impactLink}>See claims</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={es.impactStatRow}>
+        <StatCard value="0" label="PEOPLE FED" valueColor={colors.textPrimary} />
+        <StatCard value="0" label="DONATIONS"  valueColor={colors.textPrimary} />
+        <StatCard value="—" label="CLAIM RATE" valueColor={colors.textMuted} />
+      </View>
+
+      {/* Active donations — empty */}
+      <Text style={es.activeSectionTitle}>Active donations</Text>
+      <View style={es.emptyList}>
+        <MaterialCommunityIcons name="silverware-fork-knife" size={40} color={colors.borderDefault} />
+        <Text style={es.emptyTitle}>No donations yet</Text>
+        <Text style={es.emptySub}>
+          {"Finish adding menu photos, then post your first donation. Receivers nearby will see it right away."}
+        </Text>
+      </View>
+
+    </ScrollView>
+  );
+});
+
+const es = StyleSheet.create({
+  scroll: { paddingBottom: 100 },
+
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: colors.avatarBg,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    gap: 6,
+    marginHorizontal: spacing['2xl'],
+    marginTop: spacing.sm,
+    marginBottom: 12,
+  },
+  chipText: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    color: colors.accentPrimary,
+  },
+
+  title: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['2xl'],
+    lineHeight: 27.6,
+    letterSpacing: -0.6,
+    color: colors.textPrimary,
+    paddingHorizontal: spacing['2xl'],
+  },
+  subtitle: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
+    lineHeight: 21,
+    color: colors.textMuted,
+    paddingHorizontal: spacing['2xl'],
+    marginTop: 8,
+    marginBottom: spacing.lg,
+  },
+
+  warnCard: {
+    marginHorizontal: spacing['2xl'],
+    marginTop: 4,
+    marginBottom: spacing.xl,
+    borderRadius: radius.card,
+    borderWidth: 1.5,
+    borderColor: colors.warningYellowBorder,
+    backgroundColor: colors.warningYellowLight,
+    padding: 18,
+    overflow: 'hidden',
+  },
+  warnLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  warnLabel: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.xs,
+    letterSpacing: 0.88,
+    color: colors.pickupOrange,
+    textTransform: 'uppercase',
+  },
+  warnTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['16'],
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  warnBody: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
+    lineHeight: 21,
+    color: colors.textMuted,
+    marginBottom: 16,
+  },
+  warnBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.textPrimary,
+    borderRadius: radius.card,
+    height: 44,
+    gap: 8,
+  },
+  warnBtnText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.md,
+    letterSpacing: letterSpacings.button,
+    color: colors.textInverse,
+  },
+
+  getStartedLabel: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.xs,
+    letterSpacing: 0.88,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    paddingTop: 20,
+    paddingHorizontal: spacing['2xl'],
+    paddingBottom: 10,
+  },
+
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: spacing.lg,
+    gap: spacing.md,
+  },
+  doneCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.pill,
+    backgroundColor: colors.successGreen,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  numCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  numText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['12'],
+    color: colors.textMuted,
+  },
+  stepContent: { flex: 1 },
+  stepTitle: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['14'],
+    lineHeight: 21,
+    color: colors.textPrimary,
+  },
+  stepSub: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    lineHeight: 18,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  stepDivider: {
+    height: 1,
+    backgroundColor: colors.borderDefault,
+    marginLeft: spacing['2xl'] + 28 + spacing.md,
+  },
+
+  impactHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  impactLabel: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.xs,
+    letterSpacing: 0.88,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+  },
+  impactLink: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    color: colors.accentPrimary,
+  },
+  impactStatRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: spacing['2xl'],
+    marginBottom: spacing['2xl'],
+  },
+
+  activeSectionTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.lg,
+    letterSpacing: -0.425,
+    color: colors.textPrimary,
+    paddingHorizontal: spacing['2xl'],
+    marginBottom: spacing.lg,
+  },
+
+  emptyList: {
+    alignItems: 'center',
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing['3xl'],
+    paddingBottom: spacing['2xl'],
+    gap: spacing.sm,
+  },
+  emptyTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['14'],
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  emptySub: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    lineHeight: 17.4,
+    color: colors.textMuted,
+    textAlign: 'center',
+    maxWidth: 310,
+  },
+});
+
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function RestaurantDashboardScreen({ navigation }: Props) {
@@ -156,6 +515,8 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
 
   if (loading) return <DashboardSkeleton />;
   if (!data)   return null;
+
+  const isEmpty = data.livesImpacted === 0 && data.todayListings.length === 0 && data.yesterdayListings.length === 0;
 
   const initials = data.restaurantName
     .split(' ')
@@ -182,6 +543,8 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
+      {isEmpty && <EmptyDashboard restaurantName={data.restaurantName} navigation={navigation} />}
+      {!isEmpty && (
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
@@ -253,6 +616,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
         )}
 
       </ScrollView>
+        )}
 
       <PostFAB onPress={goToPost} />
 
