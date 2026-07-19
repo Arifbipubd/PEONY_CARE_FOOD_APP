@@ -285,26 +285,29 @@ export default function DonationListScreen({ navigation }: Props) {
   const [actionLoading, setActionLoading] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    Promise.all([getDonationSummary(), getDonations('active')])
-      .then(([s, a]) => {
-        setSummary(s);
-        setActive(a);
-      })
-      .catch(() => {
+    const load = async () => {
+      const [summaryResult, donationsResult] = await Promise.allSettled([
+        getDonationSummary(),
+        getDonations(),
+      ]);
+      if (summaryResult.status === 'fulfilled') {
+        setSummary(summaryResult.value);
+      } else {
         setSummary({ activeCount: 0, pastCount: 0, inactiveCount: 0, weeklyMeals: 0 });
+      }
+      if (donationsResult.status === 'fulfilled') {
+        setActive(donationsResult.value.active);
+        setPast(donationsResult.value.past);
+        setInactive(donationsResult.value.inactive);
+      } else {
         setActive([]);
-      })
-      .finally(() => setLoading(false));
+        setPast([]);
+        setInactive([]);
+      }
+      setLoading(false);
+    };
+    load();
   }, []);
-
-  useEffect(() => {
-    if (tab === 'past' && past === null) {
-      getDonations('past').then(setPast).catch(() => setPast([]));
-    }
-    if (tab === 'inactive' && inactive === null) {
-      getDonations('inactive').then(setInactive).catch(() => setInactive([]));
-    }
-  }, [tab, past, inactive]);
 
   const handleReactivate = useCallback(async (id: string) => {
     if (actionLoading.has(id)) return;
@@ -316,7 +319,7 @@ export default function DonationListScreen({ navigation }: Props) {
         ? { ...prev, inactiveCount: prev.inactiveCount - 1, activeCount: prev.activeCount + 1 }
         : prev,
       );
-      setActive(null);
+      getDonations().then((result) => setActive(result.active));
     } finally {
       setActionLoading((prev) => { const s = new Set(prev); s.delete(id); return s; });
     }

@@ -176,11 +176,18 @@ export const getDashboard = async (): Promise<RestaurantDashboard> => {
   return mapApiDashboard(d);
 };
 
-export const getDonations = async (
-  status: 'active' | 'past' | 'inactive',
-): Promise<RestaurantDonation[]> => {
-  const res = await api.get('/restaurant/donations/', { params: { status } });
-  return (res.data.data as ApiRestaurantDonation[]).map(mapApiDonation);
+export const getDonations = async (): Promise<{
+  active: RestaurantDonation[];
+  past: RestaurantDonation[];
+  inactive: RestaurantDonation[];
+}> => {
+  const res = await api.get('/restaurant/donations/');
+  const all = (res.data.data as ApiRestaurantDonation[]).map(mapApiDonation);
+  return {
+    active:   all.filter((d) => d.listStatus === 'ACTIVE'),
+    past:     all.filter((d) => d.listStatus === 'PAST'),
+    inactive: all.filter((d) => d.listStatus === 'INACTIVE'),
+  };
 };
 
 export const getDonationDetail = async (foodId: string): Promise<RestaurantDonation> => {

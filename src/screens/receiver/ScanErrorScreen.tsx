@@ -7,11 +7,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { colors, spacing, radius, fontSizes, fontWeights } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
   navigation: NativeStackNavigationProp<HomeStackParamList, 'ScanError'>;
+  route: RouteProp<HomeStackParamList, 'ScanError'>;
 };
 
 const REASONS = [
@@ -32,7 +34,8 @@ const REASONS = [
   },
 ];
 
-export default function ScanErrorScreen({ navigation }: Props) {
+export default function ScanErrorScreen({ navigation, route }: Props) {
+  const { expectedFoodId } = route.params;
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
 
@@ -73,7 +76,7 @@ export default function ScanErrorScreen({ navigation }: Props) {
         <TouchableOpacity
           style={styles.primaryBtn}
           activeOpacity={0.85}
-          onPress={() => navigation.navigate('QrScanner')}
+          onPress={() => navigation.navigate('QrScanner', { expectedFoodId })}
         >
           <Text style={styles.primaryBtnText}>Try again</Text>
         </TouchableOpacity>

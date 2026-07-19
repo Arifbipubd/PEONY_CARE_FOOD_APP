@@ -178,8 +178,8 @@ export default function RestaurantPublicPageScreen({ navigation }: Props) {
   const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
-    Promise.all([getRestaurantProfile(), getDonations('active')])
-      .then(([p, d]) => { setProfile(p); setDonations(d); })
+    Promise.all([getRestaurantProfile(), getDonations()])
+      .then(([p, d]) => { setProfile(p); setDonations(d.active); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

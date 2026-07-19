@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { claimFood } from '../../services/receiver';
 import { ApiError } from '../../services/api';
 import { useLocation } from '../../hooks/useLocation';
@@ -19,13 +20,15 @@ import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
   navigation: NativeStackNavigationProp<HomeStackParamList, 'QrScanner'>;
+  route: RouteProp<HomeStackParamList, 'QrScanner'>;
 };
 
 const FRAME_SIZE     = 260;
 const CORNER_LEN     = 30;
 const CORNER_WIDTH   = 3;
 
-export default function QrScannerScreen({ navigation }: Props) {
+export default function QrScannerScreen({ navigation, route }: Props) {
+  const { expectedFoodId } = route.params;
   const insets = useSafeAreaInsets();
   const { lat, lng } = useLocation();
   const [permission, requestPermission] = useCameraPermissions();
@@ -60,7 +63,12 @@ export default function QrScannerScreen({ navigation }: Props) {
 
     const foodId = qrPayload.split('|')[0] ?? '';
     if (!foodId || lat === null || lng === null) {
-      navigation.navigate('ScanError');
+      navigation.navigate('ScanError', { expectedFoodId });
+      return;
+    }
+
+    if (foodId !== expectedFoodId) {
+      navigation.navigate('ScanError', { expectedFoodId });
       return;
     }
 
@@ -75,7 +83,7 @@ export default function QrScannerScreen({ navigation }: Props) {
         } else if (err.code === 'FOOD_UNAVAILABLE' || err.code === 'RACE_CONDITION') {
           navigation.navigate('FoodUnavailable', {});
         } else {
-          navigation.navigate('ScanError');
+          navigation.navigate('ScanError', { expectedFoodId });
         }
       } else {
         setScanned(false);
@@ -168,22 +176,6 @@ export default function QrScannerScreen({ navigation }: Props) {
         <Text style={styles.alignHint}>Align the staff's QR code inside the frame</Text>
 
         <View style={{ flex: 1 }} />
-
-        {/* Dev simulate buttons */}
-        <View style={[styles.devRow, { paddingBottom: insets.bottom + spacing.lg }]}>
-          <TouchableOpacity
-            style={styles.devBtn}
-            onPress={() => handleScan('food-001|rest-001|1750000000')}
-          >
-            <Text style={styles.devBtnText}>Simulate Success</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.devBtn}
-            onPress={() => navigation.navigate('ScanError')}
-          >
-            <Text style={styles.devBtnText}>Simulate Failure</Text>
-          </TouchableOpacity>
-        </View>
 
       </View>
     </View>
@@ -315,21 +307,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  devRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    width: '100%',
-  },
-  devBtn: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: radius.input,
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-  },
-  devBtnText: {
-    fontSize: fontSizes.sm,
-    color: colors.textInverse,
-    fontWeight: fontWeights.medium,
-  },
 });
