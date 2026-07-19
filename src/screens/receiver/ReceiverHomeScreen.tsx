@@ -9,7 +9,9 @@ import {
   FlatList,
   ScrollView,
   StyleSheet,
+  Linking,
 } from 'react-native';
+import { requestForegroundPermissionsAsync, getCurrentPositionAsync, Accuracy } from 'expo-location';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -246,14 +248,18 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const [loading, setLoading]           = useState(true);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchData = useCallback(() => {
+  const fetchData = useCallback((overrideLat?: number, overrideLng?: number) => {
+    const useLat = overrideLat ?? lat ?? undefined;
+    const useLng = overrideLng ?? lng ?? undefined;
     Promise.allSettled([
-      browseFood(lat ?? undefined, lng ?? undefined),
+      browseFood(useLat, useLng),
       getDailyLimit(),
-      getNearbyRestaurants(lat ?? undefined, lng ?? undefined),
+      getNearbyRestaurants(useLat, useLng),
       getReceiverProfile(),
       getNotifications(),
     ]).then(([items, limit, rests, profile, notifications]) => {
+      console.log('[Home] foods:', items.status, items.status === 'fulfilled' ? items.value.length : (items as PromiseRejectedResult).reason);
+      console.log('[Home] restaurants:', rests.status, rests.status === 'fulfilled' ? rests.value.length : (rests as PromiseRejectedResult).reason);
       if (items.status === 'fulfilled')         setFoods(items.value);
       if (limit.status === 'fulfilled')         setDailyLimit(limit.value);
       if (rests.status === 'fulfilled')         setRestaurants(rests.value);
@@ -316,6 +322,28 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
     return true;
   });
 
+  const handleEnableLocation = useCallback(async () => {
+    try {
+      const { status } = await requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Linking.openSettings();
+        return;
+      }
+      setLoading(true);
+      let latitude = lat;
+      let longitude = lng;
+      if (latitude == null || longitude == null) {
+        const pos = await getCurrentPositionAsync({ accuracy: Accuracy.Balanced });
+        latitude = pos.coords.latitude;
+        longitude = pos.coords.longitude;
+      }
+      updateReceiverLocation(latitude, longitude).catch(() => {});
+      fetchData(latitude, longitude);
+    } catch {
+      setLoading(false);
+    }
+  }, [lat, lng, fetchData]);
+
   const handleNotifications = useCallback(
     () => navigation.getParent()?.navigate('Alerts' as never),
     [navigation],
@@ -326,13 +354,14 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
     return <HomeSkeleton />;
   }
 
-  if (foods.length === 0 && restaurants.length === 0 && !skipEmpty) {
+  if (lat === null && lng === null && !skipEmpty) {
     return (
       <ReceiverHomeEmptyScreen
         firstName={firstName}
         unreadCount={unreadCount}
         dailyLimit={dailyLimit}
         onNotificationsPress={handleNotifications}
+        onEnableLocation={handleEnableLocation}
         onBrowseWithout={handleBrowseWithout}
       />
     );

@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,6 +41,7 @@ type Props = {
   unreadCount: number;
   dailyLimit: DailyLimitStatus | null;
   onNotificationsPress: () => void;
+  onEnableLocation: () => void;
   onBrowseWithout: () => void;
 };
 
@@ -50,6 +50,7 @@ function ReceiverHomeEmptyScreen({
   unreadCount,
   dailyLimit,
   onNotificationsPress,
+  onEnableLocation,
   onBrowseWithout,
 }: Props) {
   return (
@@ -119,7 +120,7 @@ function ReceiverHomeEmptyScreen({
         <TouchableOpacity
           style={styles.primaryBtn}
           activeOpacity={0.85}
-          onPress={() => Linking.openSettings()}
+          onPress={onEnableLocation}
         >
           <Ionicons name="locate" size={20} color={colors.textInverse} />
           <Text style={styles.primaryBtnText}>Enable location</Text>
