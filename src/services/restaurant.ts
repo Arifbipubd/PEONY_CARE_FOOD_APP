@@ -208,6 +208,7 @@ export const createDonation = async (payload: CreateDonationPayload): Promise<Re
     pickup_end:        payload.pickupEnd,
     photo_url:         payload.photoUrl ?? null,
   });
+  _hasDonations = true;
   return mapApiDonation(res.data.data);
 };
 
@@ -326,8 +327,10 @@ export const updateRestaurantProfile = async (
 };
 
 let _menuPhotos: string[] = [];
+let _hasDonations = false;
 
-export const menuPhotosExist = (): boolean => _menuPhotos.length > 0;
+export const menuPhotosExist  = (): boolean => _menuPhotos.length > 0;
+export const donationsExist   = (): boolean => _hasDonations;
 
 export const getMenuPhotos = async (): Promise<string[]> => {
   // MOCK:

@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
-import { getDashboard, menuPhotosExist } from '../../services/restaurant';
+import { getDashboard, menuPhotosExist, donationsExist } from '../../services/restaurant';
 import { RestaurantDashboard, RestaurantDonation } from '../../types';
 import { useNotificationStore } from '../../store/notificationStore';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
@@ -143,10 +143,11 @@ const DonationRow = React.memo(({ item }: { item: RestaurantDonation }) => {
 type EmptyProps = {
   restaurantName:  string;
   hasMenuPhotos:   boolean;
+  hasDonations:    boolean;
   navigation: BottomTabNavigationProp<RestaurantTabParamList, 'Home'>;
 };
 
-const EmptyDashboard = React.memo(({ restaurantName, hasMenuPhotos, navigation }: EmptyProps) => {
+const EmptyDashboard = React.memo(({ restaurantName, hasMenuPhotos, hasDonations, navigation }: EmptyProps) => {
   const steps = useMemo(() => [
     {
       num: 1,
@@ -162,11 +163,11 @@ const EmptyDashboard = React.memo(({ restaurantName, hasMenuPhotos, navigation }
     },
     {
       num: 3,
-      done: false,
+      done: hasDonations,
       title: 'Post your first donation',
       sub: 'Once your menu is up, list surplus food for receivers',
     },
-  ], [hasMenuPhotos]);
+  ], [hasMenuPhotos, hasDonations]);
   const goAddPhotos = useCallback(
     () => navigation.navigate('Profile', { screen: 'MenuPhotos' } as never),
     [navigation],
@@ -501,9 +502,10 @@ const es = StyleSheet.create({
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function RestaurantDashboardScreen({ navigation }: Props) {
-  const [data, setData]               = useState<RestaurantDashboard | null>(null);
-  const [loading, setLoading]         = useState(true);
+  const [data, setData]                   = useState<RestaurantDashboard | null>(null);
+  const [loading, setLoading]             = useState(true);
   const [hasMenuPhotos, setHasMenuPhotos] = useState(() => menuPhotosExist());
+  const [hasDonations, setHasDonations]   = useState(() => donationsExist());
   const { unreadCount } = useNotificationStore();
 
   useEffect(() => {
@@ -516,6 +518,9 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
   useFocusEffect(
     useCallback(() => {
       setHasMenuPhotos(menuPhotosExist());
+      setHasDonations(donationsExist());
+      // Silently refresh dashboard data so new donations appear without a skeleton flash
+      getDashboard().then(setData).catch(() => {});
     }, []),
   );
 
@@ -526,7 +531,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
   if (loading) return <DashboardSkeleton />;
   if (!data)   return null;
 
-  const isEmpty = data.livesImpacted === 0 && data.todayListings.length === 0 && data.yesterdayListings.length === 0;
+  const isEmpty = !hasDonations && data.livesImpacted === 0 && data.todayListings.length === 0 && data.yesterdayListings.length === 0;
 
   const initials = data.restaurantName
     .split(' ')
@@ -558,7 +563,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      {isEmpty && <EmptyDashboard restaurantName={data.restaurantName} hasMenuPhotos={hasMenuPhotos} navigation={navigation} />}
+      {isEmpty && <EmptyDashboard restaurantName={data.restaurantName} hasMenuPhotos={hasMenuPhotos} hasDonations={hasDonations} navigation={navigation} />}
       {!isEmpty && (
       <ScrollView
         showsVerticalScrollIndicator={false}
