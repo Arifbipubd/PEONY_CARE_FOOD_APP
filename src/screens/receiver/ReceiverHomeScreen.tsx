@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import ReceiverHomeEmptyScreen from './ReceiverHomeEmptyScreen';
 import {
   View,
@@ -263,7 +264,10 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
       if (items.status === 'fulfilled')         setFoods(items.value);
       if (limit.status === 'fulfilled')         setDailyLimit(limit.value);
       if (rests.status === 'fulfilled')         setRestaurants(rests.value);
-      if (profile.status === 'fulfilled')       setProfile({ displayName: profile.value.displayName });
+      if (profile.status === 'fulfilled') {
+        console.log('[Home] profile', profile.value);
+        setProfile({ displayName: profile.value.displayName });
+      }
       if (notifications.status === 'fulfilled') setNotifications(notifications.value);
       setLoading(false);
     });
@@ -279,6 +283,14 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
     if (locLoading) return;
     fetchData();
   }, [locLoading, fetchData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (locLoading) return;
+      setLoading(true);
+      fetchData();
+    }, [locLoading, fetchData]),
+  );
 
   useEffect(() => {
     const hasQuery = searchQuery.trim() !== '';

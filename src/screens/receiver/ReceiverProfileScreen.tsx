@@ -1,4 +1,5 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useCallback, memo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -169,12 +170,15 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
   const [loggingOut, setLoggingOut] = useState(false);
   const { photoUrl, displayName: storedName } = useProfileStore();
 
-  useEffect(() => {
-    getReceiverProfile()
-      .then((p) => { setProfile(p); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      getReceiverProfile()
+        .then((p) => { console.log('[ReceiverProfile]', p); setProfile(p); })
+        .catch((e) => { console.log('[ReceiverProfile] error', e); })
+        .finally(() => setLoading(false));
+    }, []),
+  );
 
   async function handleLogout() {
     setLoggingOut(true);
