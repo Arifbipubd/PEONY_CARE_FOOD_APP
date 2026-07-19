@@ -252,6 +252,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const fetchData = useCallback((overrideLat?: number, overrideLng?: number) => {
     const useLat = overrideLat ?? lat ?? undefined;
     const useLng = overrideLng ?? lng ?? undefined;
+    console.log('[Home] fetchData lat:', useLat, 'lng:', useLng);
     Promise.allSettled([
       browseFood(useLat, useLng),
       getDailyLimit(),

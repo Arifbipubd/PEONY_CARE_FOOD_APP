@@ -13,6 +13,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import { getDashboard, menuPhotosExist, donationsExist } from '../../services/restaurant';
+import { useLocation } from '../../hooks/useLocation';
 import { RestaurantDashboard, RestaurantDonation } from '../../types';
 import { useNotificationStore } from '../../store/notificationStore';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
@@ -507,17 +508,19 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
   const [hasMenuPhotos, setHasMenuPhotos] = useState(() => menuPhotosExist());
   const [hasDonations, setHasDonations]   = useState(() => donationsExist());
   const { unreadCount } = useNotificationStore();
+  const { lat, lng } = useLocation();
 
   useFocusEffect(
     useCallback(() => {
+      console.log('[Dashboard] lat:', lat, 'lng:', lng);
       setLoading(true);
       setHasMenuPhotos(menuPhotosExist());
       setHasDonations(donationsExist());
       getDashboard()
-        .then((d) => setData(d))
+        .then((d) => { console.log('[Dashboard] data:', d); setData(d); })
         .catch(() => {})
         .finally(() => setLoading(false));
-    }, []),
+    }, [lat, lng]),
   );
 
   const goToPost = useCallback(() => {
