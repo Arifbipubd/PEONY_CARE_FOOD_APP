@@ -484,7 +484,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={<EmptyMealsState onAdjustRadius={() => navigation.getParent()?.navigate('Profile' as never)} />}
+          ListEmptyComponent={<EmptyMealsState onAdjustRadius={() => setFilterSheetVisible(true)} />}
         />
       ) : (
         <FlatList
@@ -529,7 +529,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={<EmptyRestaurantsState onAdjustRadius={() => navigation.getParent()?.navigate('Profile' as never)} />}
+          ListEmptyComponent={<EmptyRestaurantsState onAdjustRadius={() => setFilterSheetVisible(true)} />}
         />
       )}
 
