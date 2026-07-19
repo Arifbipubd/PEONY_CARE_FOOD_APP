@@ -82,7 +82,7 @@ export default function LoginScreen({ navigation }: Props) {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
       >
         <View style={styles.body}>
           <View style={styles.logoWrap}>
