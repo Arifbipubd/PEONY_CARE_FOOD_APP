@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -508,19 +508,15 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
   const [hasDonations, setHasDonations]   = useState(() => donationsExist());
   const { unreadCount } = useNotificationStore();
 
-  useEffect(() => {
-    getDashboard().then((d) => {
-      setData(d);
-      setLoading(false);
-    });
-  }, []);
-
   useFocusEffect(
     useCallback(() => {
+      setLoading(true);
       setHasMenuPhotos(menuPhotosExist());
       setHasDonations(donationsExist());
-      // Silently refresh dashboard data so new donations appear without a skeleton flash
-      getDashboard().then(setData).catch(() => {});
+      getDashboard()
+        .then((d) => setData(d))
+        .catch(() => {})
+        .finally(() => setLoading(false));
     }, []),
   );
 

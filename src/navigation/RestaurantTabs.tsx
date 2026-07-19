@@ -129,6 +129,12 @@ export default function RestaurantTabs() {
               : { borderTopColor: colors.borderDefault },
           };
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            (navigation as any).navigate('Donations', { screen: 'DonationList' });
+          },
+        })}
       />
       <Tab.Screen
         name="Alerts"
@@ -142,7 +148,8 @@ export default function RestaurantTabs() {
         name="Profile"
         component={ProfileNavigator}
         listeners={({ navigation }) => ({
-          tabPress: () => {
+          tabPress: (e) => {
+            e.preventDefault();
             (navigation as any).navigate('Profile', { screen: 'RestaurantProfile' });
           },
         })}
