@@ -138,7 +138,15 @@ export default function RestaurantTabs() {
           tabBarBadgeStyle: { backgroundColor: colors.accentPrimary, fontSize: fontSizes.xs },
         }}
       />
-      <Tab.Screen name="Profile" component={ProfileNavigator} />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileNavigator}
+        listeners={({ navigation }) => ({
+          tabPress: () => {
+            (navigation as any).navigate('Profile', { screen: 'RestaurantProfile' });
+          },
+        })}
+      />
     </Tab.Navigator>
   );
 }

@@ -325,10 +325,24 @@ export const updateRestaurantProfile = async (
   };
 };
 
+let _menuPhotos: string[] = [];
+
+export const menuPhotosExist = (): boolean => _menuPhotos.length > 0;
+
+export const getMenuPhotos = async (): Promise<string[]> => {
+  // MOCK:
+  await new Promise((r) => setTimeout(r, 300));
+  return [..._menuPhotos];
+  /* REAL API:
+  const res = await api.get('/restaurant/menu-photos/');
+  return res.data.data.photo_urls as string[];
+  */
+};
+
 export const saveMenuPhotos = async (uris: string[]): Promise<void> => {
   // MOCK:
   await new Promise((r) => setTimeout(r, 600));
-  return;
+  _menuPhotos = [...uris];
   /* REAL API:
   await api.patch('/restaurant/menu-photos/', { photo_urls: uris });
   */

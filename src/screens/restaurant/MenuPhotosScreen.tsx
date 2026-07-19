@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   NativeSyntheticEvent,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { saveMenuPhotos } from '../../services/restaurant';
+import { getMenuPhotos, saveMenuPhotos } from '../../services/restaurant';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -32,8 +32,6 @@ const { width: SW } = Dimensions.get('window');
 const CONTENT_W  = SW - spacing['2xl'] * 2;
 const TILE_SIZE  = Math.floor((CONTENT_W - 8) / 2);
 const CAROUSEL_H = Math.round(CONTENT_W * 0.68);
-
-const MOCK_PHOTOS: string[] = [];
 
 const ADD_SLOT = '__ADD__';
 
@@ -205,10 +203,21 @@ const es = StyleSheet.create({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function MenuPhotosScreen({ navigation }: Props) {
-  const [photos, setPhotos]               = useState<string[]>(MOCK_PHOTOS);
-  const [savedPhotos, setSavedPhotos]     = useState<string[]>(MOCK_PHOTOS);
+  const [photos, setPhotos]               = useState<string[]>([]);
+  const [savedPhotos, setSavedPhotos]     = useState<string[]>([]);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [saving, setSaving]               = useState(false);
+  const [loadingPhotos, setLoadingPhotos] = useState(true);
+
+  useEffect(() => {
+    getMenuPhotos()
+      .then((uris) => {
+        setPhotos(uris);
+        setSavedPhotos(uris);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingPhotos(false));
+  }, []);
 
   const isEmpty     = photos.length === 0;
   const hasUnsaved  = useMemo(
@@ -315,13 +324,20 @@ export default function MenuPhotosScreen({ navigation }: Props) {
         <View style={styles.backBtn} />
       </View>
 
+      {/* ── Loading ───────────────────────────────────────────────────────── */}
+      {loadingPhotos && (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={colors.accentPrimary} />
+        </View>
+      )}
+
       {/* ── Empty state ───────────────────────────────────────────────────── */}
-      {isEmpty && (
+      {!loadingPhotos && isEmpty && (
         <EmptyMenuPhotos onPostDonation={handlePostDonation} />
       )}
 
       {/* ── Filled state ──────────────────────────────────────────────────── */}
-      {!isEmpty && (
+      {!loadingPhotos && !isEmpty && (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
           {/* Hero */}
@@ -399,35 +415,36 @@ export default function MenuPhotosScreen({ navigation }: Props) {
         </ScrollView>
       )}
 
-      {/* ── Sticky bottom button ──────────────────────────────────────────── */}
-      <View style={styles.bottomBar}>
-        {hasUnsaved ? (
-          <TouchableOpacity
-            style={[styles.addBtn, saving && styles.addBtnDisabled]}
-            activeOpacity={0.85}
-            onPress={handleSave}
-            disabled={saving}
-          >
-            {saving
-              ? <ActivityIndicator size="small" color={colors.textInverse} />
-              : <Ionicons name="checkmark" size={18} color={colors.textInverse} />
-            }
-            <Text style={styles.addBtnText}>
-              {saving ? 'Saving…' : 'Save changes'}
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.addBtn, photos.length >= MAX_PHOTOS && styles.addBtnDisabled]}
-            activeOpacity={0.85}
-            onPress={handleAddPhoto}
-            disabled={photos.length >= MAX_PHOTOS}
-          >
-            <MaterialCommunityIcons name="image-plus" size={18} color={colors.textInverse} />
-            <Text style={styles.addBtnText}>Add photos</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      {/* ── Sticky bottom button — hidden when photos are saved and grid ADD_SLOT is sufficient */}
+      {!loadingPhotos && (hasUnsaved || isEmpty) && (
+        <View style={styles.bottomBar}>
+          {hasUnsaved ? (
+            <TouchableOpacity
+              style={[styles.addBtn, saving && styles.addBtnDisabled]}
+              activeOpacity={0.85}
+              onPress={handleSave}
+              disabled={saving}
+            >
+              {saving
+                ? <ActivityIndicator size="small" color={colors.textInverse} />
+                : <Ionicons name="checkmark" size={18} color={colors.textInverse} />
+              }
+              <Text style={styles.addBtnText}>
+                {saving ? 'Saving…' : 'Save changes'}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.addBtn}
+              activeOpacity={0.85}
+              onPress={handleAddPhoto}
+            >
+              <MaterialCommunityIcons name="image-plus" size={18} color={colors.textInverse} />
+              <Text style={styles.addBtnText}>Add photos</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
     </SafeAreaView>
   );
@@ -435,6 +452,7 @@ export default function MenuPhotosScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   // ── Header
   header: {

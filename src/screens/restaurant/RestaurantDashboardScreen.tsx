@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { getDashboard } from '../../services/restaurant';
+import { useFocusEffect } from '@react-navigation/native';
+import { getDashboard, menuPhotosExist } from '../../services/restaurant';
 import { RestaurantDashboard, RestaurantDonation } from '../../types';
 import { useNotificationStore } from '../../store/notificationStore';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
@@ -139,33 +140,33 @@ const DonationRow = React.memo(({ item }: { item: RestaurantDonation }) => {
 
 // ─── Empty / new-restaurant dashboard ────────────────────────────────────────
 
-const STEPS = [
-  {
-    num: 1,
-    done: true,
-    title: 'Create your account',
-    sub: 'Signed up and verified with ACRA',
-  },
-  {
-    num: 2,
-    done: false,
-    title: 'Add menu photos',
-    sub: 'Required — donors see this before sponsoring',
-  },
-  {
-    num: 3,
-    done: false,
-    title: 'Post your first donation',
-    sub: 'Once your menu is up, list surplus food for receivers',
-  },
-] as const;
-
 type EmptyProps = {
-  restaurantName: string;
+  restaurantName:  string;
+  hasMenuPhotos:   boolean;
   navigation: BottomTabNavigationProp<RestaurantTabParamList, 'Home'>;
 };
 
-const EmptyDashboard = React.memo(({ restaurantName, navigation }: EmptyProps) => {
+const EmptyDashboard = React.memo(({ restaurantName, hasMenuPhotos, navigation }: EmptyProps) => {
+  const steps = useMemo(() => [
+    {
+      num: 1,
+      done: true,
+      title: 'Create your account',
+      sub: 'Signed up and verified with ACRA',
+    },
+    {
+      num: 2,
+      done: hasMenuPhotos,
+      title: 'Add menu photos',
+      sub: 'Required — donors see this before sponsoring',
+    },
+    {
+      num: 3,
+      done: false,
+      title: 'Post your first donation',
+      sub: 'Once your menu is up, list surplus food for receivers',
+    },
+  ], [hasMenuPhotos]);
   const goAddPhotos = useCallback(
     () => navigation.navigate('Profile', { screen: 'MenuPhotos' } as never),
     [navigation],
@@ -198,26 +199,28 @@ const EmptyDashboard = React.memo(({ restaurantName, navigation }: EmptyProps) =
         {"You're all set up. Complete one quick step to start receiving donations."}
       </Text>
 
-      {/* ACTION REQUIRED card */}
-      <View style={es.warnCard}>
-        <View style={es.warnLabelRow}>
-          <Ionicons name="warning" size={14} color={colors.pickupOrange} />
-          <Text style={es.warnLabel}>ACTION REQUIRED</Text>
+      {/* ACTION REQUIRED card — hidden once menu photos are uploaded */}
+      {!hasMenuPhotos && (
+        <View style={es.warnCard}>
+          <View style={es.warnLabelRow}>
+            <Ionicons name="warning" size={14} color={colors.pickupOrange} />
+            <Text style={es.warnLabel}>ACTION REQUIRED</Text>
+          </View>
+          <Text style={es.warnTitle}>Add menu photos to receive donations</Text>
+          <Text style={es.warnBody}>
+            {"Donors can't sponsor meals here until they see your menu. Upload a photo of your menu board or a few dish shots to go live."}
+          </Text>
+          <TouchableOpacity style={es.warnBtn} activeOpacity={0.85} onPress={goAddPhotos}>
+            <Ionicons name="images" size={16} color={colors.textInverse} />
+            <Text style={es.warnBtnText}>Add menu photos</Text>
+          </TouchableOpacity>
         </View>
-        <Text style={es.warnTitle}>Add menu photos to receive donations</Text>
-        <Text style={es.warnBody}>
-          {"Donors can't sponsor meals here until they see your menu. Upload a photo of your menu board or a few dish shots to go live."}
-        </Text>
-        <TouchableOpacity style={es.warnBtn} activeOpacity={0.85} onPress={goAddPhotos}>
-          <Ionicons name="images" size={16} color={colors.textInverse} />
-          <Text style={es.warnBtnText}>Add menu photos</Text>
-        </TouchableOpacity>
-      </View>
+      )}
 
       {/* GET STARTED steps */}
       <Text style={es.getStartedLabel}>GET STARTED</Text>
 
-      {STEPS.map((step, idx) => (
+      {steps.map((step, idx) => (
         <React.Fragment key={step.num}>
           <TouchableOpacity
             style={es.stepRow}
@@ -248,7 +251,7 @@ const EmptyDashboard = React.memo(({ restaurantName, navigation }: EmptyProps) =
               <Ionicons name="arrow-forward" size={18} color={colors.accentPrimary} />
             )}
           </TouchableOpacity>
-          {idx < STEPS.length - 1 && <View style={es.stepDivider} />}
+          {idx < steps.length - 1 && <View style={es.stepDivider} />}
         </React.Fragment>
       ))}
 
@@ -498,8 +501,9 @@ const es = StyleSheet.create({
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function RestaurantDashboardScreen({ navigation }: Props) {
-  const [data, setData]       = useState<RestaurantDashboard | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData]               = useState<RestaurantDashboard | null>(null);
+  const [loading, setLoading]         = useState(true);
+  const [hasMenuPhotos, setHasMenuPhotos] = useState(() => menuPhotosExist());
   const { unreadCount } = useNotificationStore();
 
   useEffect(() => {
@@ -508,6 +512,12 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
       setLoading(false);
     });
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      setHasMenuPhotos(menuPhotosExist());
+    }, []),
+  );
 
   const goToPost = useCallback(() => {
     navigation.navigate('Donations', { screen: 'PostDonation' } as never);
@@ -548,7 +558,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      {isEmpty && <EmptyDashboard restaurantName={data.restaurantName} navigation={navigation} />}
+      {isEmpty && <EmptyDashboard restaurantName={data.restaurantName} hasMenuPhotos={hasMenuPhotos} navigation={navigation} />}
       {!isEmpty && (
       <ScrollView
         showsVerticalScrollIndicator={false}
