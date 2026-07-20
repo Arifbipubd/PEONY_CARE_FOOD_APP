@@ -48,24 +48,30 @@ function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
 }
 
 function mapApiDashboard(d: ApiRestaurantDashboard): RestaurantDashboard {
-  const todayListings = d.today_listings.map(mapApiDonation);
-  const todayPortions = d.today_portions
+  const groups = d.active_donations?.groups ?? [];
+  const todayGroup     = groups.find((g) => g.label === 'Today');
+  const yesterdayGroup = groups.find((g) => g.label === 'Yesterday');
+
+  const todayListings = (todayGroup?.items ?? d.today_listings ?? []).map(mapApiDonation);
+  const todayPortions = todayGroup?.portions
+    ?? d.today_portions
     ?? todayListings.reduce((sum, item) => sum + item.quantityOriginal, 0);
+
   return {
     restaurantName:    d.restaurant_name ?? '',
-    livesImpacted:     d.lives_impacted,
-    donationsThisYear: d.donations_this_year,
-    growthPctThisWeek: d.growth_pct_this_week ?? 0,
+    livesImpacted:     d.impact?.lives_impacted    ?? d.lives_impacted,
+    donationsThisYear: d.impact?.donations_this_year ?? d.donations_this_year,
+    growthPctThisWeek: d.impact?.week_over_week_pct  ?? d.growth_pct_this_week ?? 0,
     claimRatePct:      d.claim_rate_pct,
     activeCount:       d.active_count,
     claimedToday:      d.claimed_today,
-    thisWeekDonations: d.this_week_donations ?? 0,
-    thisWeekMeals:     d.this_week_meals ?? 0,
-    thisWeekInactive:  d.this_week_inactive ?? 0,
+    thisWeekDonations: d.this_week?.donations    ?? d.this_week_donations ?? 0,
+    thisWeekMeals:     d.this_week?.meals         ?? d.this_week_meals     ?? 0,
+    thisWeekInactive:  d.this_week?.inactive_count ?? d.this_week_inactive  ?? 0,
     todayPortions,
     todayListings,
-    yesterdayListings: (d.yesterday_listings ?? []).map(mapApiDonation),
-    yesterdayFed:      d.yesterday_fed ?? 0,
+    yesterdayListings: (yesterdayGroup?.items ?? d.yesterday_listings ?? []).map(mapApiDonation),
+    yesterdayFed:      yesterdayGroup?.fed ?? d.yesterday_fed ?? 0,
   };
 }
 
