@@ -199,9 +199,7 @@ export const getDonations = async (): Promise<{
   const pastCount     = activeData.summary.past_count     as number;
   const inactiveCount = activeData.summary.inactive_count as number;
 
-  if (activeCount > 0 || pastCount > 0 || inactiveCount > 0) {
-    _hasDonations = true;
-  }
+  _hasDonations = activeCount > 0 || pastCount > 0 || inactiveCount > 0;
 
   return {
     active:   flatGroups(activeData),
