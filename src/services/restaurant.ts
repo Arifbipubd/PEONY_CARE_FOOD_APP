@@ -165,8 +165,12 @@ export const getDashboard = async (): Promise<RestaurantDashboard> => {
     api.get('/restaurant/dashboard/'),
     api.get('/restaurant/profile/'),
   ]);
+  const raw: ApiRestaurantDashboard = dashRes.data.data;
+  if ((raw.active_count ?? 0) > 0 || (raw.donations_this_year ?? 0) > 0) {
+    _hasDonations = true;
+  }
   const d: ApiRestaurantDashboard = {
-    ...dashRes.data.data,
+    ...raw,
     restaurant_name: profileRes.data.data.name as string,
   };
   return mapApiDashboard(d);
@@ -191,15 +195,23 @@ export const getDonations = async (): Promise<{
   const pastData     = pastRes.data.data;
   const inactiveData = inactiveRes.data.data;
 
+  const activeCount   = activeData.summary.active_count   as number;
+  const pastCount     = activeData.summary.past_count     as number;
+  const inactiveCount = activeData.summary.inactive_count as number;
+
+  if (activeCount > 0 || pastCount > 0 || inactiveCount > 0) {
+    _hasDonations = true;
+  }
+
   return {
     active:   flatGroups(activeData),
     past:     flatGroups(pastData),
     inactive: flatGroups(inactiveData),
     summary: {
-      activeCount:   activeData.summary.active_count   as number,
-      pastCount:     activeData.summary.past_count     as number,
-      inactiveCount: activeData.summary.inactive_count as number,
-      weeklyMeals:   (pastData.summary.meals_this_week as number | null) ?? 0,
+      activeCount,
+      pastCount,
+      inactiveCount,
+      weeklyMeals: (pastData.summary.meals_this_week as number | null) ?? 0,
     },
   };
 };
@@ -302,6 +314,21 @@ export interface UpdateRestaurantProfilePayload {
   openingHours?:  string;
   about?:         string;
 }
+
+export const uploadRestaurantProfilePhoto = async (localUri: string): Promise<string> => {
+  const filename = localUri.split('/').pop() ?? 'photo.jpg';
+  const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpeg';
+  const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+
+  const formData = new FormData();
+  formData.append('photo', { uri: localUri, name: filename, type: mimeType } as unknown as Blob);
+
+  const res = await api.patch('/restaurant/profile/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  const p: ApiRestaurantProfile = res.data.data;
+  return p.photo_url ?? '';
+};
 
 export const updateRestaurantProfile = async (
   payload: UpdateRestaurantProfilePayload,

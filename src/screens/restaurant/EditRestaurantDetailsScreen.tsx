@@ -14,8 +14,9 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as ImagePicker from 'expo-image-picker';
 import { setOnConfirm } from './RestaurantLocationScreen';
-import { getRestaurantProfile, updateRestaurantProfile } from '../../services/restaurant';
+import { getRestaurantProfile, updateRestaurantProfile, uploadRestaurantProfilePhoto } from '../../services/restaurant';
 import { RestaurantProfile } from '../../types';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
@@ -70,14 +71,16 @@ const FormField = memo(({
         !editable && styles.inputDisabled,
         multiline && styles.inputWrapMulti,
       ]}>
-        <Ionicons
-          name={iconName}
-          size={18}
-          color={editable ? colors.textMuted : colors.borderDefault}
-          style={styles.inputIcon}
-        />
+        {!multiline && (
+          <Ionicons
+            name={iconName}
+            size={18}
+            color={editable ? colors.textMuted : colors.borderDefault}
+            style={styles.inputIcon}
+          />
+        )}
         <TextInput
-          style={[styles.inputText, multiline && styles.inputTextMulti]}
+          style={[styles.inputText, multiline && styles.inputTextMulti, multiline && styles.inputTextMultiPad]}
           value={value}
           onChangeText={onChangeText}
           editable={editable}
@@ -285,6 +288,27 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
     });
   }, []);
 
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  const handleChangePhoto = useCallback(async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    setPhotoPreview(asset.uri);
+    try {
+      const newUrl = await uploadRestaurantProfilePhoto(asset.uri);
+      setProfile((prev) => (prev ? { ...prev, photoUrl: newUrl } : prev));
+      setPhotoPreview(null);
+    } catch {
+      setPhotoPreview(null);
+    }
+  }, []);
+
   const [saving, setSaving] = useState(false);
 
   const handleSave = useCallback(async () => {
@@ -337,16 +361,16 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
 
           {/* Hero image + change photo */}
           <View style={styles.heroWrap}>
-            {profile?.photoUrl ? (
+            {(photoPreview ?? profile?.photoUrl) ? (
               <Image
-                source={{ uri: profile.photoUrl }}
+                source={{ uri: photoPreview ?? profile!.photoUrl! }}
                 style={styles.heroImage}
                 resizeMode="cover"
               />
             ) : (
               <View style={[styles.heroImage, styles.heroPlaceholder]} />
             )}
-            <TouchableOpacity style={styles.changePhotoBtn} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.changePhotoBtn} activeOpacity={0.8} onPress={handleChangePhoto}>
               <Ionicons name="camera" size={14} color={colors.textPrimary} />
               <Text style={styles.changePhotoText}>Change photo</Text>
             </TouchableOpacity>
@@ -475,6 +499,7 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
               value={about}
               onChangeText={setAbout}
               multiline
+              placeholder="Tell customers about your restaurant, cuisine, and what makes it special…"
             />
             <Text style={styles.hintText}>Shown on your public listing.</Text>
           </View>
@@ -638,7 +663,8 @@ const styles = StyleSheet.create({
     paddingRight: 16,
     includeFontPadding: false,
   },
-  inputTextMulti: { textAlignVertical: 'top' },
+  inputTextMulti:    { textAlignVertical: 'top' },
+  inputTextMultiPad: { paddingLeft: 14 },
 
   // UEN hint
   uenHintRow: {

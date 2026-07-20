@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -284,22 +285,25 @@ export default function DonationListScreen({ navigation }: Props) {
   const [loading,       setLoading]       = useState(true);
   const [actionLoading, setActionLoading] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    getDonations()
-      .then(({ active, past, inactive, summary }) => {
-        setActive(active);
-        setPast(past);
-        setInactive(inactive);
-        setSummary(summary);
-      })
-      .catch(() => {
-        setActive([]);
-        setPast([]);
-        setInactive([]);
-        setSummary({ activeCount: 0, pastCount: 0, inactiveCount: 0, weeklyMeals: 0 });
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      getDonations()
+        .then(({ active, past, inactive, summary }) => {
+          setActive(active);
+          setPast(past);
+          setInactive(inactive);
+          setSummary(summary);
+        })
+        .catch(() => {
+          setActive([]);
+          setPast([]);
+          setInactive([]);
+          setSummary({ activeCount: 0, pastCount: 0, inactiveCount: 0, weeklyMeals: 0 });
+        })
+        .finally(() => setLoading(false));
+    }, []),
+  );
 
   const handleReactivate = useCallback(async (id: string) => {
     if (actionLoading.has(id)) return;

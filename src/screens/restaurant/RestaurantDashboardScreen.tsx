@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
-import { getDashboard, menuPhotosExist, donationsExist } from '../../services/restaurant';
+import { getDashboard, getMenuPhotos, menuPhotosExist, donationsExist } from '../../services/restaurant';
 import { useLocation } from '../../hooks/useLocation';
 import { RestaurantDashboard, RestaurantDonation } from '../../types';
 import { useNotificationStore } from '../../store/notificationStore';
@@ -512,12 +512,13 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('[Dashboard] lat:', lat, 'lng:', lng);
       setLoading(true);
-      setHasMenuPhotos(menuPhotosExist());
-      setHasDonations(donationsExist());
-      getDashboard()
-        .then((d) => { console.log('[Dashboard] data:', d); setData(d); })
+      Promise.all([getDashboard(), getMenuPhotos()])
+        .then(([d]) => {
+          setData(d);
+          setHasMenuPhotos(menuPhotosExist());
+          setHasDonations(donationsExist());
+        })
         .catch(() => {})
         .finally(() => setLoading(false));
     }, [lat, lng]),
