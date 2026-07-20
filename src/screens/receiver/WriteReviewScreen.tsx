@@ -131,7 +131,7 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
                 <Ionicons
                   name={star <= rating ? 'star' : 'star-outline'}
                   size={38}
-                  color={star <= rating ? colors.accentPrimary : colors.borderDefault}
+                  color={star <= rating ? colors.warningYellow : colors.borderDefault}
                 />
               </TouchableOpacity>
             ))}

@@ -55,12 +55,18 @@ const TIME_SLOTS: string[] = Array.from({ length: 48 }, (_, i) => {
   return `${String(h).padStart(2, '0')}:${m}`;
 });
 
-function buildIsoTime(timeStr: string): string {
-  const [hStr, mStr] = timeStr.split(':');
-  const h = parseInt(hStr ?? '0', 10);
-  const m = parseInt(mStr ?? '0', 10);
+function buildPickupIso(fromStr: string, untilStr: string): { start: string; end: string } {
+  const parseHM = (t: string): [number, number] => {
+    const parts = t.split(':');
+    return [parseInt(parts[0] ?? '0', 10), parseInt(parts[1] ?? '0', 10)];
+  };
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0).toISOString();
+  const [fh, fm] = parseHM(fromStr);
+  const startDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), fh, fm, 0);
+  if (startDt <= now) startDt.setDate(startDt.getDate() + 1);
+  const [uh, um] = parseHM(untilStr);
+  const endDt = new Date(startDt.getFullYear(), startDt.getMonth(), startDt.getDate(), uh, um, 0);
+  return { start: startDt.toISOString(), end: endDt.toISOString() };
 }
 
 export default function PostDonationScreen({ navigation }: Props) {
@@ -97,8 +103,12 @@ export default function PostDonationScreen({ navigation }: Props) {
   }, []);
 
   const selectTime = useCallback((time: string) => {
-    if (timeTarget === 'from') setPickupFrom(time);
-    else setPickupUntil(time);
+    if (timeTarget === 'from') {
+      setPickupFrom(time);
+      setPickupUntil((prev) => (prev && prev > time ? prev : ''));
+    } else {
+      setPickupUntil(time);
+    }
     setShowTimeModal(false);
   }, [timeTarget]);
 
@@ -109,7 +119,7 @@ export default function PostDonationScreen({ navigation }: Props) {
 
   const handlePickPhoto = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
@@ -134,14 +144,15 @@ export default function PostDonationScreen({ navigation }: Props) {
     }
     setSubmitting(true);
     try {
+      const { start, end } = buildPickupIso(pickupFrom, pickupUntil);
       const result = await createDonation({
         name:             name.trim(),
         description:      notes.trim(),
         category,
         unit,
         quantityOriginal: Number(quantity),
-        pickupStart:      buildIsoTime(pickupFrom),
-        pickupEnd:        buildIsoTime(pickupUntil),
+        pickupStart:      start,
+        pickupEnd:        end,
         photoUrl:         'https://placehold.co/400x300.jpg',
       });
       setQrData(result.foodQrData);
@@ -261,14 +272,16 @@ export default function PostDonationScreen({ navigation }: Props) {
             <Text style={styles.fieldLabel}>UNTIL</Text>
             <TouchableOpacity
               style={[styles.inputWrap, styles.inlineRow,
+                !pickupFrom && styles.inputDisabled,
                 { borderColor: pickupUntil ? colors.accentPrimary : colors.borderDefault }]}
               onPress={() => openTimePicker('until')}
+              disabled={!pickupFrom}
               activeOpacity={0.8}
             >
               <Text style={pickupUntil ? styles.pickerValue : styles.pickerPlaceholder}>
-                {pickupUntil || '20:00'}
+                {pickupUntil || '—'}
               </Text>
-              <Ionicons name="time" size={18} color={colors.textMuted} />
+              <Ionicons name="time" size={18} color={!pickupFrom ? colors.borderDefault : colors.textMuted} />
             </TouchableOpacity>
           </View>
         </View>
@@ -437,16 +450,22 @@ export default function PostDonationScreen({ navigation }: Props) {
               removeClippedSubviews
               maxToRenderPerBatch={24}
               windowSize={10}
+              extraData={{ pickupFrom, pickupUntil, timeTarget }}
               renderItem={({ item }) => {
-                const selected =
-                  timeTarget === 'from' ? pickupFrom === item : pickupUntil === item;
+                const selected = timeTarget === 'from' ? pickupFrom === item : pickupUntil === item;
+                const disabled = timeTarget === 'until' && item <= pickupFrom;
                 return (
                   <TouchableOpacity
                     style={styles.sheetOption}
                     onPress={() => selectTime(item)}
+                    disabled={disabled}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.sheetOptionText, selected && styles.sheetOptionActive]}>
+                    <Text style={[
+                      styles.sheetOptionText,
+                      selected && styles.sheetOptionActive,
+                      disabled && styles.sheetOptionDisabled,
+                    ]}>
                       {item}
                     </Text>
                     {selected && (
@@ -708,6 +727,13 @@ const styles = StyleSheet.create({
   sheetOptionActive: {
     fontFamily: fontFamilies.semiBold,
     color: colors.accentPrimary,
+  },
+  sheetOptionDisabled: {
+    color: colors.borderDefault,
+  },
+  inputDisabled: {
+    backgroundColor: colors.surfaceSecondary,
+    opacity: 0.6,
   },
   timeList: {
     maxHeight: 300,
