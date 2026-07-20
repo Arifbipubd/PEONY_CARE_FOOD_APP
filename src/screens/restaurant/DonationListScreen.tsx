@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getDonations, getDonationSummary, reactivateDonation, deleteDonation } from '../../services/restaurant';
+import { getDonations, reactivateDonation, deleteDonation } from '../../services/restaurant';
 import { RestaurantDonation, DonationSummary } from '../../types';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import PostFAB from '../../components/PostFAB';
@@ -285,28 +285,20 @@ export default function DonationListScreen({ navigation }: Props) {
   const [actionLoading, setActionLoading] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const load = async () => {
-      const [summaryResult, donationsResult] = await Promise.allSettled([
-        getDonationSummary(),
-        getDonations(),
-      ]);
-      if (summaryResult.status === 'fulfilled') {
-        setSummary(summaryResult.value);
-      } else {
-        setSummary({ activeCount: 0, pastCount: 0, inactiveCount: 0, weeklyMeals: 0 });
-      }
-      if (donationsResult.status === 'fulfilled') {
-        setActive(donationsResult.value.active);
-        setPast(donationsResult.value.past);
-        setInactive(donationsResult.value.inactive);
-      } else {
+    getDonations()
+      .then(({ active, past, inactive, summary }) => {
+        setActive(active);
+        setPast(past);
+        setInactive(inactive);
+        setSummary(summary);
+      })
+      .catch(() => {
         setActive([]);
         setPast([]);
         setInactive([]);
-      }
-      setLoading(false);
-    };
-    load();
+        setSummary({ activeCount: 0, pastCount: 0, inactiveCount: 0, weeklyMeals: 0 });
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const handleReactivate = useCallback(async (id: string) => {

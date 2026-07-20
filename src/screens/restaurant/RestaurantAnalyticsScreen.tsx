@@ -166,11 +166,12 @@ export default function RestaurantAnalyticsScreen({ navigation }: Props) {
   const [period, setPeriod]   = useState<Period>('30D');
 
   useEffect(() => {
-    getAnalytics().then((d) => {
-      setData(d);
-      setLoading(false);
-    });
-  }, []);
+    setLoading(true);
+    getAnalytics(period)
+      .then((d) => setData(d))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [period]);
 
   const handleBack = useCallback(() => navigation.goBack(), [navigation]);
 

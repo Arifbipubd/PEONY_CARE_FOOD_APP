@@ -6,7 +6,7 @@ import {
 } from '../types';
 import {
   ApiRestaurantDonation, ApiRestaurantDashboard, ApiPublicRestaurant,
-  ApiRestaurantDetail, ApiRestaurantMealSummary, ApiDonationSummary,
+  ApiRestaurantDetail, ApiRestaurantMealSummary,
   ApiRestaurantProfile,
 } from '../types/api';
 import { MOCK_RESTAURANT_DASHBOARD } from '../mock/restaurantData';
@@ -153,16 +153,6 @@ export const getApprovalStatus = async (): Promise<{
   };
 };
 
-export const getDonationSummary = async (): Promise<DonationSummary> => {
-  const res = await api.get('/restaurant/donations/summary/');
-  const s: ApiDonationSummary = res.data.data;
-  return {
-    activeCount:   s.active_count,
-    pastCount:     s.past_count,
-    inactiveCount: s.inactive_count,
-    weeklyMeals:   s.weekly_meals,
-  };
-};
 
 export const getDashboard = async (): Promise<RestaurantDashboard> => {
   const [dashRes, profileRes] = await Promise.all([
@@ -180,13 +170,31 @@ export const getDonations = async (): Promise<{
   active: RestaurantDonation[];
   past: RestaurantDonation[];
   inactive: RestaurantDonation[];
+  summary: DonationSummary;
 }> => {
-  const res = await api.get('/restaurant/donations/');
-  const all = (res.data.data as ApiRestaurantDonation[]).map(mapApiDonation);
+  const [activeRes, pastRes, inactiveRes] = await Promise.all([
+    api.get('/restaurant/donations/', { params: { status: 'active' } }),
+    api.get('/restaurant/donations/', { params: { status: 'past' } }),
+    api.get('/restaurant/donations/', { params: { status: 'inactive' } }),
+  ]);
+
+  const flatGroups = (d: { groups: Array<{ items: ApiRestaurantDonation[] }> }) =>
+    d.groups.flatMap((g) => g.items).map(mapApiDonation);
+
+  const activeData   = activeRes.data.data;
+  const pastData     = pastRes.data.data;
+  const inactiveData = inactiveRes.data.data;
+
   return {
-    active:   all.filter((d) => d.listStatus === 'ACTIVE'),
-    past:     all.filter((d) => d.listStatus === 'PAST'),
-    inactive: all.filter((d) => d.listStatus === 'INACTIVE'),
+    active:   flatGroups(activeData),
+    past:     flatGroups(pastData),
+    inactive: flatGroups(inactiveData),
+    summary: {
+      activeCount:   activeData.summary.active_count   as number,
+      pastCount:     activeData.summary.past_count     as number,
+      inactiveCount: activeData.summary.inactive_count as number,
+      weeklyMeals:   (pastData.summary.meals_this_week as number | null) ?? 0,
+    },
   };
 };
 
@@ -232,55 +240,50 @@ export const getTodaysClaims = async (): Promise<{ total: number; claims: Restau
   */
 };
 
-export const getAnalytics = async (): Promise<RestaurantAnalytics> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 400));
+export const getAnalytics = async (range: string = '30D'): Promise<RestaurantAnalytics> => {
+  const apiRange = range === 'All' ? 'ALL' : range;
+  const res = await api.get('/restaurant/analytics/', { params: { range: apiRange } });
+  const d = res.data.data;
+
+  type ApiWeek       = { week: string; meals: number };
+  type ApiRateWeek   = { week: string; claim_rate_pct: number };
+  type ApiHeatDay    = { intensity: number };
+  type ApiHeatWeek   = { days: ApiHeatDay[] };
+  type ApiDish       = { name: string; photo_url: string | null; meals: number; claim_rate_pct: number };
+  type ApiSponsor    = { display_name: string; initials: string; is_anonymous: boolean; sponsored_count: number; amount_sgd: string };
+
   return {
-    livesFed: 1248,
-    totalDonations: 156,
-    claimRatePct: 96,
-    growthPctThisWeek: 24,
-    directCount: 96,
-    sponsoredCount: 60,
-    weeklyMeals: [
-      { week: 'W1', meals: 22 },
-      { week: 'W2', meals: 28 },
-      { week: 'W3', meals: 35 },
-      { week: 'W4', meals: 42 },
-      { week: 'W5', meals: 54 },
-      { week: 'W6', meals: 62 },
-      { week: 'W7', meals: 186 },
-    ],
-    claimRateTrend: [
-      { week: 'W1', ratePct: 72 },
-      { week: 'W2', ratePct: 75 },
-      { week: 'W3', ratePct: 80 },
-      { week: 'W4', ratePct: 82 },
-      { week: 'W5', ratePct: 88 },
-      { week: 'W6', ratePct: 92 },
-      { week: 'W7', ratePct: 96 },
-    ],
-    heatmap: [
-      [1, 2, 1, 2, 3, 2, 3],
-      [2, 1, 3, 2, 3, 3, 3],
-      [1, 2, 2, 3, 2, 3, 3],
-      [2, 3, 2, 3, 3, 3, 3],
-    ],
-    topDishes: [
-      { id: '1', name: 'Chicken Rice', photoUrl: 'https://picsum.photos/seed/chicken/44', mealCount: 428, claimRatePct: 100 },
-      { id: '2', name: 'Laksa', photoUrl: 'https://picsum.photos/seed/laksa/44', mealCount: 312, claimRatePct: 94 },
-      { id: '3', name: 'Kaya Toast Set', photoUrl: 'https://picsum.photos/seed/kaya/44', mealCount: 218, claimRatePct: 88 },
-    ],
-    topSponsors: [
-      { id: '1', displayName: 'John Tan', initials: 'JT', sponsoredCount: 28, totalAmountSGD: 420, isAnonymous: false },
-      { id: '2', displayName: 'Camila R.', initials: 'CR', sponsoredCount: 14, totalAmountSGD: 280, isAnonymous: false },
-      { id: '3', displayName: 'Anonymous donors', initials: null, sponsoredCount: 18, totalAmountSGD: 0, isAnonymous: true },
-    ],
+    livesFed:          d.total_impact.lives_fed         as number,
+    totalDonations:    d.total_impact.donations          as number,
+    claimRatePct:      d.total_impact.claim_rate_pct    as number,
+    growthPctThisWeek: d.total_impact.week_over_week_pct as number,
+    directCount:       d.donation_source.direct.count   as number,
+    sponsoredCount:    d.donation_source.sponsored.count as number,
+    weeklyMeals: (d.meals_donated.weeks as ApiWeek[]).map((w) => ({
+      week: w.week, meals: w.meals,
+    })),
+    claimRateTrend: (d.claim_rate_trend.weeks as ApiRateWeek[]).map((w) => ({
+      week: w.week, ratePct: w.claim_rate_pct,
+    })),
+    heatmap: (d.claim_activity_heatmap.weeks as ApiHeatWeek[])
+      .slice(0, 4)
+      .map((w) => w.days.map((day) => Math.min(3, Math.max(0, day.intensity ?? 0)))),
+    topDishes: (d.most_claimed_dishes as ApiDish[]).map((dish) => ({
+      id:           dish.name,
+      name:         dish.name,
+      photoUrl:     dish.photo_url,
+      mealCount:    dish.meals,
+      claimRatePct: dish.claim_rate_pct,
+    })),
+    topSponsors: (d.sponsors as ApiSponsor[]).map((s) => ({
+      id:             s.display_name,
+      displayName:    s.display_name,
+      initials:       s.initials || null,
+      isAnonymous:    s.is_anonymous,
+      sponsoredCount: s.sponsored_count,
+      totalAmountSGD: parseFloat(s.amount_sgd),
+    })),
   };
-  /* REAL API:
-  const res = await api.get('/restaurant/analytics/');
-  return res.data.data;
-  */
 };
 
 export interface UpdateRestaurantProfilePayload {
@@ -333,29 +336,49 @@ export const updateRestaurantProfile = async (
   };
 };
 
-let _menuPhotos: string[] = [];
-let _hasDonations = false;
+let _menuPhotoCount = 0;
+let _hasDonations   = false;
 
-export const menuPhotosExist  = (): boolean => _menuPhotos.length > 0;
-export const donationsExist   = (): boolean => _hasDonations;
+export const menuPhotosExist = (): boolean => _menuPhotoCount > 0;
+export const donationsExist  = (): boolean => _hasDonations;
 
-export const getMenuPhotos = async (): Promise<string[]> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 300));
-  return [..._menuPhotos];
-  /* REAL API:
+export interface MenuPhoto { id: string; url: string; }
+
+function mapMenuPhotos(data: { photos: Array<{ id: string; photo_url: string }> }): MenuPhoto[] {
+  return data.photos.map((p) => ({ id: p.id, url: p.photo_url }));
+}
+
+export const getMenuPhotos = async (): Promise<MenuPhoto[]> => {
   const res = await api.get('/restaurant/menu-photos/');
-  return res.data.data.photo_urls as string[];
-  */
+  const photos = mapMenuPhotos(res.data.data);
+  _menuPhotoCount = photos.length;
+  return photos;
 };
 
-export const saveMenuPhotos = async (uris: string[]): Promise<void> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 600));
-  _menuPhotos = [...uris];
-  /* REAL API:
-  await api.patch('/restaurant/menu-photos/', { photo_urls: uris });
-  */
+export const uploadMenuPhotos = async (
+  assets: Array<{ uri: string; type?: string; name?: string }>,
+): Promise<MenuPhoto[]> => {
+  const formData = new FormData();
+  assets.forEach((asset) => {
+    formData.append('photos', {
+      uri:  asset.uri,
+      type: asset.type ?? 'image/jpeg',
+      name: asset.name ?? 'photo.jpg',
+    } as unknown as Blob);
+  });
+  const res = await api.post('/restaurant/menu-photos/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  const photos = mapMenuPhotos(res.data.data);
+  _menuPhotoCount = photos.length;
+  return photos;
+};
+
+export const deleteMenuPhoto = async (photoId: string): Promise<MenuPhoto[]> => {
+  const res = await api.delete(`/restaurant/menu-photos/${photoId}/`);
+  const photos = mapMenuPhotos(res.data.data);
+  _menuPhotoCount = photos.length;
+  return photos;
 };
 
 export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {

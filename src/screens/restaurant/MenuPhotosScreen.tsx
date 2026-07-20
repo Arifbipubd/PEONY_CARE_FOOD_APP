@@ -9,11 +9,12 @@ import {
   StyleSheet,
   Dimensions,
   ActivityIndicator,
+  Alert,
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { getMenuPhotos, saveMenuPhotos } from '../../services/restaurant';
+import { getMenuPhotos, uploadMenuPhotos, deleteMenuPhoto, MenuPhoto } from '../../services/restaurant';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -33,9 +34,9 @@ const CONTENT_W  = SW - spacing['2xl'] * 2;
 const TILE_SIZE  = Math.floor((CONTENT_W - 8) / 2);
 const CAROUSEL_H = Math.round(CONTENT_W * 0.68);
 
-const ADD_SLOT = '__ADD__';
+const ADD_SLOT = '__ADD__' as const;
 
-type GridItem = string;
+type GridItem = MenuPhoto | typeof ADD_SLOT;
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
@@ -203,43 +204,39 @@ const es = StyleSheet.create({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function MenuPhotosScreen({ navigation }: Props) {
-  const [photos, setPhotos]               = useState<string[]>([]);
-  const [savedPhotos, setSavedPhotos]     = useState<string[]>([]);
+  const [photos, setPhotos]               = useState<MenuPhoto[]>([]);
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [saving, setSaving]               = useState(false);
+  const [uploading, setUploading]         = useState(false);
   const [loadingPhotos, setLoadingPhotos] = useState(true);
 
   useEffect(() => {
     getMenuPhotos()
-      .then((uris) => {
-        setPhotos(uris);
-        setSavedPhotos(uris);
-      })
+      .then((fetched) => setPhotos(fetched))
       .catch(() => {})
       .finally(() => setLoadingPhotos(false));
   }, []);
 
-  const isEmpty     = photos.length === 0;
-  const hasUnsaved  = useMemo(
-    () => photos.join('|') !== savedPhotos.join('|'),
-    [photos, savedPhotos],
-  );
-  const slotsLeft   = useMemo(() => MAX_PHOTOS - photos.length, [photos.length]);
-  const gridData    = useMemo<GridItem[]>(
+  const isEmpty   = photos.length === 0;
+  const slotsLeft = useMemo(() => MAX_PHOTOS - photos.length, [photos.length]);
+  const gridData  = useMemo<GridItem[]>(
     () => (photos.length < MAX_PHOTOS ? [...photos, ADD_SLOT] : photos),
     [photos],
   );
 
-  const handleBack   = useCallback(() => navigation.goBack(), [navigation]);
+  const handleBack = useCallback(() => navigation.goBack(), [navigation]);
 
-  const handleDelete = useCallback(
-    (uri: string) => setPhotos(prev => prev.filter(p => p !== uri)),
-    [],
-  );
+  const handleDelete = useCallback(async (photoId: string) => {
+    try {
+      const updated = await deleteMenuPhoto(photoId);
+      setPhotos(updated);
+    } catch {
+      Alert.alert('Error', 'Could not delete photo. Please try again.');
+    }
+  }, []);
 
   const handleAddPhoto = useCallback(async () => {
     const remaining = MAX_PHOTOS - photos.length;
-    if (remaining <= 0) return;
+    if (remaining <= 0 || uploading) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
@@ -247,19 +244,24 @@ export default function MenuPhotosScreen({ navigation }: Props) {
       quality: 0.8,
     });
     if (!result.canceled && result.assets.length > 0) {
-      setPhotos(prev => [...prev, ...result.assets.map(a => a.uri)].slice(0, MAX_PHOTOS));
+      setUploading(true);
+      try {
+        const updated = await uploadMenuPhotos(
+          result.assets.map((a) => ({
+            uri:  a.uri,
+            type: a.mimeType ?? 'image/jpeg',
+            name: a.fileName  ?? 'photo.jpg',
+          })),
+        );
+        setPhotos(updated);
+      } catch {
+        Alert.alert('Upload failed', 'Could not upload photos. Please try again.');
+      } finally {
+        setUploading(false);
+      }
     }
-  }, [photos.length]);
+  }, [photos.length, uploading]);
 
-  const handleSave = useCallback(async () => {
-    setSaving(true);
-    try {
-      await saveMenuPhotos(photos);
-      setSavedPhotos(photos);
-    } finally {
-      setSaving(false);
-    }
-  }, [photos]);
   const handlePostDonation = useCallback(
     () => (navigation.getParent() as any)?.navigate('Donations', { screen: 'PostDonation' }),
     [navigation],
@@ -289,16 +291,17 @@ export default function MenuPhotosScreen({ navigation }: Props) {
         </TouchableOpacity>
       );
     }
+    const photo = item as MenuPhoto;
     return (
       <View style={styles.photoTile}>
         <Image
-          source={{ uri: item }}
+          source={{ uri: photo.url }}
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
         />
         <TouchableOpacity
           style={styles.deleteBadge}
-          onPress={() => handleDelete(item)}
+          onPress={() => handleDelete(photo.id)}
           hitSlop={8}
         >
           <Ionicons name="close" size={12} color={colors.textPrimary} />
@@ -308,7 +311,8 @@ export default function MenuPhotosScreen({ navigation }: Props) {
   }, [handleAddPhoto, handleDelete, slotsLeft]);
 
   const keyExtractor = useCallback(
-    (item: GridItem, idx: number) => `grid-${idx}-${item.slice(-8)}`,
+    (item: GridItem, idx: number) =>
+      item === ADD_SLOT ? 'add-slot' : `photo-${(item as MenuPhoto).id}-${idx}`,
     [],
   );
 
@@ -361,10 +365,10 @@ export default function MenuPhotosScreen({ navigation }: Props) {
               onScroll={handleCarouselScroll}
               scrollEventThrottle={16}
             >
-              {photos.map((uri, idx) => (
+              {photos.map((photo, idx) => (
                 <Image
-                  key={idx}
-                  source={{ uri }}
+                  key={photo.id ?? idx}
+                  source={{ uri: photo.url }}
                   style={{ width: CONTENT_W, height: CAROUSEL_H }}
                   resizeMode="cover"
                 />
@@ -415,34 +419,23 @@ export default function MenuPhotosScreen({ navigation }: Props) {
         </ScrollView>
       )}
 
-      {/* ── Sticky bottom button — hidden when photos are saved and grid ADD_SLOT is sufficient */}
-      {!loadingPhotos && (hasUnsaved || isEmpty) && (
+      {/* ── Sticky bottom button — show when there are slots left or when empty */}
+      {!loadingPhotos && (isEmpty || slotsLeft > 0) && (
         <View style={styles.bottomBar}>
-          {hasUnsaved ? (
-            <TouchableOpacity
-              style={[styles.addBtn, saving && styles.addBtnDisabled]}
-              activeOpacity={0.85}
-              onPress={handleSave}
-              disabled={saving}
-            >
-              {saving
-                ? <ActivityIndicator size="small" color={colors.textInverse} />
-                : <Ionicons name="checkmark" size={18} color={colors.textInverse} />
-              }
-              <Text style={styles.addBtnText}>
-                {saving ? 'Saving…' : 'Save changes'}
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={styles.addBtn}
-              activeOpacity={0.85}
-              onPress={handleAddPhoto}
-            >
-              <MaterialCommunityIcons name="image-plus" size={18} color={colors.textInverse} />
-              <Text style={styles.addBtnText}>Add photos</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={[styles.addBtn, uploading && styles.addBtnDisabled]}
+            activeOpacity={0.85}
+            onPress={handleAddPhoto}
+            disabled={uploading}
+          >
+            {uploading
+              ? <ActivityIndicator size="small" color={colors.textInverse} />
+              : <MaterialCommunityIcons name="image-plus" size={18} color={colors.textInverse} />
+            }
+            <Text style={styles.addBtnText}>
+              {uploading ? 'Uploading…' : 'Add photos'}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
 
