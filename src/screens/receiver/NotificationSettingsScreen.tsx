@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   // ── Footer ────────────────────────────────────────────────────────────────────
   footer: {
     paddingHorizontal: 16,
-    paddingTop: spacing['3xl'],
+    paddingTop: spacing.sm,
     paddingBottom: spacing.md,
   },
   saveBtn: {

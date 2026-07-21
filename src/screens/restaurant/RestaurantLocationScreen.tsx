@@ -14,15 +14,19 @@ import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { ProfileStackParamList } from '../../navigation/RestaurantTabs';
 import { colors, spacing, radius, fontSizes, fontFamilies, letterSpacings } from '../../constants/theme';
 
+type LocationParamList = {
+  RestaurantLocation: { latitude: number; longitude: number; address: string };
+};
+
 type Props = {
-  navigation: NativeStackNavigationProp<ProfileStackParamList, 'RestaurantLocation'>;
-  route:      RouteProp<ProfileStackParamList, 'RestaurantLocation'>;
+  navigation: NativeStackNavigationProp<LocationParamList, 'RestaurantLocation'>;
+  route:      RouteProp<LocationParamList, 'RestaurantLocation'>;
 };
 
 const DELTA = { latitudeDelta: 0.008, longitudeDelta: 0.008 };
+const SG_DEFAULT = { latitude: 1.3521, longitude: 103.8198 };
 
 type LocationResult = { latitude: number; longitude: number; address: string };
 let _onConfirm: ((result: LocationResult) => void) | null = null;
@@ -36,20 +40,21 @@ export function setOnConfirm(cb: (result: LocationResult) => void) {
 
 interface AddressCardProps {
   address:    string;
+  city:       string;
   postalCode: string;
   lat:        number;
   lng:        number;
 }
 
-const AddressCard = memo(({ address, postalCode, lat, lng }: AddressCardProps) => (
+const AddressCard = memo(({ address, city, postalCode, lat, lng }: AddressCardProps) => (
   <View style={styles.card}>
     <Text style={styles.cardLabel}>SELECTED LOCATION</Text>
     <View style={styles.cardRow}>
       <Ionicons name="location" size={20} color={colors.accentPrimary} style={styles.cardIcon} />
       <View style={styles.cardText}>
-        <Text style={styles.cardAddress} numberOfLines={2}>{address || 'Singapore'}</Text>
+        <Text style={styles.cardAddress} numberOfLines={2}>{address || city || 'Unknown location'}</Text>
         <Text style={styles.cardCoords}>
-          {postalCode ? `Singapore ${postalCode} · ` : ''}
+          {(city || postalCode) ? `${city}${city && postalCode ? ' ' : ''}${postalCode} · ` : ''}
           {lat.toFixed(5)}, {lng.toFixed(5)}
         </Text>
       </View>
@@ -60,14 +65,18 @@ const AddressCard = memo(({ address, postalCode, lat, lng }: AddressCardProps) =
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function RestaurantLocationScreen({ navigation, route }: Props) {
-  const { latitude: initLat, longitude: initLng, address: initAddr } = route.params;
+  const { latitude: rawLat, longitude: rawLng, address: initAddr } = route.params;
+  const initLat = rawLat || SG_DEFAULT.latitude;
+  const initLng = rawLng || SG_DEFAULT.longitude;
 
   const [pin, setPin]             = useState({ latitude: initLat, longitude: initLng });
   const [region, setRegion]       = useState<Region>({ ...DELTA, latitude: initLat, longitude: initLng });
   const [address, setAddress]     = useState(initAddr);
+  const [city, setCity]           = useState('');
   const [postalCode, setPostal]   = useState('');
   const [searchQuery, setQuery]   = useState('');
   const [searching, setSearching] = useState(false);
+  const [locating, setLocating]   = useState(false);
 
   const mapRef = useRef<MapView>(null);
 
@@ -77,7 +86,8 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
       if (results.length > 0) {
         const r = results[0];
         const street = [r.streetNumber, r.street].filter(Boolean).join(' ');
-        setAddress(street || r.name || r.district || 'Singapore');
+        setAddress(street || r.district || r.subregion || '');
+        setCity(r.city || r.region || '');
         setPostal(r.postalCode ?? '');
       }
     } catch {
@@ -123,13 +133,32 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
     }
   }, [searchQuery, reverseGeocode]);
 
+  const handleLocateMe = useCallback(async () => {
+    setLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const { latitude, longitude } = pos.coords;
+      setPin({ latitude, longitude });
+      mapRef.current?.animateToRegion({ ...DELTA, latitude, longitude }, 400);
+      reverseGeocode(latitude, longitude);
+    } catch {
+      // silent — user can try again
+    } finally {
+      setLocating(false);
+    }
+  }, [reverseGeocode]);
+
   const handleConfirm = useCallback(() => {
     if (_onConfirm) {
-      _onConfirm({ latitude: pin.latitude, longitude: pin.longitude, address });
+      const locality = city && postalCode ? `${city} ${postalCode}` : postalCode || city;
+      const fullAddress = [address, locality].filter(Boolean).join(', ') || 'Singapore';
+      _onConfirm({ latitude: pin.latitude, longitude: pin.longitude, address: fullAddress });
       _onConfirm = null;
     }
     navigation.goBack();
-  }, [navigation, pin, address]);
+  }, [navigation, pin, address, city, postalCode]);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -169,20 +198,34 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
       </View>
 
       {/* Map */}
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        initialRegion={region}
-        onPress={handleMapPress}
-        showsUserLocation
-        showsMyLocationButton={false}
-      >
-        <Marker
-          coordinate={pin}
-          draggable
-          onDragEnd={handleDragEnd}
-        />
-      </MapView>
+      <View style={styles.mapContainer}>
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          initialRegion={region}
+          onPress={handleMapPress}
+          showsUserLocation
+          showsMyLocationButton={false}
+        >
+          <Marker
+            coordinate={pin}
+            draggable
+            onDragEnd={handleDragEnd}
+          />
+        </MapView>
+
+        <TouchableOpacity
+          style={styles.locateBtn}
+          onPress={handleLocateMe}
+          disabled={locating}
+          activeOpacity={0.8}
+        >
+          {locating
+            ? <ActivityIndicator size="small" color={colors.accentPrimary} />
+            : <Ionicons name="locate" size={20} color={colors.accentPrimary} />
+          }
+        </TouchableOpacity>
+      </View>
 
       {/* Bottom panel */}
       <View style={styles.bottom}>
@@ -190,6 +233,7 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
 
         <AddressCard
           address={address}
+          city={city}
           postalCode={postalCode}
           lat={pin.latitude}
           lng={pin.longitude}
@@ -272,9 +316,29 @@ const styles = StyleSheet.create({
   },
 
   // Map
+  mapContainer: {
+    flex: 1,
+    width: '100%',
+  },
   map: {
     flex: 1,
     width: '100%',
+  },
+  locateBtn: {
+    position: 'absolute',
+    bottom: spacing['2xl'],
+    right: spacing['2xl'],
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
 
   // Bottom panel

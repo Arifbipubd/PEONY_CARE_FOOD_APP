@@ -18,6 +18,8 @@ import RestaurantTermsPrivacyScreen    from '../screens/restaurant/RestaurantTer
 import RestaurantPublicPageScreen           from '../screens/restaurant/RestaurantPublicPageScreen';
 import EditRestaurantDetailsScreen          from '../screens/restaurant/EditRestaurantDetailsScreen';
 import RestaurantLocationScreen             from '../screens/restaurant/RestaurantLocationScreen';
+import MenuPhotosScreen                     from '../screens/restaurant/MenuPhotosScreen';
+import RestaurantAnalyticsScreen            from '../screens/restaurant/RestaurantAnalyticsScreen';
 import { colors, fontSizes }     from '../constants/theme';
 import { useNotificationStore }  from '../store/notificationStore';
 
@@ -30,6 +32,8 @@ export type ProfileStackParamList = {
   RestaurantPublicPage:       undefined;
   EditRestaurantDetails:      undefined;
   RestaurantLocation:         { latitude: number; longitude: number; address: string };
+  MenuPhotos:                 undefined;
+  RestaurantAnalytics:        undefined;
   TodaysClaims:               undefined;
 };
 
@@ -69,6 +73,8 @@ function ProfileNavigator() {
       <ProfileStack.Screen name="RestaurantPublicPage"    component={RestaurantPublicPageScreen} />
       <ProfileStack.Screen name="EditRestaurantDetails"   component={EditRestaurantDetailsScreen} />
       <ProfileStack.Screen name="RestaurantLocation"      component={RestaurantLocationScreen} />
+      <ProfileStack.Screen name="MenuPhotos"              component={MenuPhotosScreen} />
+      <ProfileStack.Screen name="RestaurantAnalytics"     component={RestaurantAnalyticsScreen} />
       <ProfileStack.Screen name="TodaysClaims"            component={TodaysClaimsScreen} />
     </ProfileStack.Navigator>
   );
@@ -123,6 +129,12 @@ export default function RestaurantTabs() {
               : { borderTopColor: colors.borderDefault },
           };
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            (navigation as any).navigate('Donations', { screen: 'DonationList' });
+          },
+        })}
       />
       <Tab.Screen
         name="Alerts"
@@ -132,7 +144,16 @@ export default function RestaurantTabs() {
           tabBarBadgeStyle: { backgroundColor: colors.accentPrimary, fontSize: fontSizes.xs },
         }}
       />
-      <Tab.Screen name="Profile" component={ProfileNavigator} />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileNavigator}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            (navigation as any).navigate('Profile', { screen: 'RestaurantProfile' });
+          },
+        })}
+      />
     </Tab.Navigator>
   );
 }

@@ -1,4 +1,5 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useCallback, memo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -133,12 +134,15 @@ export default function NotificationsScreen({ navigation }: Props) {
   } = useNotificationStore();
   const [loading, setLoading] = useState(notifications.length === 0);
 
-  useEffect(() => {
-    getNotifications().then((items) => {
-      setNotifications(items);
-      setLoading(false);
-    });
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      getNotifications().then((items) => {
+        setNotifications(items);
+        setLoading(false);
+      });
+    }, []),
+  );
 
   const handleTap = (id: string) => {
     storeMarkRead(id);

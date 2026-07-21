@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
+import {
+  colors,
+  spacing,
+  radius,
+  fontSizes,
+  fontFamilies,
+} from '../../constants/theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<HomeStackParamList, 'DailyLimit'>;
@@ -19,10 +25,11 @@ type Props = {
 
 function countdown(resetsAt: string): string {
   const diff = new Date(resetsAt).getTime() - Date.now();
-  if (diff <= 0) return '0:00';
+  if (diff <= 0) return '0:00:00';
   const h = Math.floor(diff / 3_600_000);
   const m = Math.floor((diff % 3_600_000) / 60_000);
-  return `${h}:${String(m).padStart(2, '0')}`;
+  const s = Math.floor((diff % 60_000) / 1_000);
+  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 export default function DailyLimitScreen({ navigation, route }: Props) {
@@ -30,46 +37,64 @@ export default function DailyLimitScreen({ navigation, route }: Props) {
   const [timeLeft, setTimeLeft] = useState(countdown(resetsAt));
 
   useEffect(() => {
-    const id = setInterval(() => setTimeLeft(countdown(resetsAt)), 60_000);
+    const id = setInterval(() => setTimeLeft(countdown(resetsAt)), 1_000);
     return () => clearInterval(id);
   }, [resetsAt]);
+
+  const handleViewClaim = useCallback(
+    () => navigation.getParent()?.navigate('History' as never),
+    [navigation],
+  );
+
+  const handleBackToBrowse = useCallback(
+    () => navigation.navigate('ReceiverHome'),
+    [navigation],
+  );
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
 
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
-      </View>
+      {/* Back arrow */}
+      <TouchableOpacity
+        style={styles.backBtn}
+        onPress={() => navigation.goBack()}
+        hitSlop={8}
+      >
+        <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+      </TouchableOpacity>
 
+      {/* Centred content */}
       <View style={styles.content}>
         <View style={styles.iconCircle}>
-          <Ionicons name="hourglass-outline" size={48} color={colors.accentPrimary} />
+          <Ionicons name="hourglass" size={52} color={colors.pickupOrange} />
         </View>
-        <Text style={styles.heading}>Daily limit reached</Text>
-        <Text style={styles.body}>
-          You've claimed your meal today. The limit resets at midnight so more people get to eat.
+
+        <Text style={styles.title}>Daily limit reached</Text>
+        <Text style={styles.desc}>
+          {"You've claimed your meal today. The limit resets at midnight so more people get to eat."}
         </Text>
 
-        <View style={styles.timerBox}>
+        <View style={styles.timerCard}>
           <Text style={styles.timerValue}>{timeLeft}</Text>
           <Text style={styles.timerLabel}>UNTIL RESET</Text>
         </View>
       </View>
 
+      {/* Bottom actions */}
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.primaryBtn}
           activeOpacity={0.85}
-          onPress={() => navigation.navigate('ReceiverHome')}
+          onPress={handleViewClaim}
         >
+          <Ionicons name="time" size={18} color={colors.textInverse} />
           <Text style={styles.primaryBtnText}>View today's claim</Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.secondaryBtn}
           activeOpacity={0.7}
-          onPress={() => navigation.navigate('ReceiverHome')}
+          onPress={handleBackToBrowse}
         >
           <Text style={styles.secondaryBtnText}>Back to browse</Text>
         </TouchableOpacity>
@@ -82,11 +107,12 @@ export default function DailyLimitScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
 
-  header: {
-    paddingHorizontal: spacing['2xl'],
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderDefault,
+  backBtn: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    marginLeft: spacing['2xl'],
+    marginTop: spacing.lg,
   },
 
   content: {
@@ -94,80 +120,99 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing['2xl'],
-    gap: spacing.lg,
   },
 
   iconCircle: {
-    width: 100,
-    height: 100,
+    width: 128,
+    height: 128,
     borderRadius: radius.pill,
-    backgroundColor: '#FEF0E6',
+    backgroundColor: colors.goldLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 28,
   },
 
-  heading: {
+  title: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
+    lineHeight: 28.8,
+    letterSpacing: -0.6,
     color: colors.textPrimary,
     textAlign: 'center',
-  },
-  body: {
-    fontSize: fontSizes.sm,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 22,
+    marginBottom: 12,
   },
 
-  timerBox: {
-    width: '100%',
+  desc: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
+    lineHeight: 21,
+    color: colors.textMuted,
+    textAlign: 'center',
+    maxWidth: 300,
+  },
+
+  timerCard: {
     backgroundColor: colors.surfaceSecondary,
     borderRadius: radius.card,
-    paddingVertical: spacing['2xl'],
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: 22,
+    marginTop: 28,
+    alignSelf: 'center',
+    width: 280,
     alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.md,
   },
+
   timerValue: {
-    fontSize: 52,
-    fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
+    fontSize: 40,
     color: colors.accentPrimary,
-    lineHeight: 60,
+    lineHeight: 48,
   },
+
   timerLabel: {
-    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.xs,
+    letterSpacing: 0.88,
     color: colors.textMuted,
-    fontWeight: fontWeights.semiBold,
-    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: spacing.xs,
   },
 
   actions: {
     paddingHorizontal: spacing['2xl'],
     paddingBottom: spacing['2xl'],
-    gap: spacing.sm,
   },
+
   primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.accentPrimary,
     borderRadius: radius.card,
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
+    height: 54,
+    gap: 8,
   },
   primaryBtnText: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
+    letterSpacing: 0.3,
     color: colors.textInverse,
   },
+
   secondaryBtn: {
-    borderWidth: 1,
-    borderColor: colors.borderDefault,
-    borderRadius: radius.card,
-    paddingVertical: spacing.lg,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.card,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    height: 54,
+    marginTop: 10,
   },
   secondaryBtnText: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
+    letterSpacing: 0.3,
     color: colors.textPrimary,
   },
 });

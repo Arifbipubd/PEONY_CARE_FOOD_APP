@@ -15,6 +15,7 @@ import ScanErrorScreen        from '../screens/receiver/ScanErrorScreen';
 import OfflineErrorScreen     from '../screens/receiver/OfflineErrorScreen';
 import ServerErrorScreen      from '../screens/receiver/ServerErrorScreen';
 import ReportListingScreen   from '../screens/receiver/ReportListingScreen';
+import WriteReviewScreen     from '../screens/receiver/WriteReviewScreen';
 import ReceiverHistoryScreen  from '../screens/receiver/ReceiverHistoryScreen';
 import NotificationsScreen    from '../screens/shared/NotificationsScreen';
 import ReceiverProfileScreen      from '../screens/receiver/ReceiverProfileScreen';
@@ -31,14 +32,15 @@ export type HomeStackParamList = {
   ReceiverHome:    undefined;
   FoodDetail:      { foodId: string };
   RestaurantPage:  { restaurantId: string; distanceKm?: number };
-  QrScanner:       undefined;
+  QrScanner:       { expectedFoodId: string };
   ClaimSuccess:    { claim: Claim };
-  FoodUnavailable: undefined;
+  FoodUnavailable: { nearbyCount?: number };
   DailyLimit:      { resetsAt: string };
-  ScanError:       undefined;
+  ScanError:       { expectedFoodId: string };
   OfflineError:    undefined;
   ServerError:     { errorRef?: string };
   ReportListing:   { restaurantName: string; foodId: string };
+  WriteReview:     { claimId: string; restaurantName: string; restaurantPhotoUrl: string | null; foodName: string };
 };
 
 export type HistoryStackParamList = {
@@ -75,6 +77,7 @@ function HomeNavigator() {
       <HomeStack.Screen name="OfflineError"    component={OfflineErrorScreen} />
       <HomeStack.Screen name="ServerError"     component={ServerErrorScreen} />
       <HomeStack.Screen name="ReportListing"  component={ReportListingScreen} />
+      <HomeStack.Screen name="WriteReview"    component={WriteReviewScreen} />
     </HomeStack.Navigator>
   );
 }

@@ -1,12 +1,14 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
+  Pressable,
   ScrollView,
   FlatList,
   Modal,
+  Image,
   StyleSheet,
   ActivityIndicator,
   Alert,
@@ -54,12 +56,18 @@ const TIME_SLOTS: string[] = Array.from({ length: 48 }, (_, i) => {
   return `${String(h).padStart(2, '0')}:${m}`;
 });
 
-function buildIsoTime(timeStr: string): string {
-  const [hStr, mStr] = timeStr.split(':');
-  const h = parseInt(hStr ?? '0', 10);
-  const m = parseInt(mStr ?? '0', 10);
+function buildPickupIso(fromStr: string, untilStr: string): { start: string; end: string } {
+  const parseHM = (t: string): [number, number] => {
+    const parts = t.split(':');
+    return [parseInt(parts[0] ?? '0', 10), parseInt(parts[1] ?? '0', 10)];
+  };
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0).toISOString();
+  const [fh, fm] = parseHM(fromStr);
+  const startDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), fh, fm, 0);
+  if (startDt <= now) startDt.setDate(startDt.getDate() + 1);
+  const [uh, um] = parseHM(untilStr);
+  const endDt = new Date(startDt.getFullYear(), startDt.getMonth(), startDt.getDate(), uh, um, 0);
+  return { start: startDt.toISOString(), end: endDt.toISOString() };
 }
 
 export default function PostDonationScreen({ navigation }: Props) {
@@ -86,6 +94,7 @@ export default function PostDonationScreen({ navigation }: Props) {
   const [postedPickupWindow, setPostedPickupWindow] = useState('');
 
   const unit = UNITS[unitIndex]!;
+  const flatListRef = useRef<FlatList<string>>(null);
 
   const bc = (field: string) =>
     focusedField === field ? colors.accentPrimary : colors.borderDefault;
@@ -93,11 +102,23 @@ export default function PostDonationScreen({ navigation }: Props) {
   const openTimePicker = useCallback((target: 'from' | 'until') => {
     setTimeTarget(target);
     setShowTimeModal(true);
-  }, []);
+    if (target === 'until' && pickupFrom) {
+      const idx = TIME_SLOTS.findIndex((s) => s > pickupFrom);
+      if (idx > 0) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({ index: idx, animated: false });
+        }, 150);
+      }
+    }
+  }, [pickupFrom]);
 
   const selectTime = useCallback((time: string) => {
-    if (timeTarget === 'from') setPickupFrom(time);
-    else setPickupUntil(time);
+    if (timeTarget === 'from') {
+      setPickupFrom(time);
+      setPickupUntil((prev) => (prev && prev > time ? prev : ''));
+    } else {
+      setPickupUntil(time);
+    }
     setShowTimeModal(false);
   }, [timeTarget]);
 
@@ -108,7 +129,7 @@ export default function PostDonationScreen({ navigation }: Props) {
 
   const handlePickPhoto = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
@@ -133,15 +154,16 @@ export default function PostDonationScreen({ navigation }: Props) {
     }
     setSubmitting(true);
     try {
+      const { start, end } = buildPickupIso(pickupFrom, pickupUntil);
       const result = await createDonation({
         name:             name.trim(),
         description:      notes.trim(),
         category,
         unit,
         quantityOriginal: Number(quantity),
-        pickupStart:      buildIsoTime(pickupFrom),
-        pickupEnd:        buildIsoTime(pickupUntil),
-        photoUrl:         'https://placehold.co/400x300.jpg',
+        pickupStart:      start,
+        pickupEnd:        end,
+        localPhotoUri:    photoUri ?? undefined,
       });
       setQrData(result.foodQrData);
       setPostedName(result.name);
@@ -260,14 +282,16 @@ export default function PostDonationScreen({ navigation }: Props) {
             <Text style={styles.fieldLabel}>UNTIL</Text>
             <TouchableOpacity
               style={[styles.inputWrap, styles.inlineRow,
+                !pickupFrom && styles.inputDisabled,
                 { borderColor: pickupUntil ? colors.accentPrimary : colors.borderDefault }]}
               onPress={() => openTimePicker('until')}
+              disabled={!pickupFrom}
               activeOpacity={0.8}
             >
               <Text style={pickupUntil ? styles.pickerValue : styles.pickerPlaceholder}>
-                {pickupUntil || '20:00'}
+                {pickupUntil || '—'}
               </Text>
-              <Ionicons name="time" size={18} color={colors.textMuted} />
+              <Ionicons name="time" size={18} color={!pickupFrom ? colors.borderDefault : colors.textMuted} />
             </TouchableOpacity>
           </View>
         </View>
@@ -305,15 +329,21 @@ export default function PostDonationScreen({ navigation }: Props) {
 
         {/* PHOTO */}
         <TouchableOpacity style={styles.photoBox} onPress={handlePickPhoto} activeOpacity={0.8}>
-          <Ionicons
-            name={photoUri ? 'checkmark-circle' : 'camera'}
-            size={32}
-            color={photoUri ? colors.successGreen : colors.textMuted}
-          />
-          <Text style={styles.photoTitle}>{photoUri ? 'Photo added' : 'Add a photo'}</Text>
-          <Text style={styles.photoSub}>
-            {photoUri ? 'Tap to change' : 'Helps food get claimed faster'}
-          </Text>
+          {photoUri ? (
+            <>
+              <Image source={{ uri: photoUri }} style={styles.photoPreview} resizeMode="cover" />
+              <View style={styles.photoOverlay}>
+                <Ionicons name="camera" size={16} color={colors.textInverse} />
+                <Text style={styles.photoChangeText}>Change</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <Ionicons name="camera" size={32} color={colors.textMuted} />
+              <Text style={styles.photoTitle}>Add a photo</Text>
+              <Text style={styles.photoSub}>Helps food get claimed faster</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         {/* POST DONATION */}
@@ -413,16 +443,16 @@ export default function PostDonationScreen({ navigation }: Props) {
         animationType="slide"
         onRequestClose={() => setShowTimeModal(false)}
       >
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={() => setShowTimeModal(false)}
-        >
+        <View style={styles.overlay}>
+          {/* Backdrop — tap outside sheet to dismiss */}
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowTimeModal(false)} />
+          {/* Sheet sits above backdrop so FlatList scroll is never intercepted */}
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>
               {timeTarget === 'from' ? 'Pickup from' : 'Until'}
             </Text>
             <FlatList
+              ref={flatListRef}
               data={TIME_SLOTS}
               keyExtractor={(item) => item}
               style={styles.timeList}
@@ -430,16 +460,25 @@ export default function PostDonationScreen({ navigation }: Props) {
               removeClippedSubviews
               maxToRenderPerBatch={24}
               windowSize={10}
+              extraData={{ pickupFrom, pickupUntil, timeTarget }}
+              onScrollToIndexFailed={({ index }) => {
+                flatListRef.current?.scrollToOffset({ offset: index * 50, animated: false });
+              }}
               renderItem={({ item }) => {
-                const selected =
-                  timeTarget === 'from' ? pickupFrom === item : pickupUntil === item;
+                const selected = timeTarget === 'from' ? pickupFrom === item : pickupUntil === item;
+                const disabled = timeTarget === 'until' && item <= pickupFrom;
                 return (
                   <TouchableOpacity
                     style={styles.sheetOption}
                     onPress={() => selectTime(item)}
+                    disabled={disabled}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.sheetOptionText, selected && styles.sheetOptionActive]}>
+                    <Text style={[
+                      styles.sheetOptionText,
+                      selected && styles.sheetOptionActive,
+                      disabled && styles.sheetOptionDisabled,
+                    ]}>
                       {item}
                     </Text>
                     {selected && (
@@ -450,7 +489,7 @@ export default function PostDonationScreen({ navigation }: Props) {
               }}
             />
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -608,6 +647,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: spacing.sm,
+    overflow: 'hidden',
+  },
+  photoPreview: {
+    width: '100%',
+    height: '100%',
+  },
+  photoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingVertical: spacing.sm,
+  },
+  photoChangeText: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes.sm,
+    color: colors.textInverse,
   },
   photoTitle: {
     fontFamily: fontFamilies.semiBold,
@@ -679,6 +740,13 @@ const styles = StyleSheet.create({
   sheetOptionActive: {
     fontFamily: fontFamilies.semiBold,
     color: colors.accentPrimary,
+  },
+  sheetOptionDisabled: {
+    color: colors.borderDefault,
+  },
+  inputDisabled: {
+    backgroundColor: colors.surfaceSecondary,
+    opacity: 0.6,
   },
   timeList: {
     maxHeight: 300,

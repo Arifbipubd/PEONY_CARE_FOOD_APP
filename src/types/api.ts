@@ -246,15 +246,41 @@ export interface ApiRestaurantProfile {
   review_count: number;
 }
 
+export interface ApiRestaurantDashboardGroup {
+  key: string;
+  label: string;
+  date: string | null;
+  listings_count: number;
+  portions: number;
+  fed: number;
+  items: ApiRestaurantDonation[];
+}
+
 export interface ApiRestaurantDashboard {
+  // Backward-compat flat fields (always present)
   lives_impacted: number;
   donations_this_year: number;
   claim_rate_pct: number;
   active_count: number;
   claimed_today: number;
   today_listings: ApiRestaurantDonation[];
-  // Fields not yet returned by the backend — optional with safe defaults
+  // Injected by getDashboard after profile call
   restaurant_name?: string;
+  // Nested structure returned by backend
+  impact?: {
+    lives_impacted: number;
+    donations_this_year: number;
+    week_over_week_pct: number;
+  };
+  this_week?: {
+    donations: number;
+    meals: number;
+    inactive_count: number;
+  };
+  active_donations?: {
+    groups: ApiRestaurantDashboardGroup[];
+  };
+  // Legacy optional fields kept for safety
   growth_pct_this_week?: number;
   this_week_donations?: number;
   this_week_meals?: number;

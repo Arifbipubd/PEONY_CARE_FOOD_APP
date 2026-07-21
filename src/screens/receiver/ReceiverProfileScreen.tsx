@@ -1,4 +1,5 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useCallback, memo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -167,14 +168,20 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
   const [profile, setProfile] = useState<ReceiverProfile | null>(null);
   const [loading, setLoading]   = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
-  const { photoUrl, displayName: storedName } = useProfileStore();
+  const { displayName: storedName, setProfile: storeSetProfile } = useProfileStore();
 
-  useEffect(() => {
-    getReceiverProfile()
-      .then((p) => { setProfile(p); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      getReceiverProfile()
+        .then((p) => {
+          setProfile(p);
+          storeSetProfile({ photoUrl: p.photoUrl, displayName: p.displayName });
+        })
+        .catch((e) => { console.log('[ReceiverProfile] error', e); })
+        .finally(() => setLoading(false));
+    }, [storeSetProfile]),
+  );
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -282,8 +289,8 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
         {/* Avatar */}
         <View style={styles.avatarWrapper}>
           <View style={styles.avatarCircle}>
-            {photoUrl ? (
-              <Image source={{ uri: photoUrl }} style={styles.avatarImage} resizeMode="cover" />
+            {effectiveProfile.photoUrl ? (
+              <Image source={{ uri: effectiveProfile.photoUrl }} style={styles.avatarImage} resizeMode="cover" />
             ) : (
               <Text style={styles.avatarText}>{initials(effectiveProfile.displayName)}</Text>
             )}

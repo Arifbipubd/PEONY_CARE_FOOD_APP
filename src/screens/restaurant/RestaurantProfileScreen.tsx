@@ -230,6 +230,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
             iconBg={colors.avatarBg}
             title="Menu photos"
             subtitle="Shown to donors"
+            onPress={() => navigation.navigate('MenuPhotos')}
           />
           <View style={styles.divider} />
           <ProfileRow
@@ -255,6 +256,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
             iconColor={colors.textPrimary}
             iconBg={colors.surfaceSecondary}
             title="Analytics"
+            onPress={() => navigation.navigate('RestaurantAnalytics')}
           />
         </View>
 

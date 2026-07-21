@@ -448,9 +448,8 @@ const styles = StyleSheet.create({
 
   saveWrap: {
     paddingHorizontal: spacing['2xl'],
-    paddingVertical: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderDefault,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
   },
   saveBtn: {
     flexDirection: 'row',

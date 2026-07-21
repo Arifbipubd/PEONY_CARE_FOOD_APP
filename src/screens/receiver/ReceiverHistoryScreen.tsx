@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -121,13 +122,16 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const { unreadCount } = useNotificationStore();
 
-  useEffect(() => {
-    Promise.allSettled([getClaimHistory(), getReceiverProfile()]).then(([h, p]) => {
-      if (h.status === 'fulfilled') setHistory(h.value);
-      if (p.status === 'fulfilled') setProfile(p.value);
-      setLoading(false);
-    });
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      Promise.allSettled([getClaimHistory(), getReceiverProfile()]).then(([h, p]) => {
+        if (h.status === 'fulfilled') setHistory(h.value);
+        if (p.status === 'fulfilled') setProfile(p.value);
+        setLoading(false);
+      });
+    }, []),
+  );
 
   if (loading) {
     return <HistorySkeleton />;

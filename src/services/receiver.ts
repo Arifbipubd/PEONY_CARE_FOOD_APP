@@ -4,7 +4,7 @@
 
 import {
   FoodItem, DailyLimitStatus, Claim, ClaimHistory, ClaimHistoryItem,
-  ReceiverProfile, LocationSettings, RecentPlace,
+  ReceiverProfile, LocationSettings, RecentPlace, ReviewPayload,
 } from '../types';
 import {
   ApiFoodItem, ApiFoodDetail, ApiDailyLimit, ApiClaimHistoryItem, ApiRecentPlace,
@@ -147,7 +147,9 @@ export const claimFood = async (
     claimId: d.claim_id,
     status: d.status,
     foodName: d.food_name,
+    restaurantId: d.restaurant_id ?? '',
     restaurantName: d.restaurant_name,
+    restaurantPhotoUrl: d.restaurant_photo_url ?? null,
     pickupAddress: d.pickup_address,
     distanceKm: d.distance_km,
     pickupWindow: d.pickup_window,
@@ -195,6 +197,15 @@ export const getLocationSettings = async (): Promise<LocationSettings> => {
     recentPlacesCount: s.recent_places_count,
     recentPlaces: (s.recent_places as ApiRecentPlace[]).map(mapApiRecentPlace),
   };
+};
+
+export const submitReview = async (payload: ReviewPayload): Promise<void> => {
+  await api.post('/receiver/reviews/', {
+    claim_id: payload.claimId,
+    rating: payload.rating,
+    tags: payload.tags,
+    comment: payload.comment || undefined,
+  });
 };
 
 export const getReceiverProfile = async (): Promise<ReceiverProfile> => {

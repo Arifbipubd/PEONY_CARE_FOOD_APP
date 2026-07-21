@@ -4,10 +4,8 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +16,7 @@ import LogoBadge from '../../components/LogoBadge';
 import CountryPicker, { CountryOption, COUNTRIES } from '../../components/CountryPicker';
 import { sendOtp } from '../../services/auth';
 import { ApiError } from '../../services/api';
+import { setOnConfirm } from '../restaurant/RestaurantLocationScreen';
 import {
   colors, spacing, fontSizes, fontFamilies, letterSpacings, radius,
 } from '../../constants/theme';
@@ -34,6 +33,8 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
   const [phone, setPhone]                   = useState('');
   const [country, setCountry]               = useState<CountryOption>(COUNTRIES[0]);
   const [email, setEmail]                   = useState('');
+  const [lat, setLat]                        = useState(0);
+  const [lng, setLng]                        = useState(0);
   const [termsAccepted, setTermsAccepted]   = useState(false);
   const [loading, setLoading]               = useState(false);
   const [error, setError]                   = useState('');
@@ -116,15 +117,14 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
         <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
       </TouchableOpacity>
 
-      <KeyboardAvoidingView
+      <KeyboardAwareScrollView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        contentContainerStyle={styles.body}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid
+        extraScrollHeight={20}
       >
-        <ScrollView
-          contentContainerStyle={styles.body}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
           <LogoBadge size={80} />
 
           <Text style={styles.title}>Register your restaurant</Text>
@@ -152,7 +152,22 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
                 placeholder="443 Joo Chiat Rd, Singapore"
                 leftIcon={<Ionicons name="location" size={18} color={colors.textMuted} />}
               />
-              <TouchableOpacity style={styles.pinRow} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.pinRow}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setOnConfirm((result) => {
+                    setLat(result.latitude);
+                    setLng(result.longitude);
+                    setAddress(result.address);
+                  });
+                  navigation.navigate('RestaurantLocation', {
+                    latitude:  lat || 1.3521,
+                    longitude: lng || 103.8198,
+                    address,
+                  });
+                }}
+              >
                 <Ionicons name="bookmark" size={14} color={colors.accentPrimary} />
                 <Text style={styles.pinText}>Pin exact location on map</Text>
               </TouchableOpacity>
@@ -167,7 +182,7 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
             <Input
               label="Mobile number"
               value={phone}
-              onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); clearError(); }}
+              onChangeText={(t) => { const d = t.replace(/\D/g, ''); setPhone(!isSg && d.startsWith('0') ? d.slice(1) : d); clearError(); }}
               placeholder={isSg ? '91234567' : '1712345678'}
               keyboardType="number-pad"
               error={phoneError}
@@ -225,8 +240,7 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
               Log in
             </Text>
           </Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

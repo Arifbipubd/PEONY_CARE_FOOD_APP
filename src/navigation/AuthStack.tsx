@@ -1,14 +1,15 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import SplashScreen             from '../screens/shared/SplashScreen';
-import LoginScreen              from '../screens/shared/LoginScreen';
-import OtpScreen                from '../screens/shared/OtpScreen';
-import ChooseRoleScreen         from '../screens/shared/ChooseRoleScreen';
-import ReceiverRegisterScreen   from '../screens/shared/ReceiverRegisterScreen';
-import PermissionsScreen        from '../screens/shared/PermissionsScreen';
-import TermsPrivacyScreen       from '../screens/receiver/TermsPrivacyScreen';
-import DonorRegisterScreen      from '../screens/shared/DonorRegisterScreen';
-import RestaurantRegisterScreen from '../screens/shared/RestaurantRegisterScreen';
+import SplashScreen                from '../screens/shared/SplashScreen';
+import LoginScreen                 from '../screens/shared/LoginScreen';
+import OtpScreen                   from '../screens/shared/OtpScreen';
+import ChooseRoleScreen            from '../screens/shared/ChooseRoleScreen';
+import ReceiverRegisterScreen      from '../screens/shared/ReceiverRegisterScreen';
+import PermissionsScreen           from '../screens/shared/PermissionsScreen';
+import TermsPrivacyScreen          from '../screens/receiver/TermsPrivacyScreen';
+import DonorRegisterScreen         from '../screens/shared/DonorRegisterScreen';
+import RestaurantRegisterScreen    from '../screens/shared/RestaurantRegisterScreen';
+import RestaurantLocationScreen    from '../screens/restaurant/RestaurantLocationScreen';
 import { UserRole } from '../types';
 
 export type PendingRegistration =
@@ -35,7 +36,8 @@ export type AuthStackParamList = {
   };
   TermsPrivacy: undefined;
   // Kept only so RegisterScreen.tsx (legacy) still type-checks
-  Register: { registrationToken: string; phone: string; role?: 'RECEIVER' | 'DONOR' };
+  Register:           { registrationToken: string; phone: string; role?: 'RECEIVER' | 'DONOR' };
+  RestaurantLocation: { latitude: number; longitude: number; address: string };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -52,6 +54,7 @@ export default function AuthStack() {
       <Stack.Screen name="Otp"               component={OtpScreen} />
       <Stack.Screen name="Permissions"        component={PermissionsScreen} />
       <Stack.Screen name="TermsPrivacy"       component={TermsPrivacyScreen} />
+      <Stack.Screen name="RestaurantLocation" component={RestaurantLocationScreen} />
     </Stack.Navigator>
   );
 }

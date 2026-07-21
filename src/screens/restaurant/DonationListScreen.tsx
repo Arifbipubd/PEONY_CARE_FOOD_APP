@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -12,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getDonations, getDonationSummary, reactivateDonation, deleteDonation } from '../../services/restaurant';
+import { getDonations, reactivateDonation, deleteDonation } from '../../services/restaurant';
 import { RestaurantDonation, DonationSummary } from '../../types';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import PostFAB from '../../components/PostFAB';
@@ -282,29 +283,31 @@ export default function DonationListScreen({ navigation }: Props) {
   const [past,          setPast]          = useState<RestaurantDonation[] | null>(null);
   const [inactive,      setInactive]      = useState<RestaurantDonation[] | null>(null);
   const [loading,       setLoading]       = useState(true);
+  const [fetchError,    setFetchError]    = useState('');
   const [actionLoading, setActionLoading] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    Promise.all([getDonationSummary(), getDonations('active')])
-      .then(([s, a]) => {
-        setSummary(s);
-        setActive(a);
-      })
-      .catch(() => {
-        setSummary({ activeCount: 0, pastCount: 0, inactiveCount: 0, weeklyMeals: 0 });
-        setActive([]);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    if (tab === 'past' && past === null) {
-      getDonations('past').then(setPast).catch(() => setPast([]));
-    }
-    if (tab === 'inactive' && inactive === null) {
-      getDonations('inactive').then(setInactive).catch(() => setInactive([]));
-    }
-  }, [tab, past, inactive]);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      setFetchError('');
+      getDonations()
+        .then(({ active, past, inactive, summary }) => {
+          setActive(active);
+          setPast(past);
+          setInactive(inactive);
+          setSummary(summary);
+        })
+        .catch((err: unknown) => {
+          const msg = err instanceof Error ? err.message : 'Failed to load donations';
+          setFetchError(msg);
+          setActive([]);
+          setPast([]);
+          setInactive([]);
+          setSummary({ activeCount: 0, pastCount: 0, inactiveCount: 0, weeklyMeals: 0 });
+        })
+        .finally(() => setLoading(false));
+    }, []),
+  );
 
   const handleReactivate = useCallback(async (id: string) => {
     if (actionLoading.has(id)) return;
@@ -316,7 +319,7 @@ export default function DonationListScreen({ navigation }: Props) {
         ? { ...prev, inactiveCount: prev.inactiveCount - 1, activeCount: prev.activeCount + 1 }
         : prev,
       );
-      setActive(null);
+      getDonations().then((result) => setActive(result.active));
     } finally {
       setActionLoading((prev) => { const s = new Set(prev); s.delete(id); return s; });
     }
@@ -384,6 +387,13 @@ export default function DonationListScreen({ navigation }: Props) {
       <Text style={styles.title}>Donations</Text>
       <Text style={styles.bigNumber}>{headerNumber}</Text>
       <Text style={styles.summary}>{headerSummary}</Text>
+
+      {!!fetchError && (
+        <View style={styles.errorBanner}>
+          <Ionicons name="warning" size={14} color={colors.dangerRed} />
+          <Text style={styles.errorBannerText}>{fetchError}</Text>
+        </View>
+      )}
 
       <View style={styles.pills}>
         {(['active', 'past', 'inactive'] as Tab[]).map((t) => (
@@ -768,6 +778,22 @@ const styles = StyleSheet.create({
   },
 
   listContent: { paddingBottom: 100 },
+
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.accentLight,
+    borderRadius: radius.sm,
+  },
+  errorBannerText: {
+    flex: 1,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    color: colors.dangerRed,
+  },
 
   // ── Empty state ───────────────────────────────────────────────────────────────
   emptyBody: {
