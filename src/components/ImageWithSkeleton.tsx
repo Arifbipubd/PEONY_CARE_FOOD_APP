@@ -30,7 +30,8 @@ const ImageWithSkeleton = memo(function ImageWithSkeleton({
   style,
   resizeMode = 'cover',
 }: Props) {
-  const [loaded, setLoaded] = useState(false);
+  const hasUri = typeof source === 'object' && !!(source as { uri?: string }).uri;
+  const [loaded, setLoaded] = useState(!hasUri);
 
   return (
     <View style={[styles.container, style]}>
