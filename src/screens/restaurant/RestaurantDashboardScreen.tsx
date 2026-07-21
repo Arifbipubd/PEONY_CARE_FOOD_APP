@@ -531,7 +531,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
   if (loading) return <DashboardSkeleton />;
   if (!data)   return null;
 
-  const isEmpty = !hasDonations && data.livesImpacted === 0 && data.todayListings.length === 0 && data.yesterdayListings.length === 0;
+  const isEmpty = !hasDonations && data.livesImpacted === 0 && data.todayListings.length === 0 && data.yesterdayListings.length === 0 && data.pastGroups.length === 0;
 
   const initials = data.restaurantName
     .split(' ')
@@ -634,6 +634,22 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
             ))}
           </>
         )}
+
+        {/* Past date groups (e.g. "19 Jul") — active donations from earlier dates */}
+        {data.pastGroups.map((group) => (
+          <React.Fragment key={group.label}>
+            <View style={[styles.dayHeader, styles.dayHeaderGap]}>
+              <Text style={styles.dayLabel}>{group.label}</Text>
+              <Text style={styles.daySummary}>
+                {group.listings.length} listings · {group.fed} fed
+              </Text>
+            </View>
+            {group.listings.map((item) => (
+              <DonationRow key={item.id} item={item} />
+            ))}
+          </React.Fragment>
+        ))}
+
 
       </ScrollView>
         )}

@@ -282,6 +282,7 @@ export interface RestaurantDashboard {
   todayListings: RestaurantDonation[];
   yesterdayListings: RestaurantDonation[];
   yesterdayFed: number;
+  pastGroups: Array<{ label: string; listings: RestaurantDonation[]; fed: number }>;
 }
 
 // ─── Analytics ───────────────────────────────────────────────────────────────

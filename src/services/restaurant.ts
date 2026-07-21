@@ -57,6 +57,10 @@ function mapApiDashboard(d: ApiRestaurantDashboard): RestaurantDashboard {
     ?? d.today_portions
     ?? todayListings.reduce((sum, item) => sum + item.quantityOriginal, 0);
 
+  const pastGroups = groups
+    .filter((g) => g.label !== 'Today' && g.label !== 'Yesterday')
+    .map((g) => ({ label: g.label, listings: g.items.map(mapApiDonation), fed: g.fed ?? 0 }));
+
   return {
     restaurantName:    d.restaurant_name ?? '',
     livesImpacted:     d.impact?.lives_impacted    ?? d.lives_impacted,
@@ -72,6 +76,7 @@ function mapApiDashboard(d: ApiRestaurantDashboard): RestaurantDashboard {
     todayListings,
     yesterdayListings: (yesterdayGroup?.items ?? d.yesterday_listings ?? []).map(mapApiDonation),
     yesterdayFed:      yesterdayGroup?.fed ?? d.yesterday_fed ?? 0,
+    pastGroups,
   };
 }
 
@@ -141,6 +146,12 @@ function mapApiRestaurantDetail(d: ApiRestaurantDetail): PublicRestaurant {
   };
 }
 
+function formatDateLabel(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' });
+}
+
 // ─── Service functions ────────────────────────────────────────────────────────
 
 export const getApprovalStatus = async (): Promise<{
@@ -161,9 +172,12 @@ export const getApprovalStatus = async (): Promise<{
 
 
 export const getDashboard = async (): Promise<RestaurantDashboard> => {
-  const [dashRes, profileRes] = await Promise.all([
+  const [dashRes, profileRes, activeRes] = await Promise.all([
     api.get('/restaurant/dashboard/'),
     api.get('/restaurant/profile/'),
+    // Active donations endpoint returns ALL date groups (Today, 19 Jul, etc.)
+    // The dashboard endpoint only gives us Today — so we need this to build pastGroups.
+    api.get('/restaurant/donations/', { params: { status: 'active' } }).catch(() => null),
   ]);
   const raw: ApiRestaurantDashboard = dashRes.data.data;
   if ((raw.active_count ?? 0) > 0 || (raw.donations_this_year ?? 0) > 0) {
@@ -173,7 +187,46 @@ export const getDashboard = async (): Promise<RestaurantDashboard> => {
     ...raw,
     restaurant_name: profileRes.data.data.name as string,
   };
-  return mapApiDashboard(d);
+  const mapped = mapApiDashboard(d);
+
+  if (activeRes) {
+    // Mirror DonationListScreen: flatten the response (ignore API group labels),
+    // then group client-side by pickup_start date — same logic as groupByDate().
+    const activeData = activeRes.data.data as Record<string, unknown>;
+    const rawGroups = activeData?.groups as Array<{ items?: ApiRestaurantDonation[]; donations?: ApiRestaurantDonation[] }> | undefined;
+    let flatItems: ApiRestaurantDonation[] = [];
+    if (Array.isArray(rawGroups) && rawGroups.length > 0) {
+      flatItems = rawGroups.flatMap((g) => g.items ?? g.donations ?? []);
+    } else {
+      const flat = (activeData?.donations ?? activeData?.items ?? activeData?.results) as ApiRestaurantDonation[] | undefined;
+      if (Array.isArray(flat)) flatItems = flat;
+    }
+
+    if (flatItems.length > 0) {
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const byDate = new Map<string, ApiRestaurantDonation[]>();
+      for (const item of flatItems) {
+        const date = (item.pickup_start ?? '').slice(0, 10);
+        if (date === todayIso) continue;
+        const arr = byDate.get(date) ?? [];
+        arr.push(item);
+        byDate.set(date, arr);
+      }
+      const existingLabels = new Set(mapped.pastGroups.map((g) => g.label));
+      for (const [date, items] of byDate.entries()) {
+        const label = formatDateLabel(date);
+        if (existingLabels.has(label)) continue;
+        mapped.pastGroups.push({
+          label,
+          listings: items.map(mapApiDonation),
+          fed: items.reduce((sum, i) => sum + (i.quantity_claimed ?? 0), 0),
+        });
+        existingLabels.add(label);
+      }
+    }
+  }
+
+  return mapped;
 };
 
 export const getDonations = async (): Promise<{
