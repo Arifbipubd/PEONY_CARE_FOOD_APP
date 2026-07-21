@@ -235,7 +235,11 @@ export interface ApiRestaurantProfile {
   contact_name: string;
   contact_email: string;
   contact_phone: string;
+  cuisine?: string;
   opening_hours: string;
+  opens_at?: string;
+  closes_at?: string;
+  open_days?: number[];
   about: string;
   photo_url: string | null;
   is_approved: boolean;

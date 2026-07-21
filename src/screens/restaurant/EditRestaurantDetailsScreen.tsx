@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,12 @@ type Props = {
 };
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+
+const TIME_SLOTS: string[] = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2);
+  const m = i % 2 === 0 ? '00' : '30';
+  return `${String(h).padStart(2, '0')}:${m}`;
+});
 
 // ─── Section header ───────────────────────────────────────────────────────────
 
@@ -187,33 +193,25 @@ const PhoneField = memo(({ localNumber, countryCode, onChangeNumber, onChangeCod
   );
 });
 
-// ─── Time field ───────────────────────────────────────────────────────────────
+// ─── Time picker button ───────────────────────────────────────────────────────
 
-const TimeField = memo(({ label, iconName, value, onChangeText }: {
+const TimePickerBtn = memo(({ label, iconName, value, onPress }: {
   label: string;
   iconName: React.ComponentProps<typeof Ionicons>['name'];
   value: string;
-  onChangeText: (v: string) => void;
-}) => {
-  const [focused, setFocused] = useState(false);
-  return (
-    <View style={styles.timeFieldWrap}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={[styles.inputWrap, focused && styles.inputFocused]}>
-        <Ionicons name={iconName} size={16} color={colors.textMuted} style={styles.inputIcon} />
-        <TextInput
-          style={[styles.inputText, styles.timeInputText]}
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType="numeric"
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-        />
-        <Ionicons name="time-outline" size={18} color={colors.textMuted} style={styles.clockIcon} />
-      </View>
-    </View>
-  );
-});
+  onPress: () => void;
+}) => (
+  <View style={styles.timeFieldWrap}>
+    <Text style={styles.fieldLabel}>{label}</Text>
+    <TouchableOpacity style={styles.inputWrap} onPress={onPress} activeOpacity={0.7}>
+      <Ionicons name={iconName} size={16} color={colors.textMuted} style={styles.inputIcon} />
+      <Text style={[styles.inputText, styles.timePickerText, !value && styles.timePlaceholder]}>
+        {value || '--:--'}
+      </Text>
+      <Ionicons name="time" size={18} color={colors.textMuted} style={styles.clockIcon} />
+    </TouchableOpacity>
+  </View>
+));
 
 // ─── Day chip ─────────────────────────────────────────────────────────────────
 
@@ -271,8 +269,8 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
           setPhone(full.replace(/^\+\d+/, ''));
         }
         setEmail(p.contactEmail);
-        setOpensAt(p.opensAt ?? '10:00');
-        setClosesAt(p.closesAt ?? '21:00');
+        setOpensAt(p.opensAt?.slice(0, 5) ?? '10:00');
+        setClosesAt(p.closesAt?.slice(0, 5) ?? '21:00');
         if (p.openDays && p.openDays.length > 0) setOpenDays(new Set(p.openDays));
         setAbout(p.about);
       })
@@ -287,6 +285,28 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
       return next;
     });
   }, []);
+
+  const [showTimeModal, setShowTimeModal] = useState(false);
+  const [timeTarget,    setTimeTarget]    = useState<'opens' | 'closes'>('opens');
+  const timeListRef = useRef<FlatList>(null);
+
+  const openTimePicker = useCallback((target: 'opens' | 'closes') => {
+    setTimeTarget(target);
+    setShowTimeModal(true);
+    const current = target === 'opens' ? opensAt : closesAt;
+    const idx = TIME_SLOTS.findIndex((s) => s === current);
+    if (idx >= 0) {
+      setTimeout(() => {
+        timeListRef.current?.scrollToIndex({ index: idx, animated: false });
+      }, 50);
+    }
+  }, [opensAt, closesAt]);
+
+  const selectTime = useCallback((time: string) => {
+    if (timeTarget === 'opens') setOpensAt(time);
+    else setClosesAt(time);
+    setShowTimeModal(false);
+  }, [timeTarget]);
 
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
@@ -322,11 +342,15 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
 
       await updateRestaurantProfile({
         name,
+        cuisineType:  cuisine || undefined,
         address,
         latitude:     lat || undefined,
         longitude:    lng || undefined,
         contactPhone: phone ? `${countryCode}${phone}` : undefined,
         contactEmail: email || undefined,
+        opensAt,
+        closesAt,
+        openDays:     Array.from(openDays),
         openingHours,
         about,
       });
@@ -474,8 +498,8 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
           <SectionHeader iconName="time" label="OPENING HOURS" />
           <View style={styles.section}>
             <View style={styles.timeRow}>
-              <TimeField label="Opens"  iconName="sunny"  value={opensAt}  onChangeText={setOpensAt} />
-              <TimeField label="Closes" iconName="moon"   value={closesAt} onChangeText={setClosesAt} />
+              <TimePickerBtn label="Opens"  iconName="sunny" value={opensAt}  onPress={() => openTimePicker('opens')} />
+              <TimePickerBtn label="Closes" iconName="moon"  value={closesAt} onPress={() => openTimePicker('closes')} />
             </View>
             <View style={styles.daysRow}>
               {DAYS.map((day) => (
@@ -514,6 +538,51 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
           <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save changes'}</Text>
         </TouchableOpacity>
       </SafeAreaView>
+
+      {/* Time picker modal */}
+      <Modal
+        visible={showTimeModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowTimeModal(false)}
+      >
+        <View style={styles.timeOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowTimeModal(false)} />
+          <View style={styles.timeSheet}>
+            <Text style={styles.timeSheetTitle}>
+              {timeTarget === 'opens' ? 'Opens at' : 'Closes at'}
+            </Text>
+            <FlatList
+              ref={timeListRef}
+              data={TIME_SLOTS}
+              keyExtractor={(item) => item}
+              style={styles.timeList}
+              showsVerticalScrollIndicator={false}
+              removeClippedSubviews
+              maxToRenderPerBatch={24}
+              windowSize={10}
+              onScrollToIndexFailed={({ index }) => {
+                timeListRef.current?.scrollToOffset({ offset: index * 50, animated: false });
+              }}
+              renderItem={({ item }) => {
+                const selected = timeTarget === 'opens' ? opensAt === item : closesAt === item;
+                return (
+                  <TouchableOpacity
+                    style={styles.timeOption}
+                    onPress={() => selectTime(item)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.timeOptionText, selected && styles.timeOptionActive]}>
+                      {item}
+                    </Text>
+                    {selected && <Ionicons name="checkmark" size={20} color={colors.accentPrimary} />}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
 
     </SafeAreaView>
   );
@@ -784,8 +853,54 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   timeFieldWrap: { flex: 1 },
-  timeInputText: { flex: 1 },
+  timePickerText: {
+    flex: 1,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
+    color: colors.textPrimary,
+    includeFontPadding: false,
+  },
+  timePlaceholder: { color: colors.textMuted },
   clockIcon: { marginRight: 12 },
+
+  // Time picker modal
+  timeOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  timeSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
+    paddingHorizontal: 20,
+    paddingTop: spacing['2xl'],
+    paddingBottom: spacing['4xl'],
+  },
+  timeSheetTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['16'],
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
+  timeList: { maxHeight: 300 },
+  timeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderDefault,
+  },
+  timeOptionText: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes.md,
+    color: colors.textPrimary,
+  },
+  timeOptionActive: {
+    fontFamily: fontFamilies.semiBold,
+    color: colors.accentPrimary,
+  },
 
   // Day chips
   daysRow: {

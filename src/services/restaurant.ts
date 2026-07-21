@@ -12,6 +12,36 @@ import {
 import { MOCK_RESTAURANT_DASHBOARD } from '../mock/restaurantData';
 import { api } from './api';
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const DAY_ABBR = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+const DAY_TO_INT: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+
+function daysToInts(days: string[]): number[] {
+  return days.map((d) => DAY_TO_INT[d] ?? -1).filter((n) => n >= 0);
+}
+
+function intsToDays(ints: number[]): string[] {
+  return ints.map((n) => DAY_ABBR[n]).filter(Boolean) as string[];
+}
+
+function stripSeconds(t: string | undefined): string | undefined {
+  if (!t) return undefined;
+  const parts = t.split(':');
+  return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : t;
+}
+
+function parseOpeningHours(raw: string): { opensAt?: string; closesAt?: string; openDays?: string[] } {
+  if (!raw) return {};
+  const [timePart, daysPart] = raw.split(' · ');
+  const times = (timePart ?? '').split('–');
+  return {
+    opensAt:  times[0]?.trim() || undefined,
+    closesAt: times[1]?.trim() || undefined,
+    openDays: daysPart ? daysPart.split(', ').map((d) => d.trim()).filter(Boolean) : undefined,
+  };
+}
+
 // ─── Mappers ─────────────────────────────────────────────────────────────────
 
 function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
@@ -391,11 +421,15 @@ export const getAnalytics = async (range: string = '30D'): Promise<RestaurantAna
 
 export interface UpdateRestaurantProfilePayload {
   name?:          string;
+  cuisineType?:   string;
   address?:       string;
   latitude?:      number;
   longitude?:     number;
   contactPhone?:  string;
   contactEmail?:  string;
+  opensAt?:       string;
+  closesAt?:      string;
+  openDays?:      string[];
   openingHours?:  string;
   about?:         string;
 }
@@ -420,16 +454,21 @@ export const updateRestaurantProfile = async (
 ): Promise<RestaurantProfile> => {
   const body: Record<string, unknown> = {};
   if (payload.name         != null) body.name          = payload.name;
+  if (payload.cuisineType  != null) body.cuisine       = payload.cuisineType;
   if (payload.address      != null) body.address        = payload.address;
   if (payload.latitude     != null) body.latitude       = payload.latitude;
   if (payload.longitude    != null) body.longitude      = payload.longitude;
   if (payload.contactPhone != null) body.contact_phone  = payload.contactPhone;
   if (payload.contactEmail != null) body.contact_email  = payload.contactEmail;
+  if (payload.opensAt      != null) body.opens_at       = payload.opensAt;
+  if (payload.closesAt     != null) body.closes_at      = payload.closesAt;
+  if (payload.openDays     != null) body.open_days      = daysToInts(payload.openDays);
   if (payload.openingHours != null) body.opening_hours  = payload.openingHours;
   if (payload.about        != null) body.about          = payload.about;
 
   const res = await api.patch('/restaurant/profile/', body);
   const p: ApiRestaurantProfile = res.data.data;
+  const parsedUpdate = parseOpeningHours(p.opening_hours ?? '');
   return {
     id:             p.id,
     name:           p.name,
@@ -441,7 +480,11 @@ export const updateRestaurantProfile = async (
     contactName:    p.contact_name,
     contactEmail:   p.contact_email,
     contactPhone:   p.contact_phone,
+    cuisineType:    p.cuisine,
     openingHours:   p.opening_hours ?? '',
+    opensAt:  stripSeconds(p.opens_at)  ?? parsedUpdate.opensAt,
+    closesAt: stripSeconds(p.closes_at) ?? parsedUpdate.closesAt,
+    openDays: p.open_days?.length ? intsToDays(p.open_days) : parsedUpdate.openDays,
     about:          p.about ?? '',
     photoUrl:       p.photo_url,
     isApproved:     p.is_approved,
@@ -502,6 +545,7 @@ export const deleteMenuPhoto = async (photoId: string): Promise<MenuPhoto[]> => 
 export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
   const res = await api.get('/restaurant/profile/');
   const p: ApiRestaurantProfile = res.data.data;
+  const parsed = parseOpeningHours(p.opening_hours ?? '');
   return {
     id: p.id,
     name: p.name,
@@ -513,7 +557,11 @@ export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
     contactName: p.contact_name,
     contactEmail: p.contact_email,
     contactPhone: p.contact_phone,
+    cuisineType: p.cuisine,
     openingHours: p.opening_hours ?? '',
+    opensAt:  p.opens_at  ?? parsed.opensAt,
+    closesAt: p.closes_at ?? parsed.closesAt,
+    openDays: p.open_days?.length ? intsToDays(p.open_days) : parsed.openDays,
     about: p.about ?? '',
     photoUrl: p.photo_url,
     isApproved: p.is_approved,
