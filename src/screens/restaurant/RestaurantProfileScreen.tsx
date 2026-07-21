@@ -2,6 +2,7 @@ import React, { useState, useCallback, memo, useMemo } from 'react';
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -183,7 +184,11 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
         {/* Avatar section */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>{initials}</Text>
+            {p?.photoUrl ? (
+              <Image source={{ uri: p.photoUrl }} style={styles.avatarImage} resizeMode="cover" />
+            ) : (
+              <Text style={styles.avatarText}>{initials}</Text>
+            )}
           </View>
           <Text style={styles.restaurantName}>{p?.name ?? ''}</Text>
           <View style={styles.phoneRow}>
@@ -384,6 +389,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.avatarBg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarImage: {
+    width: 88,
+    height: 88,
+    borderRadius: radius.pill,
   },
   avatarText: {
     fontFamily: fontFamilies.bold,
