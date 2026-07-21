@@ -96,6 +96,8 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
           contactName:    contactName.trim(),
           email:          email.trim(),
           contactPhone:   fullPhone,
+          latitude:       lat,
+          longitude:      lng,
         },
       });
     } catch (err: unknown) {

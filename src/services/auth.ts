@@ -84,6 +84,8 @@ export const registerRestaurant = async (
     contact_name: string;
     contact_email: string;
     contact_phone?: string;
+    latitude: number;
+    longitude: number;
   },
   registrationToken: string,
 ): Promise<{

@@ -15,7 +15,7 @@ import { UserRole } from '../types';
 export type PendingRegistration =
   | { role: 'RECEIVER'; displayName: string }
   | { role: 'DONOR';    displayName: string; email: string }
-  | { role: 'RESTAURANT'; restaurantName: string; uen: string; address: string; contactName: string; email: string; contactPhone: string };
+  | { role: 'RESTAURANT'; restaurantName: string; uen: string; address: string; contactName: string; email: string; contactPhone: string; latitude: number; longitude: number };
 
 export type AuthStackParamList = {
   Splash:             undefined;

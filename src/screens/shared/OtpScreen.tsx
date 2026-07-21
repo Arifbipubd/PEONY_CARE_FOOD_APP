@@ -47,6 +47,8 @@ async function autoRegister(
       contact_name:    pending.contactName,
       contact_email:   pending.email,
       contact_phone:   pending.contactPhone,
+      latitude:        pending.latitude,
+      longitude:       pending.longitude,
     },
     token,
   );
