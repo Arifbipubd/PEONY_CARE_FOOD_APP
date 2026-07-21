@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,39 +20,90 @@ type Props = {
   route:      RouteProp<AuthStackParamList, 'Permissions'>;
 };
 
-const PERMS = [
+type PermItem = {
+  key:       string;
+  icon:      'location' | 'camera' | 'notifications';
+  iconBg:    string;
+  iconColor: string;
+  title:     string;
+  desc:      string;
+  badge:     'REQUIRED' | 'OPTIONAL';
+};
+
+const RECEIVER_PERMS: PermItem[] = [
   {
-    key:        'location',
-    icon:       'location' as const,
-    iconBg:     colors.avatarBg,
-    iconColor:  colors.accentPrimary,
-    title:      'Location',
-    desc:       'So we can show food donations near you. Only used while the app is open.',
-    badge:      'REQUIRED',
+    key:       'location',
+    icon:      'location',
+    iconBg:    colors.avatarBg,
+    iconColor: colors.accentPrimary,
+    title:     'Location',
+    desc:      'So we can show food donations near you. Only used while the app is open.',
+    badge:     'REQUIRED',
   },
   {
-    key:        'camera',
-    icon:       'camera' as const,
-    iconBg:     '#FFF3D0',
-    iconColor:  '#B8941E',
-    title:      'Camera',
-    desc:       'To scan QR codes at pickup and add a profile photo. Photos are only uploaded when you tap Save.',
-    badge:      'REQUIRED',
+    key:       'camera',
+    icon:      'camera',
+    iconBg:    '#FFF3D0',
+    iconColor: '#B8941E',
+    title:     'Camera',
+    desc:      'To scan QR codes at pickup and add a profile photo. Photos are only uploaded when you tap Save.',
+    badge:     'REQUIRED',
   },
   {
-    key:        'notifications',
-    icon:       'notifications' as const,
-    iconBg:     colors.mintLight,
-    iconColor:  colors.successGreen,
-    title:      'Notifications',
-    desc:       'Get alerted when new food appears nearby. You can mute these anytime in settings.',
-    badge:      'OPTIONAL',
+    key:       'notifications',
+    icon:      'notifications',
+    iconBg:    colors.mintLight,
+    iconColor: colors.successGreen,
+    title:     'Notifications',
+    desc:      'Get alerted when new food appears nearby. You can mute these anytime in settings.',
+    badge:     'OPTIONAL',
   },
-] as const;
+];
+
+const RESTAURANT_PERMS: PermItem[] = [
+  {
+    key:       'camera',
+    icon:      'camera',
+    iconBg:    '#FFF3D0',
+    iconColor: '#B8941E',
+    title:     'Camera',
+    desc:      'To upload menu photos and your restaurant profile photo.',
+    badge:     'REQUIRED',
+  },
+  {
+    key:       'notifications',
+    icon:      'notifications',
+    iconBg:    colors.mintLight,
+    iconColor: colors.successGreen,
+    title:     'Notifications',
+    desc:      'Get alerted when receivers claim your food and when donors sponsor a meal.',
+    badge:     'REQUIRED',
+  },
+];
+
+const ROLE_CONFIG: Record<string, { perms: PermItem[]; subtitle: string }> = {
+  RESTAURANT: {
+    perms:    RESTAURANT_PERMS,
+    subtitle: 'Two things we\'ll ask for so the app can work for your restaurant.',
+  },
+  RECEIVER: {
+    perms:    RECEIVER_PERMS,
+    subtitle: 'Three things we\'ll ask for so the app can help you find food.',
+  },
+  DONOR: {
+    perms:    RECEIVER_PERMS,
+    subtitle: 'Three things we\'ll ask for so the app can help you donate.',
+  },
+};
 
 export default function PermissionsScreen({ navigation, route }: Props) {
   const { accessToken, refreshToken, user } = route.params;
   const { setAuth } = useAuthStore();
+
+  const { perms, subtitle } = useMemo(
+    () => ROLE_CONFIG[user.role] ?? ROLE_CONFIG.RECEIVER,
+    [user.role],
+  );
 
   const finish = useCallback(() => {
     setAuth(accessToken, refreshToken, user as { id: string; phone: string; role: UserRole });
@@ -75,13 +126,11 @@ export default function PermissionsScreen({ navigation, route }: Props) {
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Almost ready</Text>
           <Text style={styles.title}>Quick permissions</Text>
-          <Text style={styles.subtitle}>
-            Three things we'll ask for so the app can help you find food.
-          </Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
 
         <View style={styles.cards}>
-          {PERMS.map((p) => (
+          {perms.map((p) => (
             <View key={p.key} style={styles.card}>
               <View style={[styles.iconWrap, { backgroundColor: p.iconBg }]}>
                 <Ionicons name={p.icon} size={22} color={p.iconColor} />
