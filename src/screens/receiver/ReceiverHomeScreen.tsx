@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import ReceiverHomeEmptyScreen from './ReceiverHomeEmptyScreen';
 import {
@@ -294,6 +294,11 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   );
 
   useEffect(() => {
+    if (activeTab === 'restaurants') {
+      setSearchResults(null);
+      return;
+    }
+
     const hasQuery = searchQuery.trim() !== '';
     const hasCategory = filters.category !== null;
     const hasRadiusChange = filters.maxDistanceKm !== DEFAULT_FILTERS.maxDistanceKm;
@@ -320,7 +325,14 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
     return () => {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     };
-  }, [searchQuery, filters.category, filters.maxDistanceKm, lat, lng]);
+  }, [searchQuery, filters.category, filters.maxDistanceKm, lat, lng, activeTab]);
+
+  const filteredRestaurants = useMemo(() => {
+    if (activeTab !== 'restaurants') return restaurants;
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return restaurants;
+    return restaurants.filter((r) => r.name.toLowerCase().includes(q));
+  }, [restaurants, searchQuery, activeTab]);
 
   const displayedFoods = searchResults ?? foods;
   const filtered = displayedFoods.filter((f) => {
@@ -415,19 +427,21 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
             <Ionicons name="search-outline" size={18} color={colors.textMuted} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search food or restaurant..."
+              placeholder={activeTab === 'meals' ? 'Search meals...' : 'Search restaurants...'}
               placeholderTextColor={colors.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
           </View>
-          <TouchableOpacity
-            style={styles.filterButton}
-            hitSlop={8}
-            onPress={() => setFilterSheetVisible(true)}
-          >
-            <Ionicons name="options-outline" size={20} color={colors.textMuted} />
-          </TouchableOpacity>
+          {activeTab === 'meals' && (
+            <TouchableOpacity
+              style={styles.filterButton}
+              hitSlop={8}
+              onPress={() => setFilterSheetVisible(true)}
+            >
+              <Ionicons name="options-outline" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Tabs */}
@@ -435,7 +449,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
           {(['meals', 'restaurants'] as Tab[]).map((tab) => {
             const active = activeTab === tab;
             const label  = tab === 'meals' ? 'Available Meals' : 'Nearby Restaurants';
-            const count  = tab === 'meals' ? foods.length : restaurants.length;
+            const count  = tab === 'meals' ? filtered.length : filteredRestaurants.length;
             return (
               <TouchableOpacity
                 key={tab}
@@ -488,7 +502,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
         />
       ) : (
         <FlatList
-          data={restaurants}
+          data={filteredRestaurants}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <TouchableOpacity
