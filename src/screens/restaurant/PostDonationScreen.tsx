@@ -8,13 +8,13 @@ import {
   ScrollView,
   FlatList,
   Modal,
-  Image,
   StyleSheet,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -333,7 +333,7 @@ export default function PostDonationScreen({ navigation }: Props) {
         <TouchableOpacity style={styles.photoBox} onPress={handlePickPhoto} activeOpacity={0.8}>
           {photoUri ? (
             <>
-              <Image source={{ uri: photoUri }} style={styles.photoPreview} resizeMode="cover" />
+              <ImageWithSkeleton source={{ uri: photoUri }} style={styles.photoPreview} resizeMode="cover" />
               <View style={styles.photoOverlay}>
                 <Ionicons name="camera" size={16} color={colors.textInverse} />
                 <Text style={styles.photoChangeText}>Change</Text>

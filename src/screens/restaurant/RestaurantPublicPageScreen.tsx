@@ -2,13 +2,13 @@ import React, { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
@@ -149,7 +149,7 @@ const FoodRow = memo(function FoodRow({
             <Text style={styles.sponsorInitials}>{initials}</Text>
           </View>
         ) : (
-          <Image
+          <ImageWithSkeleton
             source={{ uri: item.photoUrl || undefined }}
             style={styles.foodThumb}
             resizeMode="cover"
@@ -199,7 +199,7 @@ export default function RestaurantPublicPageScreen({ navigation }: Props) {
         {/* Hero image + back button */}
         <View>
           {profile.photoUrl ? (
-            <Image
+            <ImageWithSkeleton
               source={{ uri: profile.photoUrl }}
               style={styles.heroImage}
               resizeMode="cover"

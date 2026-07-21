@@ -3,13 +3,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   SectionList,
   ScrollView,
   StyleSheet,
 } from 'react-native';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -223,7 +223,7 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
             : `${item.restaurantName} · ${relativeTime(item.claimedAt)}`;
           return (
             <View style={styles.row}>
-              <Image source={{ uri: item.photoUrl || undefined }} style={styles.thumb} resizeMode="cover" />
+              <ImageWithSkeleton source={{ uri: item.photoUrl || undefined }} style={styles.thumb} resizeMode="cover" />
               <View style={styles.rowText}>
                 <Text style={styles.foodName} numberOfLines={1}>{item.foodName}</Text>
                 <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>

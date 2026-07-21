@@ -2,13 +2,13 @@ import React, { useState, useCallback, memo, useMemo } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -185,7 +185,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
         <View style={styles.avatarSection}>
           <View style={styles.avatarCircle}>
             {p?.photoUrl ? (
-              <Image source={{ uri: p.photoUrl }} style={styles.avatarImage} resizeMode="cover" />
+              <ImageWithSkeleton source={{ uri: p.photoUrl }} style={styles.avatarImage} resizeMode="cover" />
             ) : (
               <Text style={styles.avatarText}>{initials}</Text>
             )}

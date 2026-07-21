@@ -3,13 +3,13 @@ import {
   View,
   Text,
   TextInput,
-  Image,
   TouchableOpacity,
   StyleSheet,
   Modal,
   FlatList,
   Pressable,
 } from 'react-native';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -386,7 +386,7 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
           {/* Hero image + change photo */}
           <View style={styles.heroWrap}>
             {(photoPreview ?? profile?.photoUrl) ? (
-              <Image
+              <ImageWithSkeleton
                 source={{ uri: photoPreview ?? profile!.photoUrl! }}
                 style={styles.heroImage}
                 resizeMode="cover"

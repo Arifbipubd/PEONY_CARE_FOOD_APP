@@ -3,7 +3,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   SectionList,
   FlatList,
@@ -11,6 +10,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getDonations, reactivateDonation, deleteDonation } from '../../services/restaurant';
@@ -146,7 +146,7 @@ const DonationThumb = React.memo(({ item }: { item: RestaurantDonation }) => {
     );
   }
   if (item.photoUrl) {
-    return <Image source={{ uri: item.photoUrl }} style={styles.thumb} resizeMode="cover" />;
+    return <ImageWithSkeleton source={{ uri: item.photoUrl }} style={styles.thumb} resizeMode="cover" />;
   }
   return <View style={[styles.thumb, styles.thumbPlaceholder]} />;
 });

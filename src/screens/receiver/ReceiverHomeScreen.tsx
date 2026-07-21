@@ -4,7 +4,6 @@ import ReceiverHomeEmptyScreen from './ReceiverHomeEmptyScreen';
 import {
   View,
   Text,
-  Image,
   TextInput,
   TouchableOpacity,
   FlatList,
@@ -20,6 +19,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useProfileStore } from '../../store/profileStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import FoodCard from '../../components/FoodCard';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import FilterSheet, { FilterState, DEFAULT_FILTERS } from '../../components/FilterSheet';
 import { browseFood, getDailyLimit, getReceiverProfile, searchFood, updateReceiverLocation } from '../../services/receiver';
 import { useLocation } from '../../hooks/useLocation';
@@ -514,7 +514,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
               })}
             >
               <View>
-                <Image
+                <ImageWithSkeleton
                   source={{ uri: item.photoUrl ?? undefined }}
                   style={styles.restaurantCardImage}
                   resizeMode="cover"

@@ -4,10 +4,10 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -119,7 +119,7 @@ const DonationRow = React.memo(({ item }: { item: RestaurantDonation }) => {
           <Ionicons name="checkmark" size={20} color={colors.successGreen} />
         </View>
       ) : item.photoUrl ? (
-        <Image source={{ uri: item.photoUrl }} style={styles.donationThumb} resizeMode="cover" />
+        <ImageWithSkeleton source={{ uri: item.photoUrl }} style={styles.donationThumb} resizeMode="cover" />
       ) : (
         <View style={[styles.donationThumb, styles.thumbPlaceholder]} />
       )}
@@ -552,7 +552,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
           activeOpacity={0.7}
         >
           {data.photoUrl ? (
-            <Image source={{ uri: data.photoUrl }} style={styles.avatarImg} resizeMode="cover" />
+            <ImageWithSkeleton source={{ uri: data.photoUrl }} style={styles.avatarImg} resizeMode="cover" />
           ) : (
             <Text style={styles.avatarText}>{initials}</Text>
           )}

@@ -6,9 +6,9 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  Image,
   ActivityIndicator,
 } from 'react-native';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -102,7 +102,7 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
         {/* Restaurant row */}
         <View style={styles.restaurantRow}>
           {restaurantPhotoUrl ? (
-            <Image
+            <ImageWithSkeleton
               source={{ uri: restaurantPhotoUrl }}
               style={styles.restaurantPhoto}
               resizeMode="cover"

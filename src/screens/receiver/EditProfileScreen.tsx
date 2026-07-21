@@ -2,12 +2,12 @@ import { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -117,7 +117,7 @@ export default function EditProfileScreen({ navigation }: Props) {
         <View style={styles.avatarWrapper}>
           <View style={styles.avatarCircle}>
             {pendingUri ? (
-              <Image
+              <ImageWithSkeleton
                 source={{ uri: pendingUri }}
                 style={styles.avatarImage}
                 resizeMode="cover"

@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -140,7 +140,7 @@ export default function RestaurantPageScreen({ navigation, route }: Props) {
 
         {/* Hero image + back button */}
         <View>
-          <Image
+          <ImageWithSkeleton
             source={{ uri: restaurant.photoUrl ?? undefined }}
             style={styles.image}
             resizeMode="cover"
@@ -227,7 +227,7 @@ export default function RestaurantPageScreen({ navigation, route }: Props) {
                 activeOpacity={0.8}
                 onPress={() => navigation.navigate('FoodDetail', { foodId: item.id })}
               >
-                <Image
+                <ImageWithSkeleton
                   source={{ uri: item.photoUrl }}
                   style={styles.foodThumb}
                   resizeMode="cover"

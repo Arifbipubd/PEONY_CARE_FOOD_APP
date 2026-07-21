@@ -3,13 +3,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -290,7 +290,7 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
         <View style={styles.avatarWrapper}>
           <View style={styles.avatarCircle}>
             {effectiveProfile.photoUrl ? (
-              <Image source={{ uri: effectiveProfile.photoUrl }} style={styles.avatarImage} resizeMode="cover" />
+              <ImageWithSkeleton source={{ uri: effectiveProfile.photoUrl }} style={styles.avatarImage} resizeMode="cover" />
             ) : (
               <Text style={styles.avatarText}>{initials(effectiveProfile.displayName)}</Text>
             )}

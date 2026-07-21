@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -117,7 +117,7 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
 
         {/* Hero image + back button */}
         <View>
-          <Image source={{ uri: food.photoUrl }} style={styles.image} resizeMode="cover" />
+          <ImageWithSkeleton source={{ uri: food.photoUrl }} style={styles.image} resizeMode="cover" />
           <TouchableOpacity
             style={[styles.backBtn, { top: insets.top + spacing.md }]}
             onPress={() => navigation.goBack()}
