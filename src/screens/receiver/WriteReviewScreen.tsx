@@ -46,6 +46,7 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
   const [comment, setComment] = useState('');
   const [commentFocused, setCommentFocused] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const ratingLabel = useMemo(() => RATING_LABELS[rating], [rating]);
 
@@ -62,10 +63,12 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
   const handleSubmit = useCallback(async () => {
     if (rating === 0) return;
     setSubmitting(true);
+    setSubmitError('');
     try {
       await submitReview({ claimId, rating, tags: selectedTags, comment: comment.trim() });
       navigation.navigate('ReceiverHome');
-    } catch {
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : 'Could not submit review. Try again.');
       setSubmitting(false);
     }
   }, [rating, selectedTags, comment, claimId, navigation]);
@@ -172,6 +175,11 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
           onBlur={() => setCommentFocused(false)}
           textAlignVertical="top"
         />
+
+        {/* Submit error */}
+        {!!submitError && (
+          <Text style={styles.submitError}>{submitError}</Text>
+        )}
 
         {/* Submit */}
         <TouchableOpacity
@@ -352,6 +360,15 @@ const styles = StyleSheet.create({
   },
   commentInputFocused: {
     borderColor: colors.accentPrimary,
+  },
+
+  submitError: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    color: colors.accentPrimary,
+    textAlign: 'center',
+    paddingHorizontal: spacing['2xl'],
+    marginTop: spacing.lg,
   },
 
   submitBtn: {

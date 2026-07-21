@@ -182,7 +182,7 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
             <Input
               label="Mobile number"
               value={phone}
-              onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); clearError(); }}
+              onChangeText={(t) => { const d = t.replace(/\D/g, ''); setPhone(!isSg && d.startsWith('0') ? d.slice(1) : d); clearError(); }}
               placeholder={isSg ? '91234567' : '1712345678'}
               keyboardType="number-pad"
               error={phoneError}

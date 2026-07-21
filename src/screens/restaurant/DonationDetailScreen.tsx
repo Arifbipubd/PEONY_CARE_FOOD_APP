@@ -131,7 +131,13 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
           </Text>
         </View>
 
-        {/* Pending claims — each has "Mark collected" */}
+        {/* Show QR — always visible so receiver can scan at any time */}
+        <TouchableOpacity style={styles.collectBtn} activeOpacity={0.85} onPress={openQr}>
+          <Ionicons name="qr-code" size={18} color={colors.textInverse} />
+          <Text style={styles.collectBtnText}>Show QR code</Text>
+        </TouchableOpacity>
+
+        {/* Claims list */}
         {(donation.claims ?? []).length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Claims</Text>
@@ -141,30 +147,12 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
                   <Text style={styles.claimName}>{claim.receiverName}</Text>
                   <Text style={styles.claimTime}>{claim.claimedAt}</Text>
                 </View>
-                {claim.status === 'CLAIMED' ? (
-                  <View style={styles.collectedBadge}>
-                    <Text style={styles.collectedText}>Collected</Text>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.markBtn}
-                    activeOpacity={0.85}
-                    onPress={openQr}
-                  >
-                    <Text style={styles.markBtnText}>Mark collected</Text>
-                  </TouchableOpacity>
-                )}
+                <View style={styles.collectedBadge}>
+                  <Text style={styles.collectedText}>Collected</Text>
+                </View>
               </View>
             ))}
           </View>
-        )}
-
-        {/* If no individual claims yet, show a generic Mark collected button */}
-        {(donation.claims ?? []).length === 0 && donation.claimsCount > 0 && (
-          <TouchableOpacity style={styles.collectBtn} activeOpacity={0.85} onPress={openQr}>
-            <Ionicons name="qr-code" size={18} color={colors.textInverse} />
-            <Text style={styles.collectBtnText}>Mark collected</Text>
-          </TouchableOpacity>
         )}
 
         {/* Delete */}

@@ -283,11 +283,13 @@ export default function DonationListScreen({ navigation }: Props) {
   const [past,          setPast]          = useState<RestaurantDonation[] | null>(null);
   const [inactive,      setInactive]      = useState<RestaurantDonation[] | null>(null);
   const [loading,       setLoading]       = useState(true);
+  const [fetchError,    setFetchError]    = useState('');
   const [actionLoading, setActionLoading] = useState<Set<string>>(new Set());
 
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
+      setFetchError('');
       getDonations()
         .then(({ active, past, inactive, summary }) => {
           setActive(active);
@@ -295,7 +297,9 @@ export default function DonationListScreen({ navigation }: Props) {
           setInactive(inactive);
           setSummary(summary);
         })
-        .catch(() => {
+        .catch((err: unknown) => {
+          const msg = err instanceof Error ? err.message : 'Failed to load donations';
+          setFetchError(msg);
           setActive([]);
           setPast([]);
           setInactive([]);
@@ -383,6 +387,13 @@ export default function DonationListScreen({ navigation }: Props) {
       <Text style={styles.title}>Donations</Text>
       <Text style={styles.bigNumber}>{headerNumber}</Text>
       <Text style={styles.summary}>{headerSummary}</Text>
+
+      {!!fetchError && (
+        <View style={styles.errorBanner}>
+          <Ionicons name="warning" size={14} color={colors.dangerRed} />
+          <Text style={styles.errorBannerText}>{fetchError}</Text>
+        </View>
+      )}
 
       <View style={styles.pills}>
         {(['active', 'past', 'inactive'] as Tab[]).map((t) => (
@@ -767,6 +778,22 @@ const styles = StyleSheet.create({
   },
 
   listContent: { paddingBottom: 100 },
+
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.accentLight,
+    borderRadius: radius.sm,
+  },
+  errorBannerText: {
+    flex: 1,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    color: colors.dangerRed,
+  },
 
   // ── Empty state ───────────────────────────────────────────────────────────────
   emptyBody: {

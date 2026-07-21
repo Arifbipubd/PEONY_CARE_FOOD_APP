@@ -188,16 +188,29 @@ export const getDonations = async (): Promise<{
     api.get('/restaurant/donations/', { params: { status: 'inactive' } }),
   ]);
 
-  const flatGroups = (d: { groups: Array<{ items: ApiRestaurantDonation[] }> }) =>
-    d.groups.flatMap((g) => g.items).map(mapApiDonation);
+  const flatGroups = (d: Record<string, unknown>): RestaurantDonation[] => {
+    if (!d) return [];
+    // groups structure: { groups: [{ items: [...] }] }
+    const groups = d.groups as Array<{ items: ApiRestaurantDonation[] }> | undefined;
+    if (Array.isArray(groups)) {
+      return groups.flatMap((g) => g.items ?? []).map(mapApiDonation);
+    }
+    // flat array fallback: { donations: [...] } or { items: [...] }
+    const flat = (d.donations ?? d.items ?? d.results) as ApiRestaurantDonation[] | undefined;
+    if (Array.isArray(flat)) return flat.map(mapApiDonation);
+    return [];
+  };
 
-  const activeData   = activeRes.data.data;
-  const pastData     = pastRes.data.data;
-  const inactiveData = inactiveRes.data.data;
+  const activeData   = activeRes.data.data   as Record<string, unknown>;
+  const pastData     = pastRes.data.data     as Record<string, unknown>;
+  const inactiveData = inactiveRes.data.data as Record<string, unknown>;
 
-  const activeCount   = activeData.summary.active_count   as number;
-  const pastCount     = activeData.summary.past_count     as number;
-  const inactiveCount = activeData.summary.inactive_count as number;
+  const activeSummary   = (activeData.summary   ?? {}) as Record<string, unknown>;
+  const pastSummary     = (pastData.summary     ?? {}) as Record<string, unknown>;
+
+  const activeCount   = (activeSummary.active_count   as number | undefined) ?? 0;
+  const pastCount     = (activeSummary.past_count     as number | undefined) ?? 0;
+  const inactiveCount = (activeSummary.inactive_count as number | undefined) ?? 0;
 
   _hasDonations = activeCount > 0 || pastCount > 0 || inactiveCount > 0;
 
@@ -209,7 +222,7 @@ export const getDonations = async (): Promise<{
       activeCount,
       pastCount,
       inactiveCount,
-      weeklyMeals: (pastData.summary.meals_this_week as number | null) ?? 0,
+      weeklyMeals: (pastSummary.meals_this_week as number | null) ?? 0,
     },
   };
 };
