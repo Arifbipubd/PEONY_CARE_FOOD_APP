@@ -242,16 +242,34 @@ export const deleteDonation = async (foodId: string): Promise<void> => {
 };
 
 export const createDonation = async (payload: CreateDonationPayload): Promise<RestaurantDonation> => {
-  const res = await api.post('/restaurant/donations/', {
-    name:              payload.name,
-    description:       payload.description,
-    category:          payload.category,
-    unit:              payload.unit,
-    quantity:          payload.quantityOriginal,
-    pickup_start:      payload.pickupStart,
-    pickup_end:        payload.pickupEnd,
-    photo_url:         payload.photoUrl ?? null,
-  });
+  let res;
+  if (payload.localPhotoUri) {
+    const filename = payload.localPhotoUri.split('/').pop() ?? 'photo.jpg';
+    const ext      = filename.split('.').pop()?.toLowerCase() ?? 'jpeg';
+    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+    const formData = new FormData();
+    formData.append('name',         payload.name);
+    formData.append('description',  payload.description ?? '');
+    formData.append('category',     payload.category);
+    formData.append('unit',         payload.unit);
+    formData.append('quantity',     String(payload.quantityOriginal));
+    formData.append('pickup_start', payload.pickupStart);
+    formData.append('pickup_end',   payload.pickupEnd);
+    formData.append('photo', { uri: payload.localPhotoUri, name: filename, type: mimeType } as unknown as Blob);
+    res = await api.post('/restaurant/donations/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  } else {
+    res = await api.post('/restaurant/donations/', {
+      name:         payload.name,
+      description:  payload.description,
+      category:     payload.category,
+      unit:         payload.unit,
+      quantity:     payload.quantityOriginal,
+      pickup_start: payload.pickupStart,
+      pickup_end:   payload.pickupEnd,
+    });
+  }
   _hasDonations = true;
   return mapApiDonation(res.data.data);
 };

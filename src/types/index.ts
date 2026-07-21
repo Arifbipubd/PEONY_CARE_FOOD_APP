@@ -264,7 +264,7 @@ export interface CreateDonationPayload {
   quantityOriginal: number;
   pickupStart: string;
   pickupEnd: string;
-  photoUrl?: string | null;
+  localPhotoUri?: string | null;
 }
 
 export interface RestaurantDashboard {

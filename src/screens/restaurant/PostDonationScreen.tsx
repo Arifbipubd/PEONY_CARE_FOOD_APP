@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
+  Pressable,
   ScrollView,
   FlatList,
   Modal,
@@ -93,6 +94,7 @@ export default function PostDonationScreen({ navigation }: Props) {
   const [postedPickupWindow, setPostedPickupWindow] = useState('');
 
   const unit = UNITS[unitIndex]!;
+  const flatListRef = useRef<FlatList<string>>(null);
 
   const bc = (field: string) =>
     focusedField === field ? colors.accentPrimary : colors.borderDefault;
@@ -100,7 +102,15 @@ export default function PostDonationScreen({ navigation }: Props) {
   const openTimePicker = useCallback((target: 'from' | 'until') => {
     setTimeTarget(target);
     setShowTimeModal(true);
-  }, []);
+    if (target === 'until' && pickupFrom) {
+      const idx = TIME_SLOTS.findIndex((s) => s > pickupFrom);
+      if (idx > 0) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({ index: idx, animated: false });
+        }, 150);
+      }
+    }
+  }, [pickupFrom]);
 
   const selectTime = useCallback((time: string) => {
     if (timeTarget === 'from') {
@@ -153,7 +163,7 @@ export default function PostDonationScreen({ navigation }: Props) {
         quantityOriginal: Number(quantity),
         pickupStart:      start,
         pickupEnd:        end,
-        photoUrl:         'https://placehold.co/400x300.jpg',
+        localPhotoUri:    photoUri ?? undefined,
       });
       setQrData(result.foodQrData);
       setPostedName(result.name);
@@ -433,16 +443,16 @@ export default function PostDonationScreen({ navigation }: Props) {
         animationType="slide"
         onRequestClose={() => setShowTimeModal(false)}
       >
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={() => setShowTimeModal(false)}
-        >
+        <View style={styles.overlay}>
+          {/* Backdrop — tap outside sheet to dismiss */}
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowTimeModal(false)} />
+          {/* Sheet sits above backdrop so FlatList scroll is never intercepted */}
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>
               {timeTarget === 'from' ? 'Pickup from' : 'Until'}
             </Text>
             <FlatList
+              ref={flatListRef}
               data={TIME_SLOTS}
               keyExtractor={(item) => item}
               style={styles.timeList}
@@ -451,6 +461,9 @@ export default function PostDonationScreen({ navigation }: Props) {
               maxToRenderPerBatch={24}
               windowSize={10}
               extraData={{ pickupFrom, pickupUntil, timeTarget }}
+              onScrollToIndexFailed={({ index }) => {
+                flatListRef.current?.scrollToOffset({ offset: index * 50, animated: false });
+              }}
               renderItem={({ item }) => {
                 const selected = timeTarget === 'from' ? pickupFrom === item : pickupUntil === item;
                 const disabled = timeTarget === 'until' && item <= pickupFrom;
@@ -476,7 +489,7 @@ export default function PostDonationScreen({ navigation }: Props) {
               }}
             />
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </SafeAreaView>
   );
