@@ -12,7 +12,6 @@
     },
     "android": {
       "package": "com.peonycare.foodapp",
-      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#D31B1B",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -40,6 +39,14 @@
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Peony Care needs your location to show food donations near you."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
         }
       ]
     ],
