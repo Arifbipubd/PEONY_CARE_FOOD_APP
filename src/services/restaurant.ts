@@ -64,6 +64,7 @@ function mapApiDashboard(d: ApiRestaurantDashboard): RestaurantDashboard {
 
   return {
     restaurantName:    d.restaurant_name ?? '',
+    photoUrl:          null,
     livesImpacted:     d.impact?.lives_impacted    ?? d.lives_impacted,
     donationsThisYear: d.impact?.donations_this_year ?? d.donations_this_year,
     growthPctThisWeek: d.impact?.week_over_week_pct  ?? d.growth_pct_this_week ?? 0,
@@ -189,6 +190,7 @@ export const getDashboard = async (): Promise<RestaurantDashboard> => {
     restaurant_name: profileRes.data.data.name as string,
   };
   const mapped = mapApiDashboard(d);
+  mapped.photoUrl = (profileRes.data.data.photo_url as string | null) ?? null;
 
   if (activeRes) {
     // Mirror DonationListScreen: flatten the response (ignore API group labels),

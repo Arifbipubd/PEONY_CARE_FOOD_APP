@@ -551,7 +551,11 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
           hitSlop={8}
           activeOpacity={0.7}
         >
-          <Text style={styles.avatarText}>{initials}</Text>
+          {data.photoUrl ? (
+            <Image source={{ uri: data.photoUrl }} style={styles.avatarImg} resizeMode="cover" />
+          ) : (
+            <Text style={styles.avatarText}>{initials}</Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.bellBtn}
@@ -680,6 +684,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.avatarBg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarImg: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
   },
   avatarText: {
     fontSize: fontSizes.sm,

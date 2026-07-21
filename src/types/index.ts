@@ -270,6 +270,7 @@ export interface CreateDonationPayload {
 
 export interface RestaurantDashboard {
   restaurantName: string;
+  photoUrl: string | null;
   livesImpacted: number;
   donationsThisYear: number;
   growthPctThisWeek: number;
