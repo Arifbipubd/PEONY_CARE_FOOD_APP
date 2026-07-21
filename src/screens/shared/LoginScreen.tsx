@@ -46,19 +46,19 @@ export default function LoginScreen({ navigation }: Props) {
   const isSg = country.code === 'SG';
   const isValidPhone = isSg
     ? /^[689]\d{7}$/.test(cleaned)
-    : /^1[3-9]\d{8}$/.test(cleaned);
+    : /^01[3-9]\d{8}$/.test(cleaned);
   const phoneError = isSg
     ? (cleaned.length > 0 && !/^[689]/.test(cleaned) ? 'Must start with 6, 8 or 9' :
        cleaned.length > 8 ? 'Must be exactly 8 digits' : '')
-    : (cleaned.length > 0 && !/^1[3-9]/.test(cleaned) ? 'Must start with 13–19' :
-       cleaned.length > 10 ? 'Must be exactly 10 digits' : '');
+    : (cleaned.length > 11 ? 'Please enter a valid phone number' : '');
 
   async function handleSend() {
     if (!isValidPhone) { setError(`Enter a valid ${country.label} number`); return; }
     setError('');
     setLoading(true);
     try {
-      const fullPhone = `${country.dial}${cleaned}`;
+      const localPart = cleaned.startsWith('0') ? cleaned.slice(1) : cleaned;
+      const fullPhone = `${country.dial}${localPart}`;
       await sendOtp(fullPhone, 'LOGIN');
       navigation.navigate('Otp', { phone: fullPhone, purpose: 'LOGIN' });
     } catch (err: unknown) {
@@ -94,7 +94,7 @@ export default function LoginScreen({ navigation }: Props) {
           <Input
             label="Mobile number"
             value={phone}
-            onChangeText={(t) => { const d = t.replace(/\D/g, ''); setPhone(!isSg && d.startsWith('0') ? d.slice(1) : d); setError(''); }}
+            onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
             placeholder={isSg ? '91234567' : '1712345678'}
             keyboardType="number-pad"
             error={phoneError || (rateLimitSecs > 0 && error ? `${error} Retry in ${rateLimitSecs}s.` : error)}
