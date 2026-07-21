@@ -46,7 +46,7 @@ export default function LoginScreen({ navigation }: Props) {
   const isSg = country.code === 'SG';
   const isValidPhone = isSg
     ? /^[689]\d{7}$/.test(cleaned)
-    : /^01[3-9]\d{8}$/.test(cleaned);
+    : /^0?1[3-9]\d{8}$/.test(cleaned);
   const phoneError = isSg
     ? (cleaned.length > 0 && !/^[689]/.test(cleaned) ? 'Must start with 6, 8 or 9' :
        cleaned.length > 8 ? 'Must be exactly 8 digits' : '')
@@ -95,7 +95,7 @@ export default function LoginScreen({ navigation }: Props) {
             label="Mobile number"
             value={phone}
             onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
-            placeholder={isSg ? '91234567' : '1712345678'}
+            placeholder={isSg ? '91234567' : '01712345678'}
             keyboardType="number-pad"
             error={phoneError || (rateLimitSecs > 0 && error ? `${error} Retry in ${rateLimitSecs}s.` : error)}
             leftSection={
