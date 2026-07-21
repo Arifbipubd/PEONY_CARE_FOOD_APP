@@ -38,6 +38,7 @@ function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
     sponsorInitials: d.sponsor_initials ?? null,
     noShowCount: d.no_show_count,
     expiredCount: d.expired_count,
+    estimatedReachLabel: d.estimated_reach_label,
     claims: d.claims?.map((c) => ({
       id: c.id,
       receiverName: c.receiver_name,

@@ -92,6 +92,7 @@ export default function PostDonationScreen({ navigation }: Props) {
   const [postedName,        setPostedName]        = useState('');
   const [postedId,          setPostedId]          = useState('');
   const [postedPickupWindow, setPostedPickupWindow] = useState('');
+  const [postedReachLabel,  setPostedReachLabel]  = useState('');
 
   const unit = UNITS[unitIndex]!;
   const flatListRef = useRef<FlatList<string>>(null);
@@ -169,6 +170,7 @@ export default function PostDonationScreen({ navigation }: Props) {
       setPostedName(result.name);
       setPostedId(result.id);
       setPostedPickupWindow(result.pickupWindow);
+      setPostedReachLabel(result.estimatedReachLabel ?? '');
       setShowQrModal(true);
     } catch (err) {
       const msg = err instanceof ApiError
@@ -387,12 +389,13 @@ export default function PostDonationScreen({ navigation }: Props) {
               onPress={() => {
                 setShowQrModal(false);
                 navigation.navigate('PostDonationSuccess', {
-                  foodName:     name.trim(),
-                  quantity:     Number(quantity),
+                  foodName:             name.trim(),
+                  quantity:             Number(quantity),
                   unit,
                   category,
-                  pickupWindow: postedPickupWindow,
-                  donationId:   postedId,
+                  pickupWindow:         postedPickupWindow,
+                  donationId:           postedId,
+                  estimatedReachLabel:  postedReachLabel,
                 });
               }}
               activeOpacity={0.85}

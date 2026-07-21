@@ -197,6 +197,7 @@ export interface ApiRestaurantDonation {
   sponsor_initials?: string | null;
   no_show_count?: number;
   expired_count?: number;
+  estimated_reach_label?: string;
   claims?: Array<{
     id: string;
     receiver_name: string;

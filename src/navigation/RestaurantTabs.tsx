@@ -49,12 +49,13 @@ export type DonationsStackParamList = {
   DonationDetail:        { donationId: string };
   PostDonation:          undefined;
   PostDonationSuccess:   {
-    foodName:     string;
-    quantity:     number;
-    unit:         string;
-    category:     string;
-    pickupWindow: string;
-    donationId:   string;
+    foodName:             string;
+    quantity:             number;
+    unit:                 string;
+    category:             string;
+    pickupWindow:         string;
+    donationId:           string;
+    estimatedReachLabel?: string;
   };
 };
 

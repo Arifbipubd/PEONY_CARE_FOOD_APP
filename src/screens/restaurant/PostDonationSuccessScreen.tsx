@@ -28,7 +28,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export default function PostDonationSuccessScreen({ navigation, route }: Props) {
-  const { foodName, quantity, unit, category, pickupWindow } = route.params;
+  const { foodName, quantity, unit, category, pickupWindow, estimatedReachLabel } = route.params;
 
   const [restaurantName,    setRestaurantName]    = useState('');
   const [restaurantAddress, setRestaurantAddress] = useState('');
@@ -119,7 +119,7 @@ export default function PostDonationSuccessScreen({ navigation, route }: Props) 
           </View>
           <View style={styles.reachText}>
             <Text style={styles.reachTitle}>Estimated reach</Text>
-            <Text style={styles.reachSub}>~340 receivers within 5 km will see this.</Text>
+            <Text style={styles.reachSub}>{estimatedReachLabel || 'Receivers nearby will be notified.'}</Text>
           </View>
         </View>
 

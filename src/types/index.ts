@@ -241,6 +241,7 @@ export interface RestaurantDonation {
   sponsorInitials?: string | null;
   noShowCount?: number;
   expiredCount?: number;
+  estimatedReachLabel?: string;
   claims?: Array<{
     id: string;
     receiverName: string;
