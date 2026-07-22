@@ -70,10 +70,12 @@ function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
     noShowCount: d.no_show_count,
     expiredCount: d.expired_count,
     estimatedReachLabel: d.estimated_reach_label,
-    isRepeating: d.is_repeating,
-    repeatTimeLabel: d.repeat_time_label,
+    isRepeating: d.recurrence_type != null
+      ? d.recurrence_type !== 'NONE'
+      : d.is_repeating,
+    repeatTimeLabel: d.recurrence_label ?? d.recurrence_schedule_summary ?? d.repeat_time_label,
     nextPostLabel: d.next_post_label,
-    donationSourceNote: d.donation_source_note,
+    donationSourceNote: d.source?.detail || d.source_note || d.donation_source_note,
     claims: d.claims?.map((c) => ({
       id: c.id,
       receiverName: c.receiver_name,
@@ -337,6 +339,42 @@ export const deleteDonation = async (foodId: string): Promise<void> => {
   await api.delete(`/restaurant/donations/${foodId}/`);
 };
 
+export const updateDonation = async (foodId: string, payload: CreateDonationPayload): Promise<RestaurantDonation> => {
+  let res;
+  if (payload.localPhotoUri) {
+    const filename = payload.localPhotoUri.split('/').pop() ?? 'photo.jpg';
+    const ext      = filename.split('.').pop()?.toLowerCase() ?? 'jpeg';
+    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+    const formData = new FormData();
+    formData.append('name',         payload.name);
+    formData.append('description',  payload.description ?? '');
+    formData.append('category',     payload.category);
+    formData.append('unit',         payload.unit);
+    formData.append('quantity',     String(payload.quantityOriginal));
+    formData.append('pickup_start', payload.pickupStart);
+    formData.append('pickup_end',   payload.pickupEnd);
+    if (payload.isRepeating != null) {
+      formData.append('recurrence_type', payload.isRepeating ? 'DAILY' : 'NONE');
+    }
+    formData.append('photo', { uri: payload.localPhotoUri, name: filename, type: mimeType } as unknown as Blob);
+    res = await api.patch(`/restaurant/donations/${foodId}/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  } else {
+    res = await api.patch(`/restaurant/donations/${foodId}/`, {
+      name:         payload.name,
+      description:  payload.description,
+      category:     payload.category,
+      unit:         payload.unit,
+      quantity:     payload.quantityOriginal,
+      pickup_start: payload.pickupStart,
+      pickup_end:   payload.pickupEnd,
+      ...(payload.isRepeating != null && { recurrence_type: payload.isRepeating ? 'DAILY' : 'NONE' }),
+    });
+  }
+  return mapApiDonation(res.data.data);
+};
+
 export const createDonation = async (payload: CreateDonationPayload): Promise<RestaurantDonation> => {
   let res;
   if (payload.localPhotoUri) {
@@ -351,6 +389,9 @@ export const createDonation = async (payload: CreateDonationPayload): Promise<Re
     formData.append('quantity',     String(payload.quantityOriginal));
     formData.append('pickup_start', payload.pickupStart);
     formData.append('pickup_end',   payload.pickupEnd);
+    if (payload.isRepeating != null) {
+      formData.append('recurrence_type', payload.isRepeating ? 'DAILY' : 'NONE');
+    }
     formData.append('photo', { uri: payload.localPhotoUri, name: filename, type: mimeType } as unknown as Blob);
     res = await api.post('/restaurant/donations/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -364,6 +405,7 @@ export const createDonation = async (payload: CreateDonationPayload): Promise<Re
       quantity:     payload.quantityOriginal,
       pickup_start: payload.pickupStart,
       pickup_end:   payload.pickupEnd,
+      ...(payload.isRepeating != null && { recurrence_type: payload.isRepeating ? 'DAILY' : 'NONE' }),
     });
   }
   _hasDonations = true;

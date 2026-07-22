@@ -205,6 +205,22 @@ export interface ApiRestaurantDonation {
     collected_at?: string;
     status: string;
   }>;
+  // Recurrence — backend uses recurrence_type, not is_repeating
+  recurrence_type?: string;          // "NONE" | "DAILY" | "WEEKLY" | "CUSTOM"
+  recurrence_label?: string | null;
+  recurrence_days?: number[];
+  recurrence_schedule_summary?: string | null;
+  recurrence_badge?: string | null;
+  // Donation source — backend wraps in a source object
+  source?: {
+    type: string;    // "SELF" | "SPONSORED_NAMED" | "SPONSORED_ANONYMOUS"
+    label: string;
+    detail: string;
+    display: string;
+  };
+  source_note?: string;
+  time_until_close?: string;
+  // Legacy optional fields kept for backward compat
   is_repeating?: boolean;
   repeat_time_label?: string;
   next_post_label?: string;

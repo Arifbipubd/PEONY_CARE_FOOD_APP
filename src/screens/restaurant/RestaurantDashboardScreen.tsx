@@ -518,6 +518,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
           setData(d);
           setHasMenuPhotos(menuPhotosExist());
           setHasDonations(donationsExist());
+          console.log('[Dashboard] data:', JSON.stringify(d, null, 2));
         })
         .catch(() => {})
         .finally(() => setLoading(false));

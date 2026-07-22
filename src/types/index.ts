@@ -270,6 +270,7 @@ export interface CreateDonationPayload {
   quantityOriginal: number;
   pickupStart: string;
   pickupEnd: string;
+  isRepeating?: boolean;
   localPhotoUri?: string | null;
 }
 

@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
+import { RouteProp, useFocusEffect } from '@react-navigation/native';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { DonationsStackParamList } from '../../navigation/RestaurantTabs';
 import { getDonationDetail, deleteDonation, pauseDonation } from '../../services/restaurant';
@@ -57,12 +57,15 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
   const [deleting, setDeleting]    = useState(false);
   const [pausing, setPausing]      = useState(false);
 
-  useEffect(() => {
-    getDonationDetail(donationId)
-      .then(setDonation)
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [donationId]);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      getDonationDetail(donationId)
+        .then(setDonation)
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }, [donationId]),
+  );
 
   const openQr         = useCallback(() => setCollect('qr'),  []);
   const closeAllSheets = useCallback(() => setCollect(null),   []);

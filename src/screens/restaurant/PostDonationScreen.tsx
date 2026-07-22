@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,8 @@ import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { createDonation } from '../../services/restaurant';
+import { RouteProp } from '@react-navigation/native';
+import { createDonation, updateDonation, getDonationDetail } from '../../services/restaurant';
 import { ApiError } from '../../services/api';
 import { FoodCategory } from '../../types';
 import {
@@ -28,6 +29,7 @@ import { DonationsStackParamList } from '../../navigation/RestaurantTabs';
 
 type Props = {
   navigation: NativeStackNavigationProp<DonationsStackParamList, 'PostDonation'>;
+  route:      RouteProp<DonationsStackParamList, 'PostDonation'>;
 };
 
 type ScheduleType = 'one-time' | 'every-day' | 'custom-days';
@@ -56,6 +58,11 @@ const TIME_SLOTS: string[] = Array.from({ length: 48 }, (_, i) => {
   return `${String(h).padStart(2, '0')}:${m}`;
 });
 
+function isoToHHMM(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 function buildPickupIso(fromStr: string, untilStr: string): { start: string; end: string } {
   const parseHM = (t: string): [number, number] => {
     const parts = t.split(':');
@@ -70,7 +77,9 @@ function buildPickupIso(fromStr: string, untilStr: string): { start: string; end
   return { start: startDt.toISOString(), end: endDt.toISOString() };
 }
 
-export default function PostDonationScreen({ navigation }: Props) {
+export default function PostDonationScreen({ navigation, route }: Props) {
+  const donationId = route.params?.donationId;
+  const isEditMode = !!donationId;
   const [name,         setName]         = useState('');
   const [category,     setCategory]     = useState<FoodCategory>('RICE');
   const [quantity,     setQuantity]     = useState('');
@@ -82,6 +91,9 @@ export default function PostDonationScreen({ navigation }: Props) {
   const [photoUri,     setPhotoUri]     = useState<string | null>(null);
   const [submitting,   setSubmitting]   = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  const [photoChanged,  setPhotoChanged]  = useState(false);
+  const [initializing,  setInitializing]  = useState(isEditMode);
 
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [showTimeModal, setShowTimeModal] = useState(false);
@@ -96,6 +108,25 @@ export default function PostDonationScreen({ navigation }: Props) {
 
   const unit = UNITS[unitIndex]!;
   const flatListRef = useRef<FlatList<string>>(null);
+
+  useEffect(() => {
+    if (!donationId) return;
+    getDonationDetail(donationId)
+      .then((d) => {
+        setName(d.name);
+        setCategory(d.category);
+        setQuantity(String(d.quantityOriginal));
+        const unitIdx = (UNITS as readonly string[]).indexOf(d.unit);
+        setUnitIndex(unitIdx >= 0 ? unitIdx : 0);
+        setPickupFrom(isoToHHMM(d.pickupStart));
+        setPickupUntil(isoToHHMM(d.pickupEnd));
+        setSchedule(d.isRepeating ? 'every-day' : 'one-time');
+        setNotes(d.description ?? '');
+        setPhotoUri(d.photoUrl || null);
+      })
+      .catch(() => {})
+      .finally(() => setInitializing(false));
+  }, [donationId]);
 
   const bc = (field: string) =>
     focusedField === field ? colors.accentPrimary : colors.borderDefault;
@@ -137,6 +168,7 @@ export default function PostDonationScreen({ navigation }: Props) {
     });
     if (!result.canceled && result.assets[0]) {
       setPhotoUri(result.assets[0].uri);
+      setPhotoChanged(true);
     }
   }, []);
 
@@ -156,7 +188,7 @@ export default function PostDonationScreen({ navigation }: Props) {
     setSubmitting(true);
     try {
       const { start, end } = buildPickupIso(pickupFrom, pickupUntil);
-      const result = await createDonation({
+      const payload = {
         name:             name.trim(),
         description:      notes.trim(),
         category,
@@ -164,14 +196,21 @@ export default function PostDonationScreen({ navigation }: Props) {
         quantityOriginal: Number(quantity),
         pickupStart:      start,
         pickupEnd:        end,
-        localPhotoUri:    photoUri ?? undefined,
-      });
-      setQrData(result.foodQrData);
-      setPostedName(result.name);
-      setPostedId(result.id);
-      setPostedPickupWindow(result.pickupWindow);
-      setPostedReachLabel(result.estimatedReachLabel ?? '');
-      setShowQrModal(true);
+        isRepeating:      schedule === 'every-day',
+        localPhotoUri:    photoChanged ? photoUri : undefined,
+      };
+      if (isEditMode && donationId) {
+        await updateDonation(donationId, payload);
+        navigation.goBack();
+      } else {
+        const result = await createDonation({ ...payload, localPhotoUri: photoUri ?? undefined });
+        setQrData(result.foodQrData);
+        setPostedName(result.name);
+        setPostedId(result.id);
+        setPostedPickupWindow(result.pickupWindow);
+        setPostedReachLabel(result.estimatedReachLabel ?? '');
+        setShowQrModal(true);
+      }
     } catch (err) {
       const msg = err instanceof ApiError
         ? `${err.code}: ${err.message}\n${JSON.stringify(err.details ?? {})}`
@@ -180,7 +219,20 @@ export default function PostDonationScreen({ navigation }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [name, notes, category, unit, quantity, pickupFrom, pickupUntil, photoUri, navigation]);
+  }, [name, notes, category, unit, quantity, pickupFrom, pickupUntil, photoUri, photoChanged, isEditMode, donationId, navigation]);
+
+  if (initializing) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator color={colors.accentPrimary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -199,8 +251,8 @@ export default function PostDonationScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <Text style={styles.eyebrow}>New listing</Text>
-        <Text style={styles.title}>{"What are you\ndonating?"}</Text>
+        <Text style={styles.eyebrow}>{isEditMode ? 'Edit listing' : 'New listing'}</Text>
+        <Text style={styles.title}>{isEditMode ? 'Update your\ndonation' : "What are you\ndonating?"}</Text>
 
         {/* FOOD NAME */}
         <Text style={styles.fieldLabel}>FOOD NAME</Text>
@@ -359,7 +411,7 @@ export default function PostDonationScreen({ navigation }: Props) {
             <ActivityIndicator color={colors.textInverse} />
           ) : (
             <>
-              <Text style={styles.submitText}>Post donation</Text>
+              <Text style={styles.submitText}>{isEditMode ? 'Update donation' : 'Post donation'}</Text>
               <Ionicons name="arrow-forward" size={18} color={colors.textInverse} />
             </>
           )}
