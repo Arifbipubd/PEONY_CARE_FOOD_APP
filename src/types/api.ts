@@ -202,8 +202,13 @@ export interface ApiRestaurantDonation {
     id: string;
     receiver_name: string;
     claimed_at: string;
+    collected_at?: string;
     status: string;
   }>;
+  is_repeating?: boolean;
+  repeat_time_label?: string;
+  next_post_label?: string;
+  donation_source_note?: string;
 }
 
 export interface ApiDonationSummary {

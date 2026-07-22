@@ -47,7 +47,7 @@ export type RestaurantTabParamList = {
 export type DonationsStackParamList = {
   DonationList:          undefined;
   DonationDetail:        { donationId: string };
-  PostDonation:          undefined;
+  PostDonation:          { donationId?: string } | undefined;
   PostDonationSuccess:   {
     foodName:             string;
     quantity:             number;

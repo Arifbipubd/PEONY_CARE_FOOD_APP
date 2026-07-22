@@ -22,6 +22,7 @@ import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
 } from '../../constants/theme';
 import { ProfileStackParamList } from '../../navigation/RestaurantTabs';
+import { flagFromPhone } from '../../components/CountryPicker';
 
 type Props = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'RestaurantProfile'>;
@@ -161,6 +162,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
   if (loading) return <ProfileSkeleton />;
 
   const p = profile;
+  const PhoneFlag = flagFromPhone(p?.contactPhone ?? '');
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
@@ -192,7 +194,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
           </View>
           <Text style={styles.restaurantName}>{p?.name ?? ''}</Text>
           <View style={styles.phoneRow}>
-            <Text style={styles.phoneFlag}>🇸🇬</Text>
+            <PhoneFlag size={18} />
             <Text style={styles.phoneText}>{p?.contactPhone ?? ''}</Text>
           </View>
           <Text style={styles.addressText}>{p?.address ?? ''}</Text>
@@ -414,7 +416,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: 4,
   },
-  phoneFlag: { fontSize: fontSizes['14'] },
   phoneText: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes['14'],

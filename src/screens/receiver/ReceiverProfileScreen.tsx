@@ -23,7 +23,7 @@ import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, lineHeights,
 } from '../../constants/theme';
 import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
-import SgFlag from '../../components/SgFlag';
+import { flagFromPhone } from '../../components/CountryPicker';
 
 type Props = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'ReceiverProfile'>;
@@ -209,6 +209,7 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
     lifetimeMeals: 0,
     restaurantsCount: 0,
   };
+  const PhoneFlag = flagFromPhone(effectiveProfile.phone);
 
   const accountRows: MenuRow[] = [
     {
@@ -305,7 +306,7 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
 
         {/* Phone row */}
         <View style={styles.phoneRow}>
-          <SgFlag size={16} />
+          <PhoneFlag size={16} />
           <Text style={styles.phone}>{formatSGPhone(effectiveProfile.phone)}</Text>
         </View>
 

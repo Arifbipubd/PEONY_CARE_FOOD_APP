@@ -4,6 +4,7 @@ import {
   RestaurantDashboard, RestaurantDonation, RestaurantProfile, PublicRestaurant, FoodItem,
   DonationSummary, CreateDonationPayload, RestaurantAnalytics,
 } from '../types';
+import type { ClaimStatus } from '../types';
 import {
   ApiRestaurantDonation, ApiRestaurantDashboard, ApiPublicRestaurant,
   ApiRestaurantDetail, ApiRestaurantMealSummary,
@@ -69,14 +70,23 @@ function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
     noShowCount: d.no_show_count,
     expiredCount: d.expired_count,
     estimatedReachLabel: d.estimated_reach_label,
+    isRepeating: d.is_repeating,
+    repeatTimeLabel: d.repeat_time_label,
+    nextPostLabel: d.next_post_label,
+    donationSourceNote: d.donation_source_note,
     claims: d.claims?.map((c) => ({
       id: c.id,
       receiverName: c.receiver_name,
       claimedAt: c.claimed_at,
-      status: c.status as 'CLAIMED',
+      collectedAt: c.collected_at,
+      status: c.status as ClaimStatus,
     })),
   };
 }
+
+export const pauseDonation = async (foodId: string): Promise<void> => {
+  await api.patch(`/restaurant/donations/${foodId}/deactivate/`);
+};
 
 function mapApiDashboard(d: ApiRestaurantDashboard): RestaurantDashboard {
   const groups = d.active_donations?.groups ?? [];

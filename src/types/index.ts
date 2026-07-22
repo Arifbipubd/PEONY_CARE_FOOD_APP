@@ -11,7 +11,7 @@ export type FoodStatus = 'AVAILABLE' | 'PARTIALLY_CLAIMED' | 'FULLY_CLAIMED' | '
 
 export type FoodListStatus = 'ACTIVE' | 'PAST' | 'INACTIVE';
 
-export type ClaimStatus = 'CLAIMED';
+export type ClaimStatus = 'CLAIMED' | 'COLLECTED';
 export type ClaimHistoryItemStatus = 'CLAIMED' | 'EXPIRED';
 
 export type SponsorshipType = 'DIRECT' | 'SPONSORED_NAMED' | 'SPONSORED_ANONYMOUS';
@@ -242,10 +242,15 @@ export interface RestaurantDonation {
   noShowCount?: number;
   expiredCount?: number;
   estimatedReachLabel?: string;
+  isRepeating?: boolean;
+  repeatTimeLabel?: string;
+  nextPostLabel?: string;
+  donationSourceNote?: string;
   claims?: Array<{
     id: string;
     receiverName: string;
     claimedAt: string;
+    collectedAt?: string;
     status: ClaimStatus;
   }>;
 }

@@ -22,6 +22,11 @@ export const COUNTRIES: CountryOption[] = [
   { code: 'BD', dial: '+880', label: 'Bangladesh',  Flag: BdFlag },
 ];
 
+export function flagFromPhone(phone: string): React.ComponentType<{ size?: number }> {
+  const sorted = [...COUNTRIES].sort((a, b) => b.dial.length - a.dial.length);
+  return sorted.find(c => phone.startsWith(c.dial))?.Flag ?? SgFlag;
+}
+
 interface Props {
   selected:  CountryOption;
   onSelect:  (c: CountryOption) => void;
