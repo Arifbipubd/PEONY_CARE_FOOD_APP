@@ -32,6 +32,8 @@ export const verifyOtp = async (
 export const registerReceiver = async (
   displayName: string,
   registrationToken: string,
+  latitude?: number | null,
+  longitude?: number | null,
 ): Promise<{
   accessToken: string;
   refreshToken: string;
@@ -42,7 +44,7 @@ export const registerReceiver = async (
 
   const res = await api.post(
     '/auth/register/receiver/',
-    { display_name, latitude: 1.3521, longitude: 103.8198 },
+    { display_name, latitude: latitude ?? 0, longitude: longitude ?? 0 },
     { headers: { 'Registration-Token': registrationToken } },
   );
   await AsyncStorage.removeItem('peony_pending_name');

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import * as Location from 'expo-location';
 import {
   View,
   Text,
@@ -44,9 +45,23 @@ export default function RegisterScreen({ navigation, route }: Props) {
     setLoading(true);
     setError('');
     try {
+      let lat: number | null = null;
+      let lng: number | null = null;
+      if (role === 'RECEIVER') {
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
+          }
+        } catch {
+          // proceed without location — backend will use 0,0 until home screen updates it
+        }
+      }
       const result = role === 'DONOR'
         ? await registerDonor(name.trim(), '', registrationToken)
-        : await registerReceiver(name.trim(), registrationToken);
+        : await registerReceiver(name.trim(), registrationToken, lat, lng);
       setAuth(
         result.accessToken,
         result.refreshToken,
