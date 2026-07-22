@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -132,17 +133,25 @@ export default function NotificationsScreen({ navigation }: Props) {
     notifications, setNotifications,
     markRead: storeMarkRead, markAllRead: storeMarkAllRead,
   } = useNotificationStore();
-  const [loading, setLoading] = useState(notifications.length === 0);
+  const [loading, setLoading]       = useState(notifications.length === 0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = useCallback(
+    () => getNotifications().then((items) => setNotifications(items)).catch(() => {}),
+    [setNotifications],
+  );
 
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      getNotifications().then((items) => {
-        setNotifications(items);
-        setLoading(false);
-      });
-    }, []),
+      loadData().finally(() => setLoading(false));
+    }, [loadData]),
   );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData().finally(() => setRefreshing(false));
+  }, [loadData]);
 
   const handleTap = (id: string) => {
     storeMarkRead(id);
@@ -233,6 +242,7 @@ export default function NotificationsScreen({ navigation }: Props) {
         maxToRenderPerBatch={10}
         windowSize={5}
         stickySectionHeadersEnabled={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
       />
 
     </SafeAreaView>

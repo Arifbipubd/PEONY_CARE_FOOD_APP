@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView,
+  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,20 +52,28 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
 
   const [donation, setDonation]    = useState<RestaurantDonation | null>(null);
   const [loading, setLoading]      = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [collectState, setCollect] = useState<CollectState>(null);
   const [deleteVisible, setDelete] = useState(false);
   const [deleting, setDeleting]    = useState(false);
   const [pausing, setPausing]      = useState(false);
 
+  const loadData = useCallback(
+    () => getDonationDetail(donationId).then(setDonation).catch(() => {}),
+    [donationId],
+  );
+
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      getDonationDetail(donationId)
-        .then(setDonation)
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    }, [donationId]),
+      loadData().finally(() => setLoading(false));
+    }, [loadData]),
   );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData().finally(() => setRefreshing(false));
+  }, [loadData]);
 
   const openQr         = useCallback(() => setCollect('qr'),  []);
   const closeAllSheets = useCallback(() => setCollect(null),   []);
@@ -90,7 +98,7 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
     setPausing(true);
     try {
       await pauseDonation(donation.id);
-      navigation.goBack();
+      navigation.navigate('DonationList', { initialTab: 'inactive' });
     } catch {
       setPausing(false);
     }
@@ -131,7 +139,10 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
+      >
 
         {/* Hero image */}
         <View>

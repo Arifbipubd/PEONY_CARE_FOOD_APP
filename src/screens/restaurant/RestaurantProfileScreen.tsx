@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
@@ -120,22 +121,30 @@ function ProfileSkeleton() {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function RestaurantProfileScreen({ navigation }: Props) {
-  const [profile, setProfile] = useState<RestaurantProfile | null>(null);
-  const [loading, setLoading]     = useState(true);
+  const [profile, setProfile]       = useState<RestaurantProfile | null>(null);
+  const [loading, setLoading]       = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const { refreshToken, clearAuth } = useAuthStore();
   const { unreadCount }             = useNotificationStore();
 
+  const loadData = useCallback(
+    () => getRestaurantProfile().then(setProfile).catch(() => {}),
+    [],
+  );
+
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      getRestaurantProfile()
-        .then(setProfile)
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    }, []),
+      loadData().finally(() => setLoading(false));
+    }, [loadData]),
   );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData().finally(() => setRefreshing(false));
+  }, [loadData]);
 
   const initials = useMemo(
     () => (profile ? getInitials(profile.name) : ''),
@@ -181,7 +190,11 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
+      >
 
         {/* Avatar section */}
         <View style={styles.avatarSection}>

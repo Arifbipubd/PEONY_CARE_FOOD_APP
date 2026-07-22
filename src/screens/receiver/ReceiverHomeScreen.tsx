@@ -10,6 +10,7 @@ import {
   ScrollView,
   StyleSheet,
   Linking,
+  RefreshControl,
 } from 'react-native';
 import { requestForegroundPermissionsAsync, getCurrentPositionAsync, Accuracy } from 'expo-location';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
@@ -249,11 +250,13 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const [loading, setLoading]           = useState(true);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [refreshing, setRefreshing] = useState(false);
+
   const fetchData = useCallback((overrideLat?: number, overrideLng?: number) => {
     const useLat = overrideLat ?? lat ?? undefined;
     const useLng = overrideLng ?? lng ?? undefined;
     console.log('[Home] fetchData lat:', useLat, 'lng:', useLng);
-    Promise.allSettled([
+    return Promise.allSettled([
       browseFood(useLat, useLng),
       getDailyLimit(),
       getNearbyRestaurants(useLat, useLng),
@@ -292,6 +295,11 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
       fetchData();
     }, [locLoading, fetchData]),
   );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchData()?.finally(() => setRefreshing(false));
+  }, [fetchData]);
 
   useEffect(() => {
     if (activeTab === 'restaurants') {
@@ -498,12 +506,14 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
           ListEmptyComponent={<EmptyMealsState onAdjustRadius={() => setFilterSheetVisible(true)} />}
         />
       ) : (
         <FlatList
           data={filteredRestaurants}
           keyExtractor={(item) => item.id}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.restaurantCard}

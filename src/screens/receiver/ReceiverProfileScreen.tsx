@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
@@ -165,23 +166,33 @@ const pSkelStyles = StyleSheet.create({
 export default function ReceiverProfileScreen({ navigation }: Props) {
   const { refreshToken, clearAuth, user } = useAuthStore();
   const { unreadCount } = useNotificationStore();
-  const [profile, setProfile] = useState<ReceiverProfile | null>(null);
-  const [loading, setLoading]   = useState(true);
+  const [profile, setProfile]       = useState<ReceiverProfile | null>(null);
+  const [loading, setLoading]       = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const { displayName: storedName, setProfile: storeSetProfile } = useProfileStore();
+
+  const loadData = useCallback(
+    () => getReceiverProfile()
+      .then((p) => {
+        setProfile(p);
+        storeSetProfile({ photoUrl: p.photoUrl, displayName: p.displayName });
+      })
+      .catch((e) => { console.log('[ReceiverProfile] error', e); }),
+    [storeSetProfile],
+  );
 
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      getReceiverProfile()
-        .then((p) => {
-          setProfile(p);
-          storeSetProfile({ photoUrl: p.photoUrl, displayName: p.displayName });
-        })
-        .catch((e) => { console.log('[ReceiverProfile] error', e); })
-        .finally(() => setLoading(false));
-    }, [storeSetProfile]),
+      loadData().finally(() => setLoading(false));
+    }, [loadData]),
   );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData().finally(() => setRefreshing(false));
+  }, [loadData]);
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -285,7 +296,11 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
+      >
 
         {/* Avatar */}
         <View style={styles.avatarWrapper}>

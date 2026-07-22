@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
@@ -146,9 +147,11 @@ type EmptyProps = {
   hasMenuPhotos:   boolean;
   hasDonations:    boolean;
   navigation: BottomTabNavigationProp<RestaurantTabParamList, 'Home'>;
+  refreshing:      boolean;
+  onRefresh:       () => void;
 };
 
-const EmptyDashboard = React.memo(({ restaurantName, hasMenuPhotos, hasDonations, navigation }: EmptyProps) => {
+const EmptyDashboard = React.memo(({ restaurantName, hasMenuPhotos, hasDonations, navigation, refreshing, onRefresh }: EmptyProps) => {
   const steps = useMemo(() => [
     {
       num: 1,
@@ -187,7 +190,11 @@ const EmptyDashboard = React.memo(({ restaurantName, hasMenuPhotos, hasDonations
   );
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={es.scroll}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={es.scroll}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
+    >
 
       {/* Account verified chip */}
       <View style={es.chip}>
@@ -510,20 +517,31 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
   const { unreadCount } = useNotificationStore();
   const { lat, lng } = useLocation();
 
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = useCallback(
+    () => Promise.all([getDashboard(), getMenuPhotos()])
+      .then(([d]) => {
+        setData(d);
+        setHasMenuPhotos(menuPhotosExist());
+        setHasDonations(donationsExist());
+        console.log('[Dashboard] data:', JSON.stringify(d, null, 2));
+      })
+      .catch(() => {}),
+    [lat, lng],
+  );
+
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      Promise.all([getDashboard(), getMenuPhotos()])
-        .then(([d]) => {
-          setData(d);
-          setHasMenuPhotos(menuPhotosExist());
-          setHasDonations(donationsExist());
-          console.log('[Dashboard] data:', JSON.stringify(d, null, 2));
-        })
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    }, [lat, lng]),
+      loadData().finally(() => setLoading(false));
+    }, [loadData]),
   );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData().finally(() => setRefreshing(false));
+  }, [loadData]);
 
   const goToPost = useCallback(() => {
     navigation.navigate('Donations', { screen: 'PostDonation' } as never);
@@ -568,11 +586,12 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      {isEmpty && <EmptyDashboard restaurantName={data.restaurantName} hasMenuPhotos={hasMenuPhotos} hasDonations={hasDonations} navigation={navigation} />}
+      {isEmpty && <EmptyDashboard restaurantName={data.restaurantName} hasMenuPhotos={hasMenuPhotos} hasDonations={hasDonations} navigation={navigation} refreshing={refreshing} onRefresh={onRefresh} />}
       {!isEmpty && (
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
       >
 
         {/* Hero */}

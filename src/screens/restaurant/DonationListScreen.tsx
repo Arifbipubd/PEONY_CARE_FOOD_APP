@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useFocusEffect, RouteProp } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   FlatList,
   ScrollView,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
@@ -25,6 +26,7 @@ import { DonationsStackParamList } from '../../navigation/RestaurantTabs';
 type Tab = 'active' | 'past' | 'inactive';
 type Props = {
   navigation: NativeStackNavigationProp<DonationsStackParamList, 'DonationList'>;
+  route:      RouteProp<DonationsStackParamList, 'DonationList'>;
 };
 type DaySection = { title: string; data: RestaurantDonation[]; completedCount: number };
 
@@ -275,39 +277,54 @@ const DonationEmptyState = React.memo(({ icon, title, desc, ctaLabel, onCta }: E
 
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
-export default function DonationListScreen({ navigation }: Props) {
-  const [tab, setTab] = useState<Tab>('active');
+export default function DonationListScreen({ navigation, route }: Props) {
+  const [tab, setTab] = useState<Tab>(route.params?.initialTab ?? 'active');
+
+  useEffect(() => {
+    if (route.params?.initialTab) setTab(route.params.initialTab);
+  }, [route.params?.initialTab]);
 
   const [summary,       setSummary]       = useState<DonationSummary | null>(null);
   const [active,        setActive]        = useState<RestaurantDonation[] | null>(null);
   const [past,          setPast]          = useState<RestaurantDonation[] | null>(null);
   const [inactive,      setInactive]      = useState<RestaurantDonation[] | null>(null);
   const [loading,       setLoading]       = useState(true);
+  const [refreshing,    setRefreshing]    = useState(false);
   const [fetchError,    setFetchError]    = useState('');
   const [actionLoading, setActionLoading] = useState<Set<string>>(new Set());
+
+  const loadData = useCallback(
+    () => getDonations()
+      .then(({ active, past, inactive, summary }) => {
+        setActive(active);
+        setPast(past);
+        setInactive(inactive);
+        setSummary(summary);
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : 'Failed to load donations';
+        setFetchError(msg);
+        setActive([]);
+        setPast([]);
+        setInactive([]);
+        setSummary({ activeCount: 0, pastCount: 0, inactiveCount: 0, weeklyMeals: 0 });
+      }),
+    [],
+  );
 
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
       setFetchError('');
-      getDonations()
-        .then(({ active, past, inactive, summary }) => {
-          setActive(active);
-          setPast(past);
-          setInactive(inactive);
-          setSummary(summary);
-        })
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : 'Failed to load donations';
-          setFetchError(msg);
-          setActive([]);
-          setPast([]);
-          setInactive([]);
-          setSummary({ activeCount: 0, pastCount: 0, inactiveCount: 0, weeklyMeals: 0 });
-        })
-        .finally(() => setLoading(false));
-    }, []),
+      loadData().finally(() => setLoading(false));
+    }, [loadData]),
   );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setFetchError('');
+    loadData().finally(() => setRefreshing(false));
+  }, [loadData]);
 
   const handleReactivate = useCallback(async (id: string) => {
     if (actionLoading.has(id)) return;
@@ -434,6 +451,7 @@ export default function DonationListScreen({ navigation }: Props) {
           removeClippedSubviews
           maxToRenderPerBatch={10}
           windowSize={5}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
           ListHeaderComponent={Header}
           renderSectionHeader={({ section }) => (
             <View style={styles.dayHeader}>
@@ -468,6 +486,7 @@ export default function DonationListScreen({ navigation }: Props) {
             removeClippedSubviews
             maxToRenderPerBatch={10}
             windowSize={5}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
             ListHeaderComponent={Header}
             renderSectionHeader={({ section }) => (
               <View style={styles.dayHeader}>
@@ -506,6 +525,7 @@ export default function DonationListScreen({ navigation }: Props) {
             removeClippedSubviews
             maxToRenderPerBatch={8}
             windowSize={5}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
             ListHeaderComponent={Header}
             renderItem={({ item }) => (
               <InactiveRow
