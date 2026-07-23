@@ -16,7 +16,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import { launchImageLibraryAsync } from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { createDonation, updateDonation, getDonationDetail } from '../../services/restaurant';
@@ -160,7 +160,7 @@ export default function PostDonationScreen({ navigation, route }: Props) {
   }, []);
 
   const handlePickPhoto = useCallback(async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
+    const result = await launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],

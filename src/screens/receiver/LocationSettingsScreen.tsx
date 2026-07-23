@@ -13,7 +13,7 @@ import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getLocationSettings } from '../../services/receiver';
 import { LocationSettings, RecentPlace } from '../../types';
-import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings } from '../../constants/theme';
+import { colors, spacing, radius, fontSizes, fontFamilies, letterSpacings } from '../../constants/theme';
 import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
@@ -119,7 +119,7 @@ export default function LocationSettingsScreen({ navigation }: Props) {
   const [settings, setSettings] = useState<LocationSettings | null>(null);
   const [loading, setLoading]   = useState(true);
 
-  const [radius, setRadius]           = useState(5);
+  const [searchRadius, setSearchRadius] = useState(5);
   const [locationSvc, setLocationSvc] = useState(true);
   const [saveHistory, setSaveHistory] = useState(true);
   const [recentPlaces, setRecentPlaces] = useState<RecentPlace[]>([]);
@@ -128,7 +128,7 @@ export default function LocationSettingsScreen({ navigation }: Props) {
     getLocationSettings()
       .then((s) => {
         setSettings(s);
-        setRadius(s.searchRadiusKm);
+        setSearchRadius(s.searchRadiusKm);
         setLocationSvc(s.locationServicesEnabled);
         setSaveHistory(s.saveLocationHistory);
         setRecentPlaces(s.recentPlaces);
@@ -166,18 +166,18 @@ export default function LocationSettingsScreen({ navigation }: Props) {
         {/* Search radius */}
         <Text style={styles.sectionLabel}>Search radius</Text>
         <View style={styles.radiusDisplay}>
-          <Text style={styles.radiusNumber}>{radius}</Text>
+          <Text style={styles.radiusNumber}>{searchRadius}</Text>
           <Text style={styles.radiusUnit}>km</Text>
         </View>
         <View style={styles.chipRow}>
           {RADIUS_OPTIONS.map((opt) => (
             <TouchableOpacity
               key={opt}
-              style={[styles.chip, opt === radius && styles.chipActive]}
-              onPress={() => setRadius(opt)}
+              style={[styles.chip, opt === searchRadius && styles.chipActive]}
+              onPress={() => setSearchRadius(opt)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.chipText, opt === radius && styles.chipTextActive]}>
+              <Text style={[styles.chipText, opt === searchRadius && styles.chipTextActive]}>
                 {opt} km
               </Text>
             </TouchableOpacity>
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
   placeText: { flex: 1, gap: spacing.xs },
   placeName: {
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semiBold,
+    fontFamily: fontFamilies.semiBold,
     color: colors.textPrimary,
   },
   placeAddress: {

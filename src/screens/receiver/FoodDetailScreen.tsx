@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { memo, useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -38,7 +38,7 @@ function formatPickupFull(start: string, end: string): string {
 }
 
 
-function DetailSkeleton() {
+const DetailSkeleton = memo(function DetailSkeleton() {
   const opacity = usePulse();
   return (
     <View style={styles.screen}>
@@ -62,7 +62,7 @@ function DetailSkeleton() {
       </SafeAreaView>
     </View>
   );
-}
+});
 
 const dSkelStyles = StyleSheet.create({
   content: {
@@ -102,14 +102,24 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
     });
   }, [foodId]);
 
+  const claimed = (food?.quantityOriginal ?? 0) - (food?.quantityAvailable ?? 0);
+  const pct = food != null && food.quantityOriginal > 0
+    ? Math.round((claimed / food.quantityOriginal) * 100)
+    : 0;
+  const backBtnStyle = useMemo(
+    () => [styles.backBtn, { top: insets.top + spacing.md }],
+    [insets.top],
+  );
+  const progressFillStyle = useMemo(
+    () => [styles.progressFill, { width: `${pct}%` as `${number}%` }],
+    [pct],
+  );
+
   if (loading) {
     return <DetailSkeleton />;
   }
 
   if (!food) return null;
-
-  const claimed = food.quantityOriginal - food.quantityAvailable;
-  const pct     = Math.round((claimed / food.quantityOriginal) * 100);
 
   return (
     <View style={styles.screen}>
@@ -119,7 +129,7 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
         <View>
           <ImageWithSkeleton source={{ uri: food.photoUrl }} style={styles.image} resizeMode="cover" />
           <TouchableOpacity
-            style={[styles.backBtn, { top: insets.top + spacing.md }]}
+            style={backBtnStyle}
             onPress={() => navigation.goBack()}
           >
             <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
@@ -243,7 +253,7 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
             <Text style={styles.progressLabel}>{pct}%</Text>
           </View>
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${pct}%` as `${number}%` }]} />
+            <View style={progressFillStyle} />
           </View>
         </View>
         <TouchableOpacity

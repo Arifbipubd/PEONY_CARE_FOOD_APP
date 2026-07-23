@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
@@ -10,8 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useNotificationStore } from '../../store/notificationStore';
 import {
@@ -21,7 +20,7 @@ import {
 } from '../../services/notifications';
 import { AppNotification } from '../../types';
 import {
-  colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, layout,
+  colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, layout,
 } from '../../constants/theme';
 
 type Props = {
@@ -153,17 +152,17 @@ export default function NotificationsScreen({ navigation }: Props) {
     loadData().finally(() => setRefreshing(false));
   }, [loadData]);
 
-  const handleTap = (id: string) => {
+  const handleTap = useCallback((id: string) => {
     storeMarkRead(id);
     apiMarkRead(id);
-  };
+  }, [storeMarkRead]);
 
-  const handleMarkAll = () => {
+  const handleMarkAll = useCallback(() => {
     storeMarkAllRead();
     apiMarkAllRead();
-  };
+  }, [storeMarkAllRead]);
 
-  const sections = buildSections(notifications);
+  const sections = useMemo(() => buildSections(notifications), [notifications]);
 
   if (loading) {
     return (

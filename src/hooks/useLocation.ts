@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import * as Location from 'expo-location';
+import { requestForegroundPermissionsAsync, getLastKnownPositionAsync, getCurrentPositionAsync, Accuracy } from 'expo-location';
 
 interface LocationState {
   lat: number | null;
@@ -14,18 +14,18 @@ export function useLocation(): LocationState {
     let cancelled = false;
     (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
+        const { status } = await requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           if (!cancelled) setState({ lat: null, lng: null, loading: false });
           return;
         }
-        const last = await Location.getLastKnownPositionAsync();
+        const last = await getLastKnownPositionAsync();
         if (last && !cancelled) {
           setState({ lat: last.coords.latitude, lng: last.coords.longitude, loading: false });
           return;
         }
-        const pos = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
+        const pos = await getCurrentPositionAsync({
+          accuracy: Accuracy.Balanced,
         });
         if (!cancelled) {
           setState({ lat: pos.coords.latitude, lng: pos.coords.longitude, loading: false });

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -57,7 +57,7 @@ export default function QrScannerScreen({ navigation, route }: Props) {
     ).start();
   }, []);
 
-  const handleScan = async (qrPayload: string) => {
+  const handleScan = useCallback(async (qrPayload: string) => {
     if (scanned) return;
     setScanned(true);
 
@@ -89,7 +89,7 @@ export default function QrScannerScreen({ navigation, route }: Props) {
         setScanned(false);
       }
     }
-  };
+  }, [scanned, lat, lng, expectedFoodId, navigation]);
 
   if (!permission?.granted) {
     const canAskAgain = permission?.canAskAgain ?? true;

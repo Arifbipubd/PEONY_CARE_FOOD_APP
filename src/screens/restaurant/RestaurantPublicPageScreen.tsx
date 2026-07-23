@@ -3,7 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
+  FlatList,
   StyleSheet,
   Linking,
 } from 'react-native';
@@ -189,127 +189,121 @@ export default function RestaurantPublicPageScreen({ navigation }: Props) {
     Linking.openURL(`tel:${profile.contactPhone.replace(/\s/g, '')}`);
   }, [profile?.contactPhone]);
 
+  const backBtnTop = useMemo(() => insets.top + 16, [insets.top]);
+
+  const renderDonationItem = useCallback(({ item, index }: { item: RestaurantDonation; index: number }) => (
+    <FoodRow item={item} isLast={index === donations.length - 1} />
+  ), [donations.length]);
+
   if (loading) return <PublicPageSkeleton />;
   if (!profile) return null;
 
+  const listHeader = (
+    <View>
+      {/* Hero image + back button */}
+      <View>
+        {profile.photoUrl ? (
+          <ImageWithSkeleton
+            source={{ uri: profile.photoUrl }}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.heroImage, styles.heroPlaceholder]} />
+        )}
+        <TouchableOpacity
+          style={[styles.backBtn, { top: backBtnTop }]}
+          onPress={() => navigation.goBack()}
+          hitSlop={8}
+        >
+          <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.content}>
+        {/* Verified partner badge */}
+        {profile.isVerified ? (
+          <View style={styles.verifiedBadge}>
+            <Ionicons name="checkmark-circle" size={14} color={colors.accentPrimary} />
+            <Text style={styles.verifiedText}>Verified partner</Text>
+          </View>
+        ) : null}
+
+        {/* Restaurant name */}
+        <Text style={styles.name}>{profile.name}</Text>
+
+        {/* Rating sub text */}
+        <View style={styles.ratingRow}>
+          <Ionicons name="star" size={14} color={colors.warningYellow} />
+          <Text style={styles.ratingText}>
+            {profile.rating} · {profile.reviewCount} reviews
+          </Text>
+        </View>
+
+        {/* Stat cards */}
+        <View style={styles.statsRow}>
+          <StatCard value={String(profile.peopleFed)}       label="FED"       valueColor={colors.accentPrimary} />
+          <StatCard value={String(profile.totalFoodShared)} label="DONATIONS" valueColor={colors.textPrimary} />
+          <StatCard value={`${profile.claimRatePct}%`}      label="CLAIM RATE" valueColor={colors.goldDark} />
+        </View>
+
+        {/* About */}
+        <Text style={[styles.sectionTitle, styles.sectionGap]}>About</Text>
+        <Text style={styles.aboutBody}>{profile.about || 'No description added yet.'}</Text>
+
+        {/* Location */}
+        <InfoRow
+          iconName="location"
+          iconBg={colors.avatarBg}
+          iconColor={colors.accentPrimary}
+          title={profile.address}
+          sub={`Singapore ${profile.postalCode}`}
+        />
+        <View style={styles.divider} />
+
+        {/* Opening hours */}
+        <InfoRow
+          iconName="time"
+          iconBg={colors.surfaceSecondary}
+          iconColor={colors.textPrimary}
+          title={profile.openingHours || 'Not set'}
+          sub="Open daily"
+        />
+        <View style={styles.divider} />
+
+        {/* Phone */}
+        <InfoRow
+          iconName="call"
+          iconBg={colors.surfaceSecondary}
+          iconColor={colors.textPrimary}
+          title={profile.contactPhone}
+          sub="Tap to call"
+          onPress={handleCall}
+        />
+
+        {/* Available now header */}
+        <View style={[styles.availableHeader, styles.sectionGap]}>
+          <Text style={styles.sectionTitle}>Available now</Text>
+          <Text style={styles.itemCount}>{donations.length} items</Text>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.screen}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-
-        {/* Hero image + back button */}
-        <View>
-          {profile.photoUrl ? (
-            <ImageWithSkeleton
-              source={{ uri: profile.photoUrl }}
-              style={styles.heroImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={[styles.heroImage, styles.heroPlaceholder]} />
-          )}
-          <TouchableOpacity
-            style={[styles.backBtn, { top: insets.top + 16 }]}
-            onPress={() => navigation.goBack()}
-            hitSlop={8}
-          >
-            <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.content}>
-
-          {/* Verified partner badge */}
-          {profile.isVerified ? (
-            <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={14} color={colors.accentPrimary} />
-              <Text style={styles.verifiedText}>Verified partner</Text>
-            </View>
-          ) : null}
-
-          {/* Restaurant name */}
-          <Text style={styles.name}>{profile.name}</Text>
-
-          {/* Rating sub text */}
-          <View style={styles.ratingRow}>
-            <Ionicons name="star" size={14} color={colors.warningYellow} />
-            <Text style={styles.ratingText}>
-              {profile.rating} · {profile.reviewCount} reviews
-            </Text>
-          </View>
-
-          {/* Stat cards */}
-          <View style={styles.statsRow}>
-            <StatCard
-              value={String(profile.peopleFed)}
-              label="FED"
-              valueColor={colors.accentPrimary}
-            />
-            <StatCard
-              value={String(profile.totalFoodShared)}
-              label="DONATIONS"
-              valueColor={colors.textPrimary}
-            />
-            <StatCard
-              value={`${profile.claimRatePct}%`}
-              label="CLAIM RATE"
-              valueColor={colors.goldDark}
-            />
-          </View>
-
-          {/* About */}
-          <Text style={[styles.sectionTitle, styles.sectionGap]}>About</Text>
-          <Text style={styles.aboutBody}>{profile.about || 'No description added yet.'}</Text>
-
-          {/* Location */}
-          <InfoRow
-            iconName="location"
-            iconBg={colors.avatarBg}
-            iconColor={colors.accentPrimary}
-            title={profile.address}
-            sub={`Singapore ${profile.postalCode}`}
-          />
-          <View style={styles.divider} />
-
-          {/* Opening hours */}
-          <InfoRow
-            iconName="time"
-            iconBg={colors.surfaceSecondary}
-            iconColor={colors.textPrimary}
-            title={profile.openingHours || 'Not set'}
-            sub="Open daily"
-          />
-          <View style={styles.divider} />
-
-          {/* Phone */}
-          <InfoRow
-            iconName="call"
-            iconBg={colors.surfaceSecondary}
-            iconColor={colors.textPrimary}
-            title={profile.contactPhone}
-            sub="Tap to call"
-            onPress={handleCall}
-          />
-
-          {/* Available now */}
-          <View style={[styles.availableHeader, styles.sectionGap]}>
-            <Text style={styles.sectionTitle}>Available now</Text>
-            <Text style={styles.itemCount}>{donations.length} items</Text>
-          </View>
-
-          {donations.length === 0 ? (
-            <Text style={styles.emptyText}>No active listings right now.</Text>
-          ) : (
-            donations.map((item, i) => (
-              <FoodRow
-                key={item.id}
-                item={item}
-                isLast={i === donations.length - 1}
-              />
-            ))
-          )}
-
-        </View>
-      </ScrollView>
+      <FlatList
+        data={donations}
+        keyExtractor={(item) => item.id}
+        renderItem={renderDonationItem}
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        contentContainerStyle={styles.flatContent}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={<Text style={styles.emptyText}>No active listings right now.</Text>}
+      />
     </View>
   );
 }
@@ -344,6 +338,8 @@ const styles = StyleSheet.create({
   // ── Content ─────────────────────────────────────────────────────────────────
   content: {
     paddingHorizontal: spacing['2xl'],
+  },
+  flatContent: {
     paddingBottom: spacing['4xl'],
   },
 

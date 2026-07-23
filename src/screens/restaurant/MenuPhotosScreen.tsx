@@ -12,7 +12,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { launchImageLibraryAsync, MediaTypeOptions } from 'expo-image-picker';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { getMenuPhotos, uploadMenuPhotos, deleteMenuPhoto, MenuPhoto } from '../../services/restaurant';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -237,8 +237,8 @@ export default function MenuPhotosScreen({ navigation }: Props) {
   const handleAddPhoto = useCallback(async () => {
     const remaining = MAX_PHOTOS - photos.length;
     if (remaining <= 0 || uploading) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    const result = await launchImageLibraryAsync({
+      mediaTypes: MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       selectionLimit: remaining,
       quality: 0.8,

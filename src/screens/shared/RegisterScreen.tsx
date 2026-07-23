@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import * as Location from 'expo-location';
+import { requestForegroundPermissionsAsync, getCurrentPositionAsync, Accuracy } from 'expo-location';
 import {
   View,
   Text,
@@ -49,9 +49,9 @@ export default function RegisterScreen({ navigation, route }: Props) {
       let lng: number | null = null;
       if (role === 'RECEIVER') {
         try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
+          const { status } = await requestForegroundPermissionsAsync();
           if (status === 'granted') {
-            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            const pos = await getCurrentPositionAsync({ accuracy: Accuracy.Balanced });
             lat = pos.coords.latitude;
             lng = pos.coords.longitude;
           }

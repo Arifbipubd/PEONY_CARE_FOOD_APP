@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { memo, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
+  FlatList,
   StyleSheet,
+  StyleProp,
+  ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
@@ -14,7 +16,7 @@ import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getPublicRestaurantDetail } from '../../services/restaurant';
 import { PublicRestaurant, FoodItem } from '../../types';
-import { colors, spacing, radius, fontSizes, fontWeights, layout } from '../../constants/theme';
+import { colors, spacing, radius, fontSizes, fontFamilies, layout } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
@@ -44,38 +46,46 @@ function sponsorLine(item: FoodItem): string {
   return 'Direct from restaurant';
 }
 
-function RestaurantSkeleton() {
+const RestaurantSkeleton = memo(function RestaurantSkeleton() {
   const opacity = usePulse();
   return (
     <View style={styles.screen}>
-      <ScrollView showsVerticalScrollIndicator={false} scrollEnabled={false}>
-        <SkeletonBox opacity={opacity} height={260} borderRadius={0} />
-        <View style={rSkelStyles.content}>
-          <View style={rSkelStyles.nameRow}>
-            <SkeletonBox opacity={opacity} height={22} style={rSkelStyles.nameFlex} />
-            <SkeletonBox opacity={opacity} width={64} height={26} borderRadius={10} />
-          </View>
-          <SkeletonBox opacity={opacity} width={120} height={26} borderRadius={22} />
-          <View style={rSkelStyles.metaRow}>
-            <SkeletonBox opacity={opacity} width={80} height={14} />
-            <SkeletonBox opacity={opacity} width={100} height={14} />
-          </View>
-          <View style={rSkelStyles.divider} />
-          {[0, 1].map((i) => (
-            <View key={i} style={rSkelStyles.foodRow}>
-              <SkeletonBox opacity={opacity} width={72} height={72} borderRadius={12} />
-              <View style={rSkelStyles.foodRowText}>
-                <SkeletonBox opacity={opacity} width={140} height={15} />
-                <SkeletonBox opacity={opacity} width={100} height={13} style={rSkelStyles.foodRowSub} />
-                <SkeletonBox opacity={opacity} width={60} height={22} borderRadius={10} style={rSkelStyles.foodRowSub} />
+      <FlatList
+        data={[]}
+        renderItem={null as never}
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={false}
+        ListHeaderComponent={
+          <View>
+            <SkeletonBox opacity={opacity} height={260} borderRadius={0} />
+            <View style={rSkelStyles.content}>
+              <View style={rSkelStyles.nameRow}>
+                <SkeletonBox opacity={opacity} height={22} style={rSkelStyles.nameFlex} />
+                <SkeletonBox opacity={opacity} width={64} height={26} borderRadius={10} />
               </View>
+              <SkeletonBox opacity={opacity} width={120} height={26} borderRadius={22} />
+              <View style={rSkelStyles.metaRow}>
+                <SkeletonBox opacity={opacity} width={80} height={14} />
+                <SkeletonBox opacity={opacity} width={100} height={14} />
+              </View>
+              <View style={rSkelStyles.divider} />
+              {[0, 1].map((i) => (
+                <View key={i} style={rSkelStyles.foodRow}>
+                  <SkeletonBox opacity={opacity} width={72} height={72} borderRadius={12} />
+                  <View style={rSkelStyles.foodRowText}>
+                    <SkeletonBox opacity={opacity} width={140} height={15} />
+                    <SkeletonBox opacity={opacity} width={100} height={13} style={rSkelStyles.foodRowSub} />
+                    <SkeletonBox opacity={opacity} width={60} height={22} borderRadius={10} style={rSkelStyles.foodRowSub} />
+                  </View>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
-      </ScrollView>
+          </View>
+        }
+      />
     </View>
   );
-}
+});
 
 const rSkelStyles = StyleSheet.create({
   content: {
@@ -126,138 +136,138 @@ export default function RestaurantPageScreen({ navigation, route }: Props) {
       .finally(() => setLoading(false));
   }, [restaurantId]);
 
-  if (loading) {
-    return <RestaurantSkeleton />;
-  }
+  const backBtnStyle = useMemo<StyleProp<ViewStyle>>(
+    () => [styles.backBtn, { top: insets.top + spacing.md }],
+    [insets.top],
+  );
 
+  const categoryChip = useMemo(() => uniqueCategoryChip(foods), [foods]);
+
+  const renderFoodItem = useCallback(({ item }: { item: FoodItem }) => (
+    <TouchableOpacity
+      style={styles.foodCard}
+      activeOpacity={0.8}
+      onPress={() => navigation.navigate('FoodDetail', { foodId: item.id })}
+    >
+      <ImageWithSkeleton
+        source={{ uri: item.photoUrl }}
+        style={styles.foodThumb}
+        resizeMode="cover"
+      />
+      <View style={styles.foodInfo}>
+        <Text style={styles.foodName} numberOfLines={1}>{item.name}</Text>
+        <View style={styles.foodMetaRow}>
+          <Text style={styles.foodLeft}>
+            <Text style={styles.foodLeftNum}>{item.quantityAvailable}</Text>
+            {' left'}
+          </Text>
+          <Text style={styles.foodPickup}>{item.pickupWindow}</Text>
+        </View>
+        <Text
+          style={item.sponsorshipType === 'DIRECT' ? styles.sponsorDirect : styles.sponsorSponsored}
+          numberOfLines={1}
+        >
+          {sponsorLine(item)}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  ), [navigation]);
+
+  if (loading) return <RestaurantSkeleton />;
   if (!restaurant) return null;
-
-  const categoryChip = uniqueCategoryChip(foods);
 
   return (
     <View style={styles.screen}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-
-        {/* Hero image + back button */}
-        <View>
-          <ImageWithSkeleton
-            source={{ uri: restaurant.photoUrl ?? undefined }}
-            style={styles.image}
-            resizeMode="cover"
-          />
-          <TouchableOpacity
-            style={[styles.backBtn, { top: insets.top + spacing.md }]}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.content}>
-
-          {/* Name + meals badge */}
-          <View style={styles.nameRow}>
-            <Text style={styles.name} numberOfLines={3}>{restaurant.name}</Text>
-            {foods.length > 0 && (
-              <View style={styles.mealsBadge}>
-                <Text style={styles.mealsBadgeText}>{foods.length} meals</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Category chip derived from food items */}
-          {categoryChip.length > 0 && (
-            <View style={styles.categoryChip}>
-              <Text style={styles.categoryText}>{categoryChip}</Text>
-            </View>
-          )}
-
-          <View style={styles.divider} />
-
-          {/* Info rows */}
-          <View style={styles.infoSection}>
-            <View style={styles.infoRow}>
-              <Ionicons name="location-outline" size={15} color={colors.textMuted} />
-              <Text style={styles.infoText}>{restaurant.address}</Text>
-            </View>
-
-            {distanceKm !== undefined && (
-              <View style={styles.infoRow}>
-                <Ionicons name="navigate-outline" size={15} color={colors.textMuted} />
-                <Text style={styles.infoText}>{distanceKm.toFixed(1)} km away</Text>
-              </View>
-            )}
-
-            {(restaurant.openingHours?.length ?? 0) > 0 && (
-              <View style={styles.infoRow}>
-                <Ionicons name="time-outline" size={15} color={colors.textMuted} />
-                <Text style={styles.infoText}>{restaurant.openingHours}</Text>
-              </View>
-            )}
-
-            <View style={styles.infoRow}>
-              <Ionicons
-                name="shield-checkmark-outline"
-                size={15}
-                color={restaurant.isVerified ? colors.successGreen : colors.textMuted}
+      <FlatList
+        data={foods}
+        keyExtractor={(item) => item.id}
+        renderItem={renderFoodItem}
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        contentContainerStyle={styles.flatContent}
+        ItemSeparatorComponent={() => <View style={styles.foodSep} />}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No meals available right now.</Text>
+        }
+        ListHeaderComponent={
+          <View>
+            {/* Hero image + back button */}
+            <View>
+              <ImageWithSkeleton
+                source={{ uri: restaurant.photoUrl ?? undefined }}
+                style={styles.image}
+                resizeMode="cover"
               />
-              <Text style={[
-                styles.infoText,
-                restaurant.isVerified && { color: colors.successGreen },
-              ]}>
-                {restaurant.isVerified ? 'Verified restaurant' : 'Pending verification'}
-              </Text>
+              <TouchableOpacity style={backBtnStyle} onPress={() => navigation.goBack()}>
+                <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
+              </TouchableOpacity>
             </View>
-          </View>
 
-          <View style={styles.divider} />
-
-          {/* Available meals list */}
-          <Text style={styles.sectionLabel}>
-            AVAILABLE MEALS ({foods.length})
-          </Text>
-
-          {foods.length === 0 ? (
-            <Text style={styles.emptyText}>No meals available right now.</Text>
-          ) : (
-            foods.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.foodCard}
-                activeOpacity={0.8}
-                onPress={() => navigation.navigate('FoodDetail', { foodId: item.id })}
-              >
-                <ImageWithSkeleton
-                  source={{ uri: item.photoUrl }}
-                  style={styles.foodThumb}
-                  resizeMode="cover"
-                />
-                <View style={styles.foodInfo}>
-                  <Text style={styles.foodName} numberOfLines={1}>{item.name}</Text>
-                  <View style={styles.foodMetaRow}>
-                    <Text style={styles.foodLeft}>
-                      <Text style={styles.foodLeftNum}>{item.quantityAvailable}</Text>
-                      {' left'}
-                    </Text>
-                    <Text style={styles.foodPickup}>{item.pickupWindow}</Text>
+            <View style={styles.content}>
+              {/* Name + meals badge */}
+              <View style={styles.nameRow}>
+                <Text style={styles.name} numberOfLines={3}>{restaurant.name}</Text>
+                {foods.length > 0 && (
+                  <View style={styles.mealsBadge}>
+                    <Text style={styles.mealsBadgeText}>{foods.length} meals</Text>
                   </View>
-                  <Text
-                    style={
-                      item.sponsorshipType === 'DIRECT'
-                        ? styles.sponsorDirect
-                        : styles.sponsorSponsored
-                    }
-                    numberOfLines={1}
-                  >
-                    {sponsorLine(item)}
+                )}
+              </View>
+
+              {/* Category chip */}
+              {categoryChip.length > 0 && (
+                <View style={styles.categoryChip}>
+                  <Text style={styles.categoryText}>{categoryChip}</Text>
+                </View>
+              )}
+
+              <View style={styles.divider} />
+
+              {/* Info rows */}
+              <View style={styles.infoSection}>
+                <View style={styles.infoRow}>
+                  <Ionicons name="location-outline" size={15} color={colors.textMuted} />
+                  <Text style={styles.infoText}>{restaurant.address}</Text>
+                </View>
+
+                {distanceKm !== undefined && (
+                  <View style={styles.infoRow}>
+                    <Ionicons name="navigate-outline" size={15} color={colors.textMuted} />
+                    <Text style={styles.infoText}>{distanceKm.toFixed(1)} km away</Text>
+                  </View>
+                )}
+
+                {(restaurant.openingHours?.length ?? 0) > 0 && (
+                  <View style={styles.infoRow}>
+                    <Ionicons name="time-outline" size={15} color={colors.textMuted} />
+                    <Text style={styles.infoText}>{restaurant.openingHours}</Text>
+                  </View>
+                )}
+
+                <View style={styles.infoRow}>
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={15}
+                    color={restaurant.isVerified ? colors.successGreen : colors.textMuted}
+                  />
+                  <Text style={[
+                    styles.infoText,
+                    restaurant.isVerified && { color: colors.successGreen },
+                  ]}>
+                    {restaurant.isVerified ? 'Verified restaurant' : 'Pending verification'}
                   </Text>
                 </View>
-              </TouchableOpacity>
-            ))
-          )}
+              </View>
 
-        </View>
-      </ScrollView>
+              <View style={styles.divider} />
+
+              <Text style={styles.sectionLabel}>AVAILABLE MEALS ({foods.length})</Text>
+            </View>
+          </View>
+        }
+      />
     </View>
   );
 }
@@ -290,8 +300,12 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing['2xl'],
     paddingTop: spacing.lg,
-    paddingBottom: spacing['4xl'],
+    paddingBottom: spacing.md,
     gap: spacing.md,
+  },
+
+  flatContent: {
+    paddingBottom: spacing['4xl'],
   },
 
   nameRow: {
@@ -303,7 +317,7 @@ const styles = StyleSheet.create({
   name: {
     flex: 1,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
     color: colors.textPrimary,
   },
   mealsBadge: {
@@ -315,7 +329,7 @@ const styles = StyleSheet.create({
   mealsBadgeText: {
     fontSize: fontSizes.sm,
     color: colors.accentPrimary,
-    fontWeight: fontWeights.semiBold,
+    fontFamily: fontFamilies.semiBold,
   },
 
   categoryChip: {
@@ -346,7 +360,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: fontSizes.xs,
     color: colors.textMuted,
-    fontWeight: fontWeights.semiBold,
+    fontFamily: fontFamilies.semiBold,
     letterSpacing: 0.8,
   },
   emptyText: {
@@ -354,6 +368,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
     marginTop: spacing.lg,
+    paddingHorizontal: spacing['2xl'],
   },
 
   foodCard: {
@@ -364,7 +379,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     padding: spacing.md,
     backgroundColor: colors.surface,
+    marginHorizontal: spacing['2xl'],
   },
+  foodSep: { height: spacing.md },
   foodThumb: {
     width: layout.restaurantFoodThumb,
     height: layout.restaurantFoodThumb,
@@ -378,7 +395,7 @@ const styles = StyleSheet.create({
   },
   foodName: {
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.semiBold,
+    fontFamily: fontFamilies.semiBold,
     color: colors.textPrimary,
   },
   foodMetaRow: {
@@ -392,7 +409,7 @@ const styles = StyleSheet.create({
   },
   foodLeftNum: {
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
+    fontFamily: fontFamilies.bold,
     color: colors.accentPrimary,
   },
   foodPickup: {

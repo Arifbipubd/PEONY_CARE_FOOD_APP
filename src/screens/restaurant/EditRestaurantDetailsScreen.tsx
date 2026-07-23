@@ -14,7 +14,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as ImagePicker from 'expo-image-picker';
+import { launchImageLibraryAsync } from 'expo-image-picker';
 import { setOnConfirm } from './RestaurantLocationScreen';
 import { getRestaurantProfile, updateRestaurantProfile, uploadRestaurantProfilePhoto } from '../../services/restaurant';
 import { RestaurantProfile } from '../../types';
@@ -311,7 +311,7 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const handleChangePhoto = useCallback(async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
+    const result = await launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [16, 9],

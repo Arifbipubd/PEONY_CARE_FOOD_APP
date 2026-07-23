@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
@@ -194,86 +194,96 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
     loadData().finally(() => setRefreshing(false));
   }, [loadData]);
 
-  async function handleLogout() {
+  const handleLogout = useCallback(async () => {
     setLoggingOut(true);
     try {
       if (refreshToken) await logout(refreshToken);
     } finally {
       clearAuth();
     }
-  }
+  }, [refreshToken, clearAuth]);
+
+  const effectiveProfile = useMemo<ReceiverProfile>(
+    () => profile ?? {
+      id: user?.id ?? '',
+      displayName: storedName || 'Receiver',
+      phone: user?.phone ?? '',
+      photoUrl: null,
+      browseRadiusKm: 5,
+      memberSince: '',
+      daysActive: 0,
+      totalClaims: 0,
+      lastClaimDate: null,
+      lifetimeMeals: 0,
+      restaurantsCount: 0,
+    },
+    [profile, user, storedName],
+  );
+
+  const PhoneFlag = flagFromPhone(effectiveProfile.phone);
+
+  const accountRows = useMemo<MenuRow[]>(
+    () => [
+      {
+        icon: 'location',
+        iconBg: colors.avatarBg,
+        iconColor: colors.accentPrimary,
+        label: 'Location settings',
+        subtitle: '5 km radius · Joo Chiat',
+        onPress: () => navigation.navigate('LocationSettings'),
+      },
+      {
+        icon: 'notifications',
+        iconBg: colors.goldLight,
+        iconColor: colors.goldDark,
+        label: 'Notifications',
+        subtitle: '3 channels enabled',
+        onPress: () => navigation.navigate('NotificationSettings'),
+      },
+      {
+        icon: 'download-outline',
+        iconBg: colors.surfaceSecondary,
+        iconColor: colors.textPrimary,
+        label: 'Download my data',
+        subtitle: 'Get a copy of your data',
+        onPress: () => navigation.navigate('ExportData'),
+      },
+      {
+        icon: 'trash-outline',
+        iconBg: colors.accentLight,
+        iconColor: colors.textPrimary,
+        label: 'Delete account',
+        labelColor: colors.dangerRed,
+        subtitle: 'Permanently remove your data',
+        onPress: () => navigation.navigate('DeleteAccount'),
+      },
+    ],
+    [navigation],
+  );
+
+  const supportRows = useMemo<MenuRow[]>(
+    () => [
+      {
+        icon: 'help-circle',
+        iconBg: colors.surfaceSecondary,
+        iconColor: colors.textMuted,
+        label: 'Help & FAQ',
+        onPress: () => navigation.navigate('HelpFaq'),
+      },
+      {
+        icon: 'document-text',
+        iconBg: colors.surfaceSecondary,
+        iconColor: colors.textMuted,
+        label: 'Terms & Privacy',
+        onPress: () => navigation.navigate('TermsPrivacy'),
+      },
+    ],
+    [navigation],
+  );
 
   if (loading) {
     return <ProfileSkeleton />;
   }
-
-  const effectiveProfile: ReceiverProfile = profile ?? {
-    id: user?.id ?? '',
-    displayName: storedName || 'Receiver',
-    phone: user?.phone ?? '',
-    photoUrl: null,
-    browseRadiusKm: 5,
-    memberSince: '',
-    daysActive: 0,
-    totalClaims: 0,
-    lastClaimDate: null,
-    lifetimeMeals: 0,
-    restaurantsCount: 0,
-  };
-  const PhoneFlag = flagFromPhone(effectiveProfile.phone);
-
-  const accountRows: MenuRow[] = [
-    {
-      icon: 'location',
-      iconBg: colors.avatarBg,
-      iconColor: colors.accentPrimary,
-      label: 'Location settings',
-      subtitle: '5 km radius · Joo Chiat',
-      onPress: () => navigation.navigate('LocationSettings'),
-    },
-    {
-      icon: 'notifications',
-      iconBg: colors.goldLight,
-      iconColor: colors.goldDark,
-      label: 'Notifications',
-      subtitle: '3 channels enabled',
-      onPress: () => navigation.navigate('NotificationSettings'),
-    },
-    {
-      icon: 'download-outline',
-      iconBg: colors.surfaceSecondary,
-      iconColor: colors.textPrimary,
-      label: 'Download my data',
-      subtitle: 'Get a copy of your data',
-      onPress: () => navigation.navigate('ExportData'),
-    },
-    {
-      icon: 'trash-outline',
-      iconBg: colors.accentLight,
-      iconColor: colors.textPrimary,
-      label: 'Delete account',
-      labelColor: colors.dangerRed,
-      subtitle: 'Permanently remove your data',
-      onPress: () => navigation.navigate('DeleteAccount'),
-    },
-  ];
-
-  const supportRows: MenuRow[] = [
-    {
-      icon: 'help-circle',
-      iconBg: colors.surfaceSecondary,
-      iconColor: colors.textMuted,
-      label: 'Help & FAQ',
-      onPress: () => navigation.navigate('HelpFaq'),
-    },
-    {
-      icon: 'document-text',
-      iconBg: colors.surfaceSecondary,
-      iconColor: colors.textMuted,
-      label: 'Terms & Privacy',
-      onPress: () => navigation.navigate('TermsPrivacy'),
-    },
-  ];
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -328,21 +338,15 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={[styles.statNumber, { color: colors.accentPrimary }]}>
-              {effectiveProfile.lifetimeMeals}
-            </Text>
+            <Text style={styles.statNumberAccent}>{effectiveProfile.lifetimeMeals}</Text>
             <Text style={styles.statLabel}>MEALS</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={[styles.statNumber, { color: colors.goldDark }]}>
-              {effectiveProfile.restaurantsCount}
-            </Text>
+            <Text style={styles.statNumberGold}>{effectiveProfile.restaurantsCount}</Text>
             <Text style={styles.statLabel}>RESTAURANTS</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={[styles.statNumber, { color: colors.textPrimary }]}>
-              {effectiveProfile.daysActive}
-            </Text>
+            <Text style={styles.statNumberPrimary}>{effectiveProfile.daysActive}</Text>
             <Text style={styles.statLabel}>DAYS</Text>
           </View>
         </View>
@@ -533,6 +537,27 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.bold,
     lineHeight: lineHeights.subheading,
     letterSpacing: -0.84,
+  },
+  statNumberAccent: {
+    fontSize: fontSizes['2xl'],
+    fontFamily: fontFamilies.bold,
+    lineHeight: lineHeights.subheading,
+    letterSpacing: -0.84,
+    color: colors.accentPrimary,
+  },
+  statNumberGold: {
+    fontSize: fontSizes['2xl'],
+    fontFamily: fontFamilies.bold,
+    lineHeight: lineHeights.subheading,
+    letterSpacing: -0.84,
+    color: colors.goldDark,
+  },
+  statNumberPrimary: {
+    fontSize: fontSizes['2xl'],
+    fontFamily: fontFamilies.bold,
+    lineHeight: lineHeights.subheading,
+    letterSpacing: -0.84,
+    color: colors.textPrimary,
   },
   statLabel: {
     fontSize: fontSizes.xs,

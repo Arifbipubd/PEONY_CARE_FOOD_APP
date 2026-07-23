@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { memo, useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
@@ -11,13 +11,12 @@ import {
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getClaimHistory, getReceiverProfile } from '../../services/receiver';
 import { ClaimHistory, ClaimHistoryItem, ReceiverProfile } from '../../types';
 import {
-  colors, spacing, radius, fontSizes, fontFamilies, fontWeights, letterSpacings, layout,
+  colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, layout,
 } from '../../constants/theme';
 import { HistoryStackParamList } from '../../navigation/ReceiverTabs';
 import { useNotificationStore } from '../../store/notificationStore';
@@ -52,7 +51,7 @@ function relativeTime(isoString: string): string {
   return date.toLocaleDateString('en-SG', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-function HistorySkeleton() {
+const HistorySkeleton = memo(function HistorySkeleton() {
   const opacity = usePulse();
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -82,7 +81,7 @@ function HistorySkeleton() {
       </ScrollView>
     </SafeAreaView>
   );
-}
+});
 
 const hSkelStyles = StyleSheet.create({
   header: {
@@ -122,6 +121,34 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const { unreadCount } = useNotificationStore();
 
+  const sections = useMemo<HistorySection[]>(
+    () => (history?.groupedByWeek ?? []).map((g) => ({
+      title: weekLabel(g.weekStart),
+      count: g.claims.length,
+      data:  g.claims,
+    })),
+    [history],
+  );
+
+  const renderItem = useCallback(({ item }: { item: ClaimHistoryItem }) => {
+    const collected = item.status === 'CLAIMED';
+    const subtitle  = item.sponsorDisplayName
+      ? `${item.restaurantName} · Sponsored by ${item.sponsorDisplayName}`
+      : `${item.restaurantName} · ${relativeTime(item.claimedAt)}`;
+    return (
+      <View style={styles.row}>
+        <ImageWithSkeleton source={{ uri: item.photoUrl || undefined }} style={styles.thumb} resizeMode="cover" />
+        <View style={styles.rowText}>
+          <Text style={styles.foodName} numberOfLines={1}>{item.foodName}</Text>
+          <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
+        </View>
+        <Text style={[styles.status, collected ? styles.collected : styles.expired]}>
+          {collected ? 'Collected' : 'Expired'}
+        </Text>
+      </View>
+    );
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
@@ -136,12 +163,6 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
   if (loading) {
     return <HistorySkeleton />;
   }
-
-  const sections: HistorySection[] = (history?.groupedByWeek ?? []).map((g) => ({
-    title: weekLabel(g.weekStart),
-    count: g.claims.length,
-    data:  g.claims,
-  }));
 
   // ── Empty state ──────────────────────────────────────────────────────────────
   if (sections.length === 0) {
@@ -216,24 +237,7 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
             <Text style={styles.sectionCount}>{section.count} meals</Text>
           </View>
         )}
-        renderItem={({ item }) => {
-          const collected = item.status === 'CLAIMED';
-          const subtitle  = item.sponsorDisplayName
-            ? `${item.restaurantName} · Sponsored by ${item.sponsorDisplayName}`
-            : `${item.restaurantName} · ${relativeTime(item.claimedAt)}`;
-          return (
-            <View style={styles.row}>
-              <ImageWithSkeleton source={{ uri: item.photoUrl || undefined }} style={styles.thumb} resizeMode="cover" />
-              <View style={styles.rowText}>
-                <Text style={styles.foodName} numberOfLines={1}>{item.foodName}</Text>
-                <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
-              </View>
-              <Text style={[styles.status, collected ? styles.collected : styles.expired]}>
-                {collected ? 'Collected' : 'Expired'}
-              </Text>
-            </View>
-          );
-        }}
+        renderItem={renderItem}
         contentContainerStyle={styles.listContent}
       />
 

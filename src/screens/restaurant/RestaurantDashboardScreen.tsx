@@ -9,8 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
-import { Ionicons } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import { getDashboard, getMenuPhotos, menuPhotosExist, donationsExist } from '../../services/restaurant';
@@ -547,17 +546,23 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
     navigation.navigate('Donations', { screen: 'PostDonation' } as never);
   }, [navigation]);
 
+  const isEmpty = useMemo(
+    () => !!data && !hasDonations && data.livesImpacted === 0 && data.todayListings.length === 0 && data.yesterdayListings.length === 0 && data.pastGroups.length === 0,
+    [data, hasDonations],
+  );
+
+  const initials = useMemo(
+    () => (data?.restaurantName ?? '')
+      .split(' ')
+      .slice(0, 2)
+      .map((w) => w[0] ?? '')
+      .join('')
+      .toUpperCase(),
+    [data?.restaurantName],
+  );
+
   if (loading) return <DashboardSkeleton />;
   if (!data)   return null;
-
-  const isEmpty = !hasDonations && data.livesImpacted === 0 && data.todayListings.length === 0 && data.yesterdayListings.length === 0 && data.pastGroups.length === 0;
-
-  const initials = data.restaurantName
-    .split(' ')
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase();
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>

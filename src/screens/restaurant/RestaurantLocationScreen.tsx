@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, Region } from 'react-native-maps';
-import * as Location from 'expo-location';
+import { reverseGeocodeAsync, geocodeAsync, requestForegroundPermissionsAsync, getCurrentPositionAsync, Accuracy } from 'expo-location';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { colors, spacing, radius, fontSizes, fontFamilies, letterSpacings } from '../../constants/theme';
@@ -82,7 +82,7 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
 
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
     try {
-      const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+      const results = await reverseGeocodeAsync({ latitude: lat, longitude: lng });
       if (results.length > 0) {
         const r = results[0];
         const street = [r.streetNumber, r.street].filter(Boolean).join(' ');
@@ -117,7 +117,7 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
     Keyboard.dismiss();
     setSearching(true);
     try {
-      const results = await Location.geocodeAsync(searchQuery.trim() + ', Singapore');
+      const results = await geocodeAsync(searchQuery.trim() + ', Singapore');
       if (results.length > 0) {
         const { latitude, longitude } = results[0];
         const newRegion = { ...DELTA, latitude, longitude };
@@ -136,9 +136,9 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
   const handleLocateMe = useCallback(async () => {
     setLocating(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } = await requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const pos = await getCurrentPositionAsync({ accuracy: Accuracy.Balanced });
       const { latitude, longitude } = pos.coords;
       setPin({ latitude, longitude });
       mapRef.current?.animateToRegion({ ...DELTA, latitude, longitude }, 400);

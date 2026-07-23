@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings } from '../constants/theme';
 
@@ -27,7 +27,7 @@ interface StatusBadgeProps {
   icon?: React.ReactNode;
 }
 
-export function StatusBadge({ label, color = 'red', icon }: StatusBadgeProps) {
+function StatusBadgeBase({ label, color = 'red', icon }: StatusBadgeProps) {
   return (
     <View style={[styles.statusBadge, { backgroundColor: BG[color] }]}>
       {icon}
@@ -46,7 +46,7 @@ interface CategoryChipProps {
   onPress?: () => void;
 }
 
-export function CategoryChip({ label, active = false, onPress }: CategoryChipProps) {
+function CategoryChipBase({ label, active = false, onPress }: CategoryChipProps) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -101,3 +101,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
 });
+
+export const StatusBadge = memo(StatusBadgeBase);
+export const CategoryChip = memo(CategoryChipBase);

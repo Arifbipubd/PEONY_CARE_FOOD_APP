@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { memo, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import ReceiverHomeEmptyScreen from './ReceiverHomeEmptyScreen';
 import {
@@ -45,7 +45,7 @@ const CHIPS: { label: string; value: FoodCategory | null }[] = [
 ];
 
 
-function EmptyRestaurantsState({ onAdjustRadius }: { onAdjustRadius: () => void }) {
+const EmptyRestaurantsState = memo(function EmptyRestaurantsState({ onAdjustRadius }: { onAdjustRadius: () => void }) {
   return (
     <View style={emptyStyles.wrap}>
       <View style={emptyStyles.iconCircle}>
@@ -61,9 +61,9 @@ function EmptyRestaurantsState({ onAdjustRadius }: { onAdjustRadius: () => void 
       </TouchableOpacity>
     </View>
   );
-}
+});
 
-function EmptyMealsState({ onAdjustRadius }: { onAdjustRadius: () => void }) {
+const EmptyMealsState = memo(function EmptyMealsState({ onAdjustRadius }: { onAdjustRadius: () => void }) {
   return (
     <View style={emptyStyles.wrap}>
       <View style={emptyStyles.iconCircle}>
@@ -79,7 +79,7 @@ function EmptyMealsState({ onAdjustRadius }: { onAdjustRadius: () => void }) {
       </TouchableOpacity>
     </View>
   );
-}
+});
 
 const emptyStyles = StyleSheet.create({
   wrap: {
@@ -129,7 +129,7 @@ const emptyStyles = StyleSheet.create({
   },
 });
 
-function HomeSkeleton() {
+const HomeSkeleton = memo(function HomeSkeleton() {
   const opacity = usePulse();
   return (
     <SafeAreaView style={styles.screen}>
@@ -177,7 +177,7 @@ function HomeSkeleton() {
       </ScrollView>
     </SafeAreaView>
   );
-}
+});
 
 const skelStyles = StyleSheet.create({
   top: {
@@ -342,18 +342,20 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
     return restaurants.filter((r) => r.name.toLowerCase().includes(q));
   }, [restaurants, searchQuery, activeTab]);
 
-  const displayedFoods = searchResults ?? foods;
-  const filtered = displayedFoods.filter((f) => {
+  const filtered = useMemo(() => {
+    const displayedFoods = searchResults ?? foods;
     const { showOnly } = filters;
-    if (showOnly.sponsored && f.sponsorshipType === 'DIRECT') return false;
-    if (showOnly.halal && !f.isHalal) return false;
-    if (showOnly.vegetarian && !f.isVegetarian) return false;
-    if (showOnly.pickupUnder1h) {
-      const msLeft = new Date(f.pickupEnd).getTime() - Date.now();
-      if (!(msLeft > 0 && msLeft <= 60 * 60 * 1000)) return false;
-    }
-    return true;
-  });
+    return displayedFoods.filter((f) => {
+      if (showOnly.sponsored && f.sponsorshipType === 'DIRECT') return false;
+      if (showOnly.halal && !f.isHalal) return false;
+      if (showOnly.vegetarian && !f.isVegetarian) return false;
+      if (showOnly.pickupUnder1h) {
+        const msLeft = new Date(f.pickupEnd).getTime() - Date.now();
+        if (!(msLeft > 0 && msLeft <= 60 * 60 * 1000)) return false;
+      }
+      return true;
+    });
+  }, [searchResults, foods, filters]);
 
   const handleEnableLocation = useCallback(async () => {
     try {
@@ -382,6 +384,52 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
     [navigation],
   );
   const handleBrowseWithout = useCallback(() => setSkipEmpty(true), []);
+  const handleOpenFilter   = useCallback(() => setFilterSheetVisible(true), []);
+
+  const renderMealItem = useCallback(
+    ({ item }: { item: FoodItem }) => (
+      <FoodCard item={item} onPress={() => navigation.navigate('FoodDetail', { foodId: item.id })} />
+    ),
+    [navigation],
+  );
+
+  const renderRestaurantItem = useCallback(
+    ({ item }: { item: PublicRestaurant }) => (
+      <TouchableOpacity
+        style={styles.restaurantCard}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('RestaurantPage', { restaurantId: item.id, distanceKm: item.distanceKm })}
+      >
+        <View>
+          <ImageWithSkeleton
+            source={{ uri: item.photoUrl ?? undefined }}
+            style={styles.restaurantCardImage}
+            resizeMode="cover"
+          />
+          <View style={styles.restaurantCardBadgeWrap}>
+            <View style={styles.restaurantCardBadge}>
+              <Text style={styles.restaurantCardBadgeText}>{item.mealCount} meals</Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.restaurantCardBody}>
+          <Text style={styles.restaurantCardName}>{item.name}</Text>
+          <Text style={styles.restaurantCardCuisine}>{item.cuisineType}</Text>
+          <View style={styles.restaurantCardMeta}>
+            <View style={styles.restaurantCardMetaItem}>
+              <Ionicons name="navigate" size={12} color={colors.textMuted} />
+              <Text style={styles.restaurantCardMetaText}>{item.distanceKm.toFixed(1)} km</Text>
+            </View>
+            <View style={styles.restaurantCardMetaItem}>
+              <Ionicons name="time" size={12} color={colors.textMuted} />
+              <Text style={styles.restaurantCardMetaText}>Open · until {item.closesAt}</Text>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    ),
+    [navigation],
+  );
 
   if (loading) {
     return <HomeSkeleton />;
@@ -412,7 +460,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
           <TouchableOpacity
             style={styles.bellButton}
             hitSlop={8}
-            onPress={() => navigation.getParent()?.navigate('Alerts' as never)}
+            onPress={handleNotifications}
           >
             <Ionicons name="notifications" size={20} color={colors.textPrimary} />
             {unreadCount > 0 && <View style={styles.bellDot} />}
@@ -501,59 +549,27 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <FoodCard item={item} onPress={() => navigation.navigate('FoodDetail', { foodId: item.id })} />
-          )}
+          renderItem={renderMealItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews
+          maxToRenderPerBatch={10}
+          windowSize={5}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
-          ListEmptyComponent={<EmptyMealsState onAdjustRadius={() => setFilterSheetVisible(true)} />}
+          ListEmptyComponent={<EmptyMealsState onAdjustRadius={handleOpenFilter} />}
         />
       ) : (
         <FlatList
           data={filteredRestaurants}
           keyExtractor={(item) => item.id}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.restaurantCard}
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate('RestaurantPage', {
-                restaurantId: item.id,
-                distanceKm: item.distanceKm,
-              })}
-            >
-              <View>
-                <ImageWithSkeleton
-                  source={{ uri: item.photoUrl ?? undefined }}
-                  style={styles.restaurantCardImage}
-                  resizeMode="cover"
-                />
-                <View style={styles.restaurantCardBadgeWrap}>
-                  <View style={styles.restaurantCardBadge}>
-                    <Text style={styles.restaurantCardBadgeText}>{item.mealCount} meals</Text>
-                  </View>
-                </View>
-              </View>
-              <View style={styles.restaurantCardBody}>
-                <Text style={styles.restaurantCardName}>{item.name}</Text>
-                <Text style={styles.restaurantCardCuisine}>{item.cuisineType}</Text>
-                <View style={styles.restaurantCardMeta}>
-                  <View style={styles.restaurantCardMetaItem}>
-                    <Ionicons name="navigate" size={12} color={colors.textMuted} />
-                    <Text style={styles.restaurantCardMetaText}>{item.distanceKm.toFixed(1)} km</Text>
-                  </View>
-                  <View style={styles.restaurantCardMetaItem}>
-                    <Ionicons name="time" size={12} color={colors.textMuted} />
-                    <Text style={styles.restaurantCardMetaText}>Open · until {item.closesAt}</Text>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          )}
+          renderItem={renderRestaurantItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={<EmptyRestaurantsState onAdjustRadius={() => setFilterSheetVisible(true)} />}
+          removeClippedSubviews
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
+          ListEmptyComponent={<EmptyRestaurantsState onAdjustRadius={handleOpenFilter} />}
         />
       )}
 

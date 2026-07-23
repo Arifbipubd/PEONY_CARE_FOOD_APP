@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Slider from '@react-native-community/slider';
 import BottomSheet from './BottomSheet';
 import { FoodItem, FoodCategory } from '../types';
-import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies } from '../constants/theme';
+import { colors, spacing, radius, fontSizes, fontFamilies } from '../constants/theme';
 
 export type ShowOnlyFilters = {
   sponsored: boolean;
@@ -61,18 +61,21 @@ type Props = {
   onApply: (filters: FilterState) => void;
 };
 
-export default function FilterSheet({ visible, onClose, foods, value, onApply }: Props) {
+function FilterSheet({ visible, onClose, foods, value, onApply }: Props) {
   const [draft, setDraft] = useState<FilterState>(value);
 
   useEffect(() => {
     if (visible) setDraft(value);
   }, [visible, value]);
 
-  const resultCount = foods.filter((f) => matchesFilters(f, draft)).length;
+  const resultCount = useMemo(
+    () => foods.filter((f) => matchesFilters(f, draft)).length,
+    [foods, draft],
+  );
 
-  const toggleShowOnly = (key: keyof ShowOnlyFilters) => {
+  const toggleShowOnly = useCallback((key: keyof ShowOnlyFilters) => {
     setDraft((d) => ({ ...d, showOnly: { ...d.showOnly, [key]: !d.showOnly[key] } }));
-  };
+  }, []);
 
   return (
     <BottomSheet visible={visible} onClose={onClose}>
@@ -258,3 +261,5 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
   },
 });
+
+export default memo(FilterSheet);

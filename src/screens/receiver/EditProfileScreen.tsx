@@ -11,7 +11,7 @@ import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import { requestCameraPermissionsAsync, launchCameraAsync, requestMediaLibraryPermissionsAsync, launchImageLibraryAsync } from 'expo-image-picker';
 import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
 import { useProfileStore } from '../../store/profileStore';
 import { api } from '../../services/api';
@@ -39,9 +39,9 @@ export default function EditProfileScreen({ navigation }: Props) {
   const [saveError, setSaveError] = useState('');
 
   const handleCamera = useCallback(async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    const { status } = await requestCameraPermissionsAsync();
     if (status !== 'granted') return;
-    const result = await ImagePicker.launchCameraAsync({
+    const result = await launchCameraAsync({
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -52,9 +52,9 @@ export default function EditProfileScreen({ navigation }: Props) {
   }, []);
 
   const handleGallery = useCallback(async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status } = await requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') return;
-    const result = await ImagePicker.launchImageLibraryAsync({
+    const result = await launchImageLibraryAsync({
       mediaTypes: 'images',
       allowsEditing: true,
       aspect: [1, 1],
