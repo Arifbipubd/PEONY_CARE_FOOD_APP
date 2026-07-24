@@ -12,11 +12,6 @@
     },
     "android": {
       "package": "com.peonycare.foodapp",
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyDwMDDPKBbafdouENdmO7kGN5ppyd2PWKI"
-        }
-      },
       "adaptiveIcon": {
         "backgroundColor": "#D31B1B",
         "foregroundImage": "./assets/android-icon-foreground.png",
