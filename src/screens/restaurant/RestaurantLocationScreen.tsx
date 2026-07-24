@@ -77,6 +77,7 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
   const [searchQuery, setQuery]   = useState('');
   const [searching, setSearching] = useState(false);
   const [locating, setLocating]   = useState(false);
+  const [notFound, setNotFound]   = useState(false);
 
   const mapRef = useRef<MapView>(null);
 
@@ -116,8 +117,9 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
     if (!searchQuery.trim()) return;
     Keyboard.dismiss();
     setSearching(true);
+    setNotFound(false);
     try {
-      const results = await geocodeAsync(searchQuery.trim() + ', Singapore');
+      const results = await geocodeAsync(searchQuery.trim());
       if (results.length > 0) {
         const { latitude, longitude } = results[0];
         const newRegion = { ...DELTA, latitude, longitude };
@@ -125,9 +127,11 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
         setRegion(newRegion);
         mapRef.current?.animateToRegion(newRegion, 500);
         reverseGeocode(latitude, longitude);
+      } else {
+        setNotFound(true);
       }
     } catch {
-      // silent fail — user can try again
+      setNotFound(true);
     } finally {
       setSearching(false);
     }
@@ -189,13 +193,16 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
           placeholder="Search address or postal code"
           placeholderTextColor={colors.textMuted}
           value={searchQuery}
-          onChangeText={setQuery}
+          onChangeText={(t) => { setQuery(t); setNotFound(false); }}
           onSubmitEditing={handleSearch}
           returnKeyType="search"
           autoCorrect={false}
         />
         {searching && <ActivityIndicator size="small" color={colors.textMuted} />}
       </View>
+      {notFound && (
+        <Text style={styles.notFound}>No location found. Try a different search.</Text>
+      )}
 
       {/* Map */}
       <View style={styles.mapContainer}>
@@ -292,6 +299,17 @@ const styles = StyleSheet.create({
     fontSize: fontSizes['2xl'],
     color: colors.textPrimary,
     letterSpacing: -0.6,
+    includeFontPadding: false,
+  },
+
+  notFound: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    color: colors.accentPrimary,
+    textAlign: 'center',
+    marginTop: -8,
+    marginBottom: 8,
+    paddingHorizontal: spacing['2xl'],
     includeFontPadding: false,
   },
 
