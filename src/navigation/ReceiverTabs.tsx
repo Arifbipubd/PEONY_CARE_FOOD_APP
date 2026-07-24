@@ -40,7 +40,7 @@ export type HomeStackParamList = {
   OfflineError:    undefined;
   ServerError:     { errorRef?: string };
   ReportListing:   { restaurantName: string; foodId: string };
-  WriteReview:     { claimId: string; restaurantName: string; restaurantPhotoUrl: string | null; foodName: string };
+  WriteReview:     { restaurantId: string; claimId: string; restaurantName: string; restaurantPhotoUrl: string | null; foodName: string };
 };
 
 export type HistoryStackParamList = {

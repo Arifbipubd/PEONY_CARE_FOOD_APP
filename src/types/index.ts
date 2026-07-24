@@ -103,6 +103,7 @@ export interface Claim {
 }
 
 export interface ReviewPayload {
+  restaurantId: string;
   claimId: string;
   rating: number;
   tags: string[];
@@ -113,11 +114,14 @@ export interface ClaimHistoryItem {
   id: string;
   foodName: string;
   restaurantName: string;
+  restaurantId?: string;
+  restaurantPhotoUrl?: string | null;
   photoUrl?: string;
   sponsorDisplayName?: string | null;
   status: ClaimHistoryItemStatus;
   claimedAt: string;
   pickupWindow: string;
+  rating?: number;
 }
 
 export interface ClaimHistory {

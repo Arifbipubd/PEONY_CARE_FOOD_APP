@@ -70,11 +70,14 @@ function mapApiClaimHistoryItem(d: ApiClaimHistoryItem): ClaimHistoryItem {
     id: d.id,
     foodName: d.food_name,
     restaurantName: d.restaurant_name,
+    restaurantId: d.restaurant_id,
+    restaurantPhotoUrl: d.restaurant_photo_url ?? null,
     photoUrl: d.photo_url || undefined,
     sponsorDisplayName: d.sponsor_display_name ?? undefined,
     status: d.status as ClaimHistoryItem['status'],
     claimedAt: d.claimed_at,
     pickupWindow: d.pickup_window,
+    rating: d.rating,
   };
 }
 
@@ -200,7 +203,7 @@ export const getLocationSettings = async (): Promise<LocationSettings> => {
 };
 
 export const submitReview = async (payload: ReviewPayload): Promise<void> => {
-  await api.post('/receiver/reviews/', {
+  await api.post(`/receiver/restaurants/${payload.restaurantId}/review/`, {
     claim_id: payload.claimId,
     rating: payload.rating,
     tags: payload.tags,

@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 import { submitReview } from '../../services/receiver';
+import { ApiError } from '../../services/api';
 import {
   colors,
   spacing,
@@ -39,7 +40,7 @@ const TAGS = [
 const RATING_LABELS = ['No rating yet', 'Poor', 'Fair', 'Good', 'Very good', 'Excellent'];
 
 export default function WriteReviewScreen({ navigation, route }: Props) {
-  const { claimId, restaurantName, restaurantPhotoUrl, foodName } = route.params;
+  const { restaurantId, claimId, restaurantName, restaurantPhotoUrl, foodName } = route.params;
 
   const [rating, setRating] = useState(0);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -65,13 +66,17 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
     setSubmitting(true);
     setSubmitError('');
     try {
-      await submitReview({ claimId, rating, tags: selectedTags, comment: comment.trim() });
+      await submitReview({ restaurantId, claimId, rating, tags: selectedTags, comment: comment.trim() });
       navigation.navigate('ReceiverHome');
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : 'Could not submit review. Try again.');
+      if (err instanceof ApiError && err.code === 'NO_COLLECTED_CLAIM') {
+        setSubmitError('You can only review after collecting your food at the restaurant.');
+      } else {
+        setSubmitError(err instanceof Error ? err.message : 'Could not submit review. Try again.');
+      }
       setSubmitting(false);
     }
-  }, [rating, selectedTags, comment, claimId, navigation]);
+  }, [restaurantId, rating, selectedTags, comment, claimId, navigation]);
 
   const handleMaybeLater = useCallback(() => {
     navigation.navigate('ReceiverHome');

@@ -82,6 +82,7 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
 
   const goReview = () =>
     navigation.navigate('WriteReview', {
+      restaurantId: claim.restaurantId,
       claimId: claim.claimId,
       restaurantName: claim.restaurantName,
       restaurantPhotoUrl: claim.restaurantPhotoUrl,
@@ -203,6 +204,9 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
           <Ionicons name="star" size={18} color={colors.textInverse} />
           <Text style={styles.primaryBtnText}>Rate this restaurant</Text>
         </TouchableOpacity>
+        <Text style={styles.reviewNote}>
+          You can review after the restaurant marks your claim as collected.
+        </Text>
         <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.7} onPress={goHome}>
           <Ionicons name="home" size={18} color={colors.textPrimary} />
           <Text style={styles.secondaryBtnText}>Back to browse</Text>
@@ -382,6 +386,17 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.md,
     letterSpacing: letterSpacings.button,
     color: colors.textInverse,
+  },
+
+  reviewNote: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingHorizontal: spacing['2xl'],
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+    includeFontPadding: false,
   },
 
   secondaryBtn: {

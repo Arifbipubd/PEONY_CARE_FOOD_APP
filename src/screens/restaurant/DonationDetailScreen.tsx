@@ -281,6 +281,12 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
             </View>
           </View>
 
+          {/* Show QR Code */}
+          <TouchableOpacity style={styles.qrBtn} onPress={openQr} activeOpacity={0.85}>
+            <Ionicons name="qr-code" size={20} color={colors.textInverse} />
+            <Text style={styles.qrBtnText}>Show QR Code</Text>
+          </TouchableOpacity>
+
           {/* Edit + Pause buttons */}
           <View style={styles.actionRow}>
             <TouchableOpacity style={styles.outlineBtn} onPress={handleEdit} activeOpacity={0.8}>
@@ -646,6 +652,25 @@ const styles = StyleSheet.create({
     fontSize: fontSizes['12'],
     color: colors.textMuted,
     marginTop: 2,
+    includeFontPadding: false,
+  },
+
+  // Show QR button
+  qrBtn: {
+    height: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.accentPrimary,
+    borderRadius: radius.card,
+    marginTop: spacing['3xl'],
+  },
+  qrBtnText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['14'],
+    color: colors.textInverse,
+    letterSpacing: letterSpacings.button,
     includeFontPadding: false,
   },
 

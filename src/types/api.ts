@@ -70,11 +70,14 @@ export interface ApiClaimHistoryItem {
   id: string;
   food_name: string;
   restaurant_name: string;
+  restaurant_id?: string;
+  restaurant_photo_url?: string | null;
   photo_url?: string;
   sponsor_display_name?: string | null;
   status: string;
   claimed_at: string;
   pickup_window: string;
+  rating?: number;
 }
 
 export interface ApiClaimHistory {
