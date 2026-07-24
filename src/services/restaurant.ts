@@ -10,7 +10,11 @@ import {
   ApiRestaurantProfile,
 } from '../types/api';
 import { MOCK_RESTAURANT_DASHBOARD } from '../mock/restaurantData';
-import { api } from './api';
+import { api, logApiCatch } from './api';
+
+function logRestaurant(step: string, info?: unknown): void {
+  if (__DEV__) console.log(`[RESTAURANT] ${step}`, info ?? '');
+}
 
 // ─── Mappers ─────────────────────────────────────────────────────────────────
 
@@ -143,62 +147,116 @@ export const getApprovalStatus = async (): Promise<{
   submittedAt: string;
   approvedAt: string | null;
 }> => {
-  const res = await api.get('/restaurant/approval-status/');
-  const d = res.data.data;
-  return {
-    isApproved:  d.is_approved,
-    isVerified:  d.is_verified,
-    submittedAt: d.submitted_at,
-    approvedAt:  d.approved_at ?? null,
-  };
+  logRestaurant('getApprovalStatus → request');
+  try {
+    const res = await api.get('/restaurant/approval-status/');
+    logRestaurant('getApprovalStatus ← response', { status: res.status, data: res.data });
+    const d = res.data.data;
+    return {
+      isApproved:  d.is_approved,
+      isVerified:  d.is_verified,
+      submittedAt: d.submitted_at,
+      approvedAt:  d.approved_at ?? null,
+    };
+  } catch (err) {
+    logApiCatch('restaurant.getApprovalStatus', err);
+    throw err;
+  }
 };
 
 export const getDonationSummary = async (): Promise<DonationSummary> => {
-  const res = await api.get('/restaurant/donations/summary/');
-  const s: ApiDonationSummary = res.data.data;
-  return {
-    activeCount:   s.active_count,
-    pastCount:     s.past_count,
-    inactiveCount: s.inactive_count,
-    weeklyMeals:   s.weekly_meals,
-  };
+  logRestaurant('getDonationSummary → request');
+  try {
+    const res = await api.get('/restaurant/donations/summary/');
+    logRestaurant('getDonationSummary ← response', { status: res.status, data: res.data });
+    const s: ApiDonationSummary = res.data.data;
+    return {
+      activeCount:   s.active_count,
+      pastCount:     s.past_count,
+      inactiveCount: s.inactive_count,
+      weeklyMeals:   s.weekly_meals,
+    };
+  } catch (err) {
+    logApiCatch('restaurant.getDonationSummary', err);
+    throw err;
+  }
 };
 
 export const getDashboard = async (): Promise<RestaurantDashboard> => {
-  const [dashRes, profileRes] = await Promise.all([
-    api.get('/restaurant/dashboard/'),
-    api.get('/restaurant/profile/'),
-  ]);
-  const d: ApiRestaurantDashboard = {
-    ...dashRes.data.data,
-    restaurant_name: profileRes.data.data.name as string,
-  };
-  return mapApiDashboard(d);
+  logRestaurant('getDashboard → request (dashboard + profile)');
+  try {
+    const [dashRes, profileRes] = await Promise.all([
+      api.get('/restaurant/dashboard/'),
+      api.get('/restaurant/profile/'),
+    ]);
+    logRestaurant('getDashboard ← response', {
+      dashboardStatus: dashRes.status,
+      dashboardData: dashRes.data,
+      profileStatus: profileRes.status,
+      profileData: profileRes.data,
+    });
+    const d: ApiRestaurantDashboard = {
+      ...dashRes.data.data,
+      restaurant_name: profileRes.data.data.name as string,
+    };
+    return mapApiDashboard(d);
+  } catch (err) {
+    logApiCatch('restaurant.getDashboard', err);
+    throw err;
+  }
 };
 
 export const getDonations = async (
   status: 'active' | 'past' | 'inactive',
 ): Promise<RestaurantDonation[]> => {
-  const res = await api.get('/restaurant/donations/', { params: { status } });
-  return (res.data.data as ApiRestaurantDonation[]).map(mapApiDonation);
+  logRestaurant('getDonations → request', { status });
+  try {
+    const res = await api.get('/restaurant/donations/', { params: { status } });
+    logRestaurant('getDonations ← response', { status: res.status, data: res.data });
+    return (res.data.data as ApiRestaurantDonation[]).map(mapApiDonation);
+  } catch (err) {
+    logApiCatch('restaurant.getDonations', err);
+    throw err;
+  }
 };
 
 export const getDonationDetail = async (foodId: string): Promise<RestaurantDonation> => {
-  const res = await api.get(`/restaurant/donations/${foodId}/`);
-  return mapApiDonation(res.data.data);
+  logRestaurant('getDonationDetail → request', { foodId });
+  try {
+    const res = await api.get(`/restaurant/donations/${foodId}/`);
+    logRestaurant('getDonationDetail ← response', { status: res.status, data: res.data });
+    return mapApiDonation(res.data.data);
+  } catch (err) {
+    logApiCatch('restaurant.getDonationDetail', err);
+    throw err;
+  }
 };
 
 export const reactivateDonation = async (foodId: string): Promise<RestaurantDonation> => {
-  const res = await api.patch(`/restaurant/donations/${foodId}/reactivate/`);
-  return mapApiDonation(res.data.data);
+  logRestaurant('reactivateDonation → request', { foodId });
+  try {
+    const res = await api.patch(`/restaurant/donations/${foodId}/reactivate/`);
+    logRestaurant('reactivateDonation ← response', { status: res.status, data: res.data });
+    return mapApiDonation(res.data.data);
+  } catch (err) {
+    logApiCatch('restaurant.reactivateDonation', err);
+    throw err;
+  }
 };
 
 export const deleteDonation = async (foodId: string): Promise<void> => {
-  await api.delete(`/restaurant/donations/${foodId}/`);
+  logRestaurant('deleteDonation → request', { foodId });
+  try {
+    const res = await api.delete(`/restaurant/donations/${foodId}/`);
+    logRestaurant('deleteDonation ← response', { status: res.status, data: res.data });
+  } catch (err) {
+    logApiCatch('restaurant.deleteDonation', err);
+    throw err;
+  }
 };
 
 export const createDonation = async (payload: CreateDonationPayload): Promise<RestaurantDonation> => {
-  const res = await api.post('/restaurant/donations/', {
+  const body = {
     name:              payload.name,
     description:       payload.description,
     category:          payload.category,
@@ -207,17 +265,31 @@ export const createDonation = async (payload: CreateDonationPayload): Promise<Re
     pickup_start:      payload.pickupStart,
     pickup_end:        payload.pickupEnd,
     photo_url:         payload.photoUrl ?? null,
-  });
-  return mapApiDonation(res.data.data);
+  };
+  logRestaurant('createDonation → request', { payload: body });
+  try {
+    const res = await api.post('/restaurant/donations/', body);
+    logRestaurant('createDonation ← response', { status: res.status, data: res.data });
+    return mapApiDonation(res.data.data);
+  } catch (err) {
+    logApiCatch('restaurant.createDonation', err);
+    throw err;
+  }
 };
 
 export const getTodaysClaims = async (): Promise<{ total: number; claims: RestaurantDonation[] }> => {
-  // MOCK:
+  // Still mock — log clearly so it isn't mistaken for a live API call.
+  logRestaurant('getTodaysClaims → MOCK (API not wired yet)');
   await new Promise((r) => setTimeout(r, 400));
-  return {
+  const result = {
     total: MOCK_RESTAURANT_DASHBOARD.claimed_today,
     claims: MOCK_RESTAURANT_DASHBOARD.today_listings.map(mapApiDonation),
   };
+  logRestaurant('getTodaysClaims ← MOCK response', {
+    total: result.total,
+    claimsCount: result.claims.length,
+  });
+  return result;
   /* REAL API:
   const res = await api.get('/restaurant/claims/today/');
   return res.data.data;
@@ -248,57 +320,71 @@ export const updateRestaurantProfile = async (
   if (payload.openingHours != null) body.opening_hours  = payload.openingHours;
   if (payload.about        != null) body.about          = payload.about;
 
-  const res = await api.patch('/restaurant/profile/', body);
-  const p: ApiRestaurantProfile = res.data.data;
-  return {
-    id:             p.id,
-    name:           p.name,
-    address:        p.address,
-    postalCode:     p.postal_code,
-    latitude:       p.latitude,
-    longitude:      p.longitude,
-    uen:            p.uen,
-    contactName:    p.contact_name,
-    contactEmail:   p.contact_email,
-    contactPhone:   p.contact_phone,
-    openingHours:   p.opening_hours ?? '',
-    about:          p.about ?? '',
-    photoUrl:       p.photo_url,
-    isApproved:     p.is_approved,
-    isVerified:     p.is_verified,
-    totalFoodShared: p.total_food_shared ?? 0,
-    peopleFed:      p.people_fed ?? 0,
-    claimRatePct:   p.claim_rate_pct ?? 0,
-    rating:         p.rating ?? 0,
-    reviewCount:    p.review_count ?? 0,
-  };
+  logRestaurant('updateRestaurantProfile → request', { payload: body });
+  try {
+    const res = await api.patch('/restaurant/profile/', body);
+    logRestaurant('updateRestaurantProfile ← response', { status: res.status, data: res.data });
+    const p: ApiRestaurantProfile = res.data.data;
+    return {
+      id:             p.id,
+      name:           p.name,
+      address:        p.address,
+      postalCode:     p.postal_code,
+      latitude:       p.latitude,
+      longitude:      p.longitude,
+      uen:            p.uen,
+      contactName:    p.contact_name,
+      contactEmail:   p.contact_email,
+      contactPhone:   p.contact_phone,
+      openingHours:   p.opening_hours ?? '',
+      about:          p.about ?? '',
+      photoUrl:       p.photo_url,
+      isApproved:     p.is_approved,
+      isVerified:     p.is_verified,
+      totalFoodShared: p.total_food_shared ?? 0,
+      peopleFed:      p.people_fed ?? 0,
+      claimRatePct:   p.claim_rate_pct ?? 0,
+      rating:         p.rating ?? 0,
+      reviewCount:    p.review_count ?? 0,
+    };
+  } catch (err) {
+    logApiCatch('restaurant.updateRestaurantProfile', err);
+    throw err;
+  }
 };
 
 export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
-  const res = await api.get('/restaurant/profile/');
-  const p: ApiRestaurantProfile = res.data.data;
-  return {
-    id: p.id,
-    name: p.name,
-    address: p.address,
-    postalCode: p.postal_code,
-    latitude: p.latitude,
-    longitude: p.longitude,
-    uen: p.uen,
-    contactName: p.contact_name,
-    contactEmail: p.contact_email,
-    contactPhone: p.contact_phone,
-    openingHours: p.opening_hours ?? '',
-    about: p.about ?? '',
-    photoUrl: p.photo_url,
-    isApproved: p.is_approved,
-    isVerified: p.is_verified,
-    totalFoodShared: p.total_food_shared ?? 0,
-    peopleFed: p.people_fed ?? 0,
-    claimRatePct: p.claim_rate_pct ?? 0,
-    rating: p.rating ?? 0,
-    reviewCount: p.review_count ?? 0,
-  };
+  logRestaurant('getRestaurantProfile → request');
+  try {
+    const res = await api.get('/restaurant/profile/');
+    logRestaurant('getRestaurantProfile ← response', { status: res.status, data: res.data });
+    const p: ApiRestaurantProfile = res.data.data;
+    return {
+      id: p.id,
+      name: p.name,
+      address: p.address,
+      postalCode: p.postal_code,
+      latitude: p.latitude,
+      longitude: p.longitude,
+      uen: p.uen,
+      contactName: p.contact_name,
+      contactEmail: p.contact_email,
+      contactPhone: p.contact_phone,
+      openingHours: p.opening_hours ?? '',
+      about: p.about ?? '',
+      photoUrl: p.photo_url,
+      isApproved: p.is_approved,
+      isVerified: p.is_verified,
+      totalFoodShared: p.total_food_shared ?? 0,
+      peopleFed: p.people_fed ?? 0,
+      claimRatePct: p.claim_rate_pct ?? 0,
+      rating: p.rating ?? 0,
+      reviewCount: p.review_count ?? 0,
+    };
+  } catch (err) {
+    logApiCatch('restaurant.getRestaurantProfile', err);
+    throw err;
+  }
 };
 
 export const getNearbyRestaurants = async (
@@ -306,10 +392,16 @@ export const getNearbyRestaurants = async (
   lng?: number,
   radius_km: number = 5,
 ): Promise<PublicRestaurant[]> => {
-  const res = await api.get('/receiver/restaurants/browse/', {
-    params: { lat, lng, radius_km },
-  });
-  return (res.data.data as ApiPublicRestaurant[]).map(mapApiPublicRestaurant);
+  const params = { lat, lng, radius_km };
+  logRestaurant('getNearbyRestaurants → request', { params });
+  try {
+    const res = await api.get('/receiver/restaurants/browse/', { params });
+    logRestaurant('getNearbyRestaurants ← response', { status: res.status, data: res.data });
+    return (res.data.data as ApiPublicRestaurant[]).map(mapApiPublicRestaurant);
+  } catch (err) {
+    logApiCatch('restaurant.getNearbyRestaurants', err);
+    throw err;
+  }
 };
 
 // Used by RestaurantPageScreen — one call returns restaurant info + available meals.
@@ -318,12 +410,18 @@ export const getPublicRestaurantDetail = async (
   lat?: number,
   lng?: number,
 ): Promise<{ restaurant: PublicRestaurant; foods: FoodItem[] }> => {
-  const res = await api.get(`/receiver/restaurants/${restaurantId}/`, {
-    params: { lat, lng },
-  });
-  const d: ApiRestaurantDetail = res.data.data;
-  return {
-    restaurant: mapApiRestaurantDetail(d),
-    foods: d.available_meals.map((m) => mapApiMealSummary(m, d)),
-  };
+  const params = { lat, lng };
+  logRestaurant('getPublicRestaurantDetail → request', { restaurantId, params });
+  try {
+    const res = await api.get(`/receiver/restaurants/${restaurantId}/`, { params });
+    logRestaurant('getPublicRestaurantDetail ← response', { status: res.status, data: res.data });
+    const d: ApiRestaurantDetail = res.data.data;
+    return {
+      restaurant: mapApiRestaurantDetail(d),
+      foods: d.available_meals.map((m) => mapApiMealSummary(m, d)),
+    };
+  } catch (err) {
+    logApiCatch('restaurant.getPublicRestaurantDetail', err);
+    throw err;
+  }
 };

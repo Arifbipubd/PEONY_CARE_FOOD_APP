@@ -3,6 +3,13 @@ import { useAuthStore } from '../store/authStore';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
 
+if (__DEV__) {
+  console.log(
+    '[API] baseURL =',
+    BASE_URL || '(EMPTY — set EXPO_PUBLIC_API_URL in .env and restart with npx expo start --clear)',
+  );
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly code: string,
@@ -12,6 +19,20 @@ export class ApiError extends Error {
     super(message);
     this.name = 'ApiError';
   }
+}
+
+/** Dev-only: log structured API failures from screen catch blocks. */
+export function logApiCatch(context: string, err: unknown): void {
+  if (!__DEV__) return;
+  if (err instanceof ApiError) {
+    console.error(`[API] catch @ ${context}`, {
+      code: err.code,
+      message: err.message,
+      details: err.details ?? null,
+    });
+    return;
+  }
+  console.error(`[API] catch @ ${context}`, err);
 }
 
 export const api = axios.create({
@@ -25,7 +46,14 @@ api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   if (__DEV__) {
-    console.log(`[API] --> ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, config.data ?? '');
+    const fullUrl = `${config.baseURL ?? ''}${config.url ?? ''}`;
+    console.log(`[API] --> ${config.method?.toUpperCase()} ${fullUrl}`, {
+      params: config.params ?? null,
+      data: config.data ?? null,
+    });
+    if (!config.baseURL) {
+      console.warn('[API] baseURL is empty — request will fail with NETWORK_ERROR');
+    }
   }
   return config;
 });
@@ -52,7 +80,15 @@ api.interceptors.response.use(
   },
   async (error: AxiosError<{ error?: { code: string; message: string; details?: Record<string, unknown> } }>) => {
     if (__DEV__) {
-      console.log(`[API] ERR ${error.response?.status ?? 'network'} ${error.config?.url}`, error.response?.data ?? error.message);
+      const fullUrl = `${error.config?.baseURL ?? BASE_URL}${error.config?.url ?? ''}`;
+      console.error('[API] ERR', {
+        status: error.response?.status ?? null,
+        url: fullUrl,
+        axiosCode: error.code ?? null,
+        axiosMessage: error.message,
+        responseBody: error.response?.data ?? null,
+        baseURL: BASE_URL || '(empty)',
+      });
     }
     const original = error.config as RetryConfig | undefined;
 
