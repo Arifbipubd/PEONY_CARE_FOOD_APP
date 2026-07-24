@@ -1,4 +1,5 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -6,10 +7,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useNotificationStore } from '../../store/notificationStore';
 import {
@@ -19,7 +20,7 @@ import {
 } from '../../services/notifications';
 import { AppNotification } from '../../types';
 import {
-  colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, layout,
+  colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, layout,
 } from '../../constants/theme';
 
 type Props = {
@@ -131,26 +132,37 @@ export default function NotificationsScreen({ navigation }: Props) {
     notifications, setNotifications,
     markRead: storeMarkRead, markAllRead: storeMarkAllRead,
   } = useNotificationStore();
-  const [loading, setLoading] = useState(notifications.length === 0);
+  const [loading, setLoading]       = useState(notifications.length === 0);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    getNotifications().then((items) => {
-      setNotifications(items);
-      setLoading(false);
-    });
-  }, []);
+  const loadData = useCallback(
+    () => getNotifications().then((items) => setNotifications(items)).catch(() => {}),
+    [setNotifications],
+  );
 
-  const handleTap = (id: string) => {
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      loadData().finally(() => setLoading(false));
+    }, [loadData]),
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData().finally(() => setRefreshing(false));
+  }, [loadData]);
+
+  const handleTap = useCallback((id: string) => {
     storeMarkRead(id);
     apiMarkRead(id);
-  };
+  }, [storeMarkRead]);
 
-  const handleMarkAll = () => {
+  const handleMarkAll = useCallback(() => {
     storeMarkAllRead();
     apiMarkAllRead();
-  };
+  }, [storeMarkAllRead]);
 
-  const sections = buildSections(notifications);
+  const sections = useMemo(() => buildSections(notifications), [notifications]);
 
   if (loading) {
     return (
@@ -229,6 +241,7 @@ export default function NotificationsScreen({ navigation }: Props) {
         maxToRenderPerBatch={10}
         windowSize={5}
         stickySectionHeadersEnabled={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
       />
 
     </SafeAreaView>

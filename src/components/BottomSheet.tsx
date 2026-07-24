@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { memo, useEffect, useRef } from 'react';
 import {
   Modal,
   View,
@@ -19,7 +19,7 @@ interface BottomSheetProps {
   children: React.ReactNode;
 }
 
-export default function BottomSheet({ visible, onClose, title, children }: BottomSheetProps) {
+function BottomSheet({ visible, onClose, title, children }: BottomSheetProps) {
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
   useEffect(() => {
@@ -92,3 +92,5 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
 });
+
+export default memo(BottomSheet);

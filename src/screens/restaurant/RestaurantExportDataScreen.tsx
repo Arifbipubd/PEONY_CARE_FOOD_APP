@@ -1,15 +1,17 @@
-import { useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { ProfileStackParamList } from '../../navigation/RestaurantTabs';
+import { api } from '../../services/api';
 import {
   colors, spacing, fontSizes, fontFamilies, radius,
 } from '../../constants/theme';
@@ -27,10 +29,23 @@ const EXPORT_ITEMS = [
 ] as const;
 
 export default function RestaurantExportDataScreen({ navigation }: Props) {
-  const handleRequest = useCallback(() => {
-    // TODO: wire to POST /restaurant/account/export/
-    navigation.goBack();
-  }, [navigation]);
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleRequest = useCallback(async () => {
+    if (loading || submitted) return;
+    setLoading(true);
+    setError('');
+    try {
+      await api.post('/restaurant/account/data-export/');
+      setSubmitted(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not submit request. Try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, submitted]);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -71,21 +86,41 @@ export default function RestaurantExportDataScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.requestBtn}
-          activeOpacity={0.85}
-          onPress={handleRequest}
-        >
-          <Ionicons name="download-outline" size={16} color={colors.textInverse} />
-          <Text style={styles.requestBtnLabel}>Request my data</Text>
-        </TouchableOpacity>
+        {!!error && (
+          <Text style={styles.errorText}>{error}</Text>
+        )}
+
+        {submitted ? (
+          <View style={styles.successBox}>
+            <Ionicons name="checkmark-circle" size={20} color={colors.successGreen} />
+            <Text style={styles.successText}>
+              Request submitted — you'll receive a download link within 48 hours.
+            </Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.requestBtn, loading && styles.requestBtnDisabled]}
+            activeOpacity={0.85}
+            onPress={handleRequest}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={colors.textInverse} />
+            ) : (
+              <>
+                <Ionicons name="download-outline" size={16} color={colors.textInverse} />
+                <Text style={styles.requestBtnLabel}>Request my data</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={styles.cancelBtn}
           activeOpacity={0.7}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.cancelBtnLabel}>Cancel</Text>
+          <Text style={styles.cancelBtnLabel}>{submitted ? 'Done' : 'Cancel'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -224,5 +259,36 @@ const styles = StyleSheet.create({
     fontSize: fontSizes['14'],
     letterSpacing: 0.28,
     color: colors.textPrimary,
+  },
+
+  requestBtnDisabled: { opacity: 0.6 },
+
+  errorText: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    color: colors.dangerRed,
+    textAlign: 'center',
+    paddingHorizontal: spacing['2xl'],
+    marginTop: spacing.lg,
+  },
+
+  successBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.successGreenLight,
+    borderRadius: radius.input,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginTop: 24,
+    marginHorizontal: spacing['2xl'],
+  },
+
+  successText: {
+    flex: 1,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    lineHeight: 18,
+    color: colors.successGreen,
   },
 });

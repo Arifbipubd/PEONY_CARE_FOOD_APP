@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
+  Pressable,
   ScrollView,
   FlatList,
   Modal,
@@ -13,10 +14,12 @@ import {
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import { launchImageLibraryAsync } from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { createDonation } from '../../services/restaurant';
+import { RouteProp } from '@react-navigation/native';
+import { createDonation, updateDonation, getDonationDetail } from '../../services/restaurant';
 import { ApiError } from '../../services/api';
 import { FoodCategory } from '../../types';
 import {
@@ -26,6 +29,7 @@ import { DonationsStackParamList } from '../../navigation/RestaurantTabs';
 
 type Props = {
   navigation: NativeStackNavigationProp<DonationsStackParamList, 'PostDonation'>;
+  route:      RouteProp<DonationsStackParamList, 'PostDonation'>;
 };
 
 type ScheduleType = 'one-time' | 'every-day' | 'custom-days';
@@ -54,15 +58,28 @@ const TIME_SLOTS: string[] = Array.from({ length: 48 }, (_, i) => {
   return `${String(h).padStart(2, '0')}:${m}`;
 });
 
-function buildIsoTime(timeStr: string): string {
-  const [hStr, mStr] = timeStr.split(':');
-  const h = parseInt(hStr ?? '0', 10);
-  const m = parseInt(mStr ?? '0', 10);
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0).toISOString();
+function isoToHHMM(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-export default function PostDonationScreen({ navigation }: Props) {
+function buildPickupIso(fromStr: string, untilStr: string): { start: string; end: string } {
+  const parseHM = (t: string): [number, number] => {
+    const parts = t.split(':');
+    return [parseInt(parts[0] ?? '0', 10), parseInt(parts[1] ?? '0', 10)];
+  };
+  const now = new Date();
+  const [fh, fm] = parseHM(fromStr);
+  const startDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), fh, fm, 0);
+  if (startDt <= now) startDt.setDate(startDt.getDate() + 1);
+  const [uh, um] = parseHM(untilStr);
+  const endDt = new Date(startDt.getFullYear(), startDt.getMonth(), startDt.getDate(), uh, um, 0);
+  return { start: startDt.toISOString(), end: endDt.toISOString() };
+}
+
+export default function PostDonationScreen({ navigation, route }: Props) {
+  const donationId = route.params?.donationId;
+  const isEditMode = !!donationId;
   const [name,         setName]         = useState('');
   const [category,     setCategory]     = useState<FoodCategory>('RICE');
   const [quantity,     setQuantity]     = useState('');
@@ -75,6 +92,9 @@ export default function PostDonationScreen({ navigation }: Props) {
   const [submitting,   setSubmitting]   = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
+  const [photoChanged,  setPhotoChanged]  = useState(false);
+  const [initializing,  setInitializing]  = useState(isEditMode);
+
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [timeTarget,    setTimeTarget]    = useState<'from' | 'until'>('from');
@@ -84,8 +104,29 @@ export default function PostDonationScreen({ navigation }: Props) {
   const [postedName,        setPostedName]        = useState('');
   const [postedId,          setPostedId]          = useState('');
   const [postedPickupWindow, setPostedPickupWindow] = useState('');
+  const [postedReachLabel,  setPostedReachLabel]  = useState('');
 
   const unit = UNITS[unitIndex]!;
+  const flatListRef = useRef<FlatList<string>>(null);
+
+  useEffect(() => {
+    if (!donationId) return;
+    getDonationDetail(donationId)
+      .then((d) => {
+        setName(d.name);
+        setCategory(d.category);
+        setQuantity(String(d.quantityOriginal));
+        const unitIdx = (UNITS as readonly string[]).indexOf(d.unit);
+        setUnitIndex(unitIdx >= 0 ? unitIdx : 0);
+        setPickupFrom(isoToHHMM(d.pickupStart));
+        setPickupUntil(isoToHHMM(d.pickupEnd));
+        setSchedule(d.isRepeating ? 'every-day' : 'one-time');
+        setNotes(d.description ?? '');
+        setPhotoUri(d.photoUrl || null);
+      })
+      .catch(() => {})
+      .finally(() => setInitializing(false));
+  }, [donationId]);
 
   const bc = (field: string) =>
     focusedField === field ? colors.accentPrimary : colors.borderDefault;
@@ -93,11 +134,23 @@ export default function PostDonationScreen({ navigation }: Props) {
   const openTimePicker = useCallback((target: 'from' | 'until') => {
     setTimeTarget(target);
     setShowTimeModal(true);
-  }, []);
+    if (target === 'until' && pickupFrom) {
+      const idx = TIME_SLOTS.findIndex((s) => s > pickupFrom);
+      if (idx > 0) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({ index: idx, animated: false });
+        }, 150);
+      }
+    }
+  }, [pickupFrom]);
 
   const selectTime = useCallback((time: string) => {
-    if (timeTarget === 'from') setPickupFrom(time);
-    else setPickupUntil(time);
+    if (timeTarget === 'from') {
+      setPickupFrom(time);
+      setPickupUntil((prev) => (prev && prev > time ? prev : ''));
+    } else {
+      setPickupUntil(time);
+    }
     setShowTimeModal(false);
   }, [timeTarget]);
 
@@ -107,14 +160,15 @@ export default function PostDonationScreen({ navigation }: Props) {
   }, []);
 
   const handlePickPhoto = useCallback(async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    const result = await launchImageLibraryAsync({
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
       setPhotoUri(result.assets[0].uri);
+      setPhotoChanged(true);
     }
   }, []);
 
@@ -133,21 +187,30 @@ export default function PostDonationScreen({ navigation }: Props) {
     }
     setSubmitting(true);
     try {
-      const result = await createDonation({
+      const { start, end } = buildPickupIso(pickupFrom, pickupUntil);
+      const payload = {
         name:             name.trim(),
         description:      notes.trim(),
         category,
         unit,
         quantityOriginal: Number(quantity),
-        pickupStart:      buildIsoTime(pickupFrom),
-        pickupEnd:        buildIsoTime(pickupUntil),
-        photoUrl:         'https://placehold.co/400x300.jpg',
-      });
-      setQrData(result.foodQrData);
-      setPostedName(result.name);
-      setPostedId(result.id);
-      setPostedPickupWindow(result.pickupWindow);
-      setShowQrModal(true);
+        pickupStart:      start,
+        pickupEnd:        end,
+        isRepeating:      schedule === 'every-day',
+        localPhotoUri:    photoChanged ? photoUri : undefined,
+      };
+      if (isEditMode && donationId) {
+        await updateDonation(donationId, payload);
+        navigation.goBack();
+      } else {
+        const result = await createDonation({ ...payload, localPhotoUri: photoUri ?? undefined });
+        setQrData(result.foodQrData);
+        setPostedName(result.name);
+        setPostedId(result.id);
+        setPostedPickupWindow(result.pickupWindow);
+        setPostedReachLabel(result.estimatedReachLabel ?? '');
+        setShowQrModal(true);
+      }
     } catch (err) {
       const msg = err instanceof ApiError
         ? `${err.code}: ${err.message}\n${JSON.stringify(err.details ?? {})}`
@@ -156,7 +219,20 @@ export default function PostDonationScreen({ navigation }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [name, notes, category, unit, quantity, pickupFrom, pickupUntil, photoUri, navigation]);
+  }, [name, notes, category, unit, quantity, pickupFrom, pickupUntil, photoUri, photoChanged, isEditMode, donationId, navigation]);
+
+  if (initializing) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator color={colors.accentPrimary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -175,8 +251,8 @@ export default function PostDonationScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <Text style={styles.eyebrow}>New listing</Text>
-        <Text style={styles.title}>{"What are you\ndonating?"}</Text>
+        <Text style={styles.eyebrow}>{isEditMode ? 'Edit listing' : 'New listing'}</Text>
+        <Text style={styles.title}>{isEditMode ? 'Update your\ndonation' : "What are you\ndonating?"}</Text>
 
         {/* FOOD NAME */}
         <Text style={styles.fieldLabel}>FOOD NAME</Text>
@@ -260,14 +336,16 @@ export default function PostDonationScreen({ navigation }: Props) {
             <Text style={styles.fieldLabel}>UNTIL</Text>
             <TouchableOpacity
               style={[styles.inputWrap, styles.inlineRow,
+                !pickupFrom && styles.inputDisabled,
                 { borderColor: pickupUntil ? colors.accentPrimary : colors.borderDefault }]}
               onPress={() => openTimePicker('until')}
+              disabled={!pickupFrom}
               activeOpacity={0.8}
             >
               <Text style={pickupUntil ? styles.pickerValue : styles.pickerPlaceholder}>
-                {pickupUntil || '20:00'}
+                {pickupUntil || '—'}
               </Text>
-              <Ionicons name="time" size={18} color={colors.textMuted} />
+              <Ionicons name="time" size={18} color={!pickupFrom ? colors.borderDefault : colors.textMuted} />
             </TouchableOpacity>
           </View>
         </View>
@@ -305,15 +383,21 @@ export default function PostDonationScreen({ navigation }: Props) {
 
         {/* PHOTO */}
         <TouchableOpacity style={styles.photoBox} onPress={handlePickPhoto} activeOpacity={0.8}>
-          <Ionicons
-            name={photoUri ? 'checkmark-circle' : 'camera'}
-            size={32}
-            color={photoUri ? colors.successGreen : colors.textMuted}
-          />
-          <Text style={styles.photoTitle}>{photoUri ? 'Photo added' : 'Add a photo'}</Text>
-          <Text style={styles.photoSub}>
-            {photoUri ? 'Tap to change' : 'Helps food get claimed faster'}
-          </Text>
+          {photoUri ? (
+            <>
+              <ImageWithSkeleton source={{ uri: photoUri }} style={styles.photoPreview} resizeMode="cover" />
+              <View style={styles.photoOverlay}>
+                <Ionicons name="camera" size={16} color={colors.textInverse} />
+                <Text style={styles.photoChangeText}>Change</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <Ionicons name="camera" size={32} color={colors.textMuted} />
+              <Text style={styles.photoTitle}>Add a photo</Text>
+              <Text style={styles.photoSub}>Helps food get claimed faster</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         {/* POST DONATION */}
@@ -327,7 +411,7 @@ export default function PostDonationScreen({ navigation }: Props) {
             <ActivityIndicator color={colors.textInverse} />
           ) : (
             <>
-              <Text style={styles.submitText}>Post donation</Text>
+              <Text style={styles.submitText}>{isEditMode ? 'Update donation' : 'Post donation'}</Text>
               <Ionicons name="arrow-forward" size={18} color={colors.textInverse} />
             </>
           )}
@@ -357,12 +441,13 @@ export default function PostDonationScreen({ navigation }: Props) {
               onPress={() => {
                 setShowQrModal(false);
                 navigation.navigate('PostDonationSuccess', {
-                  foodName:     name.trim(),
-                  quantity:     Number(quantity),
+                  foodName:             name.trim(),
+                  quantity:             Number(quantity),
                   unit,
                   category,
-                  pickupWindow: postedPickupWindow,
-                  donationId:   postedId,
+                  pickupWindow:         postedPickupWindow,
+                  donationId:           postedId,
+                  estimatedReachLabel:  postedReachLabel,
                 });
               }}
               activeOpacity={0.85}
@@ -413,16 +498,16 @@ export default function PostDonationScreen({ navigation }: Props) {
         animationType="slide"
         onRequestClose={() => setShowTimeModal(false)}
       >
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={() => setShowTimeModal(false)}
-        >
+        <View style={styles.overlay}>
+          {/* Backdrop — tap outside sheet to dismiss */}
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowTimeModal(false)} />
+          {/* Sheet sits above backdrop so FlatList scroll is never intercepted */}
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>
               {timeTarget === 'from' ? 'Pickup from' : 'Until'}
             </Text>
             <FlatList
+              ref={flatListRef}
               data={TIME_SLOTS}
               keyExtractor={(item) => item}
               style={styles.timeList}
@@ -430,16 +515,25 @@ export default function PostDonationScreen({ navigation }: Props) {
               removeClippedSubviews
               maxToRenderPerBatch={24}
               windowSize={10}
+              extraData={{ pickupFrom, pickupUntil, timeTarget }}
+              onScrollToIndexFailed={({ index }) => {
+                flatListRef.current?.scrollToOffset({ offset: index * 50, animated: false });
+              }}
               renderItem={({ item }) => {
-                const selected =
-                  timeTarget === 'from' ? pickupFrom === item : pickupUntil === item;
+                const selected = timeTarget === 'from' ? pickupFrom === item : pickupUntil === item;
+                const disabled = timeTarget === 'until' && item <= pickupFrom;
                 return (
                   <TouchableOpacity
                     style={styles.sheetOption}
                     onPress={() => selectTime(item)}
+                    disabled={disabled}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.sheetOptionText, selected && styles.sheetOptionActive]}>
+                    <Text style={[
+                      styles.sheetOptionText,
+                      selected && styles.sheetOptionActive,
+                      disabled && styles.sheetOptionDisabled,
+                    ]}>
                       {item}
                     </Text>
                     {selected && (
@@ -450,7 +544,7 @@ export default function PostDonationScreen({ navigation }: Props) {
               }}
             />
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -608,6 +702,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: spacing.sm,
+    overflow: 'hidden',
+  },
+  photoPreview: {
+    width: '100%',
+    height: '100%',
+  },
+  photoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingVertical: spacing.sm,
+  },
+  photoChangeText: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes.sm,
+    color: colors.textInverse,
   },
   photoTitle: {
     fontFamily: fontFamilies.semiBold,
@@ -679,6 +795,13 @@ const styles = StyleSheet.create({
   sheetOptionActive: {
     fontFamily: fontFamilies.semiBold,
     color: colors.accentPrimary,
+  },
+  sheetOptionDisabled: {
+    color: colors.borderDefault,
+  },
+  inputDisabled: {
+    backgroundColor: colors.surfaceSecondary,
+    opacity: 0.6,
   },
   timeList: {
     maxHeight: 300,

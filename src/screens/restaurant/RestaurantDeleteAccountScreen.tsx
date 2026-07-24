@@ -7,11 +7,14 @@ import {
   ScrollView,
   StyleSheet,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { ProfileStackParamList } from '../../navigation/RestaurantTabs';
+import { api } from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
 import {
   colors, spacing, fontSizes, fontFamilies, radius,
 } from '../../constants/theme';
@@ -29,16 +32,26 @@ const DELETED_ITEMS = [
 ] as const;
 
 export default function RestaurantDeleteAccountScreen({ navigation }: Props) {
+  const { clearAuth } = useAuthStore();
   const [confirmText, setConfirmText] = useState('');
   const [focused, setFocused] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const isConfirmed = confirmText === 'DELETE';
 
-  const handleDelete = useCallback(() => {
-    if (!isConfirmed) return;
-    // TODO: wire to DELETE /restaurant/account/delete/
-    navigation.goBack();
-  }, [isConfirmed, navigation]);
+  const handleDelete = useCallback(async () => {
+    if (!isConfirmed || loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      await api.post('/restaurant/account/delete/', { confirmation: 'DELETE' });
+      clearAuth();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not delete account. Try again.');
+      setLoading(false);
+    }
+  }, [isConfirmed, loading, clearAuth]);
 
   const handleMailto = useCallback(() => {
     Linking.openURL('mailto:partners@peonycare.sg');
@@ -90,14 +103,24 @@ export default function RestaurantDeleteAccountScreen({ navigation }: Props) {
           />
         </View>
 
+        {!!error && (
+          <Text style={styles.errorText}>{error}</Text>
+        )}
+
         <TouchableOpacity
-          style={[styles.deleteBtn, !isConfirmed && styles.deleteBtnDisabled]}
+          style={[styles.deleteBtn, (!isConfirmed || loading) && styles.deleteBtnDisabled]}
           activeOpacity={0.85}
           onPress={handleDelete}
-          disabled={!isConfirmed}
+          disabled={!isConfirmed || loading}
         >
-          <Ionicons name="trash" size={16} color={colors.textInverse} />
-          <Text style={styles.deleteBtnLabel}>Delete restaurant account</Text>
+          {loading ? (
+            <ActivityIndicator color={colors.textInverse} />
+          ) : (
+            <>
+              <Ionicons name="trash" size={16} color={colors.textInverse} />
+              <Text style={styles.deleteBtnLabel}>Delete restaurant account</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -275,5 +298,14 @@ const styles = StyleSheet.create({
   infoEmail: {
     fontFamily: fontFamilies.semiBold,
     color: colors.accentPrimary,
+  },
+
+  errorText: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    color: colors.dangerRed,
+    textAlign: 'center',
+    paddingHorizontal: spacing['2xl'],
+    marginTop: spacing.lg,
   },
 });

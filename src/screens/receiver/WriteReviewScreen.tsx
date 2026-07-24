@@ -6,9 +6,9 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  Image,
   ActivityIndicator,
 } from 'react-native';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -46,6 +46,7 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
   const [comment, setComment] = useState('');
   const [commentFocused, setCommentFocused] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const ratingLabel = useMemo(() => RATING_LABELS[rating], [rating]);
 
@@ -62,10 +63,12 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
   const handleSubmit = useCallback(async () => {
     if (rating === 0) return;
     setSubmitting(true);
+    setSubmitError('');
     try {
       await submitReview({ claimId, rating, tags: selectedTags, comment: comment.trim() });
       navigation.navigate('ReceiverHome');
-    } catch {
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : 'Could not submit review. Try again.');
       setSubmitting(false);
     }
   }, [rating, selectedTags, comment, claimId, navigation]);
@@ -99,7 +102,7 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
         {/* Restaurant row */}
         <View style={styles.restaurantRow}>
           {restaurantPhotoUrl ? (
-            <Image
+            <ImageWithSkeleton
               source={{ uri: restaurantPhotoUrl }}
               style={styles.restaurantPhoto}
               resizeMode="cover"
@@ -131,7 +134,7 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
                 <Ionicons
                   name={star <= rating ? 'star' : 'star-outline'}
                   size={38}
-                  color={star <= rating ? colors.accentPrimary : colors.borderDefault}
+                  color={star <= rating ? colors.warningYellow : colors.borderDefault}
                 />
               </TouchableOpacity>
             ))}
@@ -172,6 +175,11 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
           onBlur={() => setCommentFocused(false)}
           textAlignVertical="top"
         />
+
+        {/* Submit error */}
+        {!!submitError && (
+          <Text style={styles.submitError}>{submitError}</Text>
+        )}
 
         {/* Submit */}
         <TouchableOpacity
@@ -352,6 +360,15 @@ const styles = StyleSheet.create({
   },
   commentInputFocused: {
     borderColor: colors.accentPrimary,
+  },
+
+  submitError: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    color: colors.accentPrimary,
+    textAlign: 'center',
+    paddingHorizontal: spacing['2xl'],
+    marginTop: spacing.lg,
   },
 
   submitBtn: {

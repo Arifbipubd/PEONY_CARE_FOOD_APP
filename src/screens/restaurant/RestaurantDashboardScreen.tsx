@@ -1,16 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { getDashboard } from '../../services/restaurant';
+import { useFocusEffect } from '@react-navigation/native';
+import { getDashboard, getMenuPhotos, menuPhotosExist, donationsExist } from '../../services/restaurant';
+import { useLocation } from '../../hooks/useLocation';
 import { RestaurantDashboard, RestaurantDonation } from '../../types';
 import { useNotificationStore } from '../../store/notificationStore';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
@@ -116,7 +119,7 @@ const DonationRow = React.memo(({ item }: { item: RestaurantDonation }) => {
           <Ionicons name="checkmark" size={20} color={colors.successGreen} />
         </View>
       ) : item.photoUrl ? (
-        <Image source={{ uri: item.photoUrl }} style={styles.donationThumb} resizeMode="cover" />
+        <ImageWithSkeleton source={{ uri: item.photoUrl }} style={styles.donationThumb} resizeMode="cover" />
       ) : (
         <View style={[styles.donationThumb, styles.thumbPlaceholder]} />
       )}
@@ -136,42 +139,448 @@ const DonationRow = React.memo(({ item }: { item: RestaurantDonation }) => {
   );
 });
 
+// ─── Empty / new-restaurant dashboard ────────────────────────────────────────
+
+type EmptyProps = {
+  restaurantName:  string;
+  hasMenuPhotos:   boolean;
+  hasDonations:    boolean;
+  navigation: BottomTabNavigationProp<RestaurantTabParamList, 'Home'>;
+  refreshing:      boolean;
+  onRefresh:       () => void;
+};
+
+const EmptyDashboard = React.memo(({ restaurantName, hasMenuPhotos, hasDonations, navigation, refreshing, onRefresh }: EmptyProps) => {
+  const steps = useMemo(() => [
+    {
+      num: 1,
+      done: true,
+      title: 'Create your account',
+      sub: 'Signed up and verified with ACRA',
+    },
+    {
+      num: 2,
+      done: hasMenuPhotos,
+      title: 'Add menu photos',
+      sub: 'Required — donors see this before sponsoring',
+    },
+    {
+      num: 3,
+      done: hasDonations,
+      title: 'Post your first donation',
+      sub: 'Once your menu is up, list surplus food for receivers',
+    },
+  ], [hasMenuPhotos, hasDonations]);
+  const goAddPhotos = useCallback(
+    () => navigation.navigate('Profile', { screen: 'MenuPhotos' } as never),
+    [navigation],
+  );
+  const goPost = useCallback(
+    () => navigation.navigate('Donations', { screen: 'PostDonation' } as never),
+    [navigation],
+  );
+  const goClaims = useCallback(
+    () => navigation.navigate('Profile', { screen: 'TodaysClaims' } as never),
+    [navigation],
+  );
+  const handleStepPress = useCallback(
+    (num: number) => { if (num === 2) goAddPhotos(); else if (num === 3) goPost(); },
+    [goAddPhotos, goPost],
+  );
+
+  return (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={es.scroll}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
+    >
+
+      {/* Account verified chip */}
+      <View style={es.chip}>
+        <MaterialCommunityIcons name="check-decagram" size={14} color={colors.accentPrimary} />
+        <Text style={es.chipText}>Account verified</Text>
+      </View>
+
+      {/* Welcome title + subtitle */}
+      <Text style={es.title}>{'Welcome to Peony Care,\n' + restaurantName + ' 🌸'}</Text>
+      <Text style={es.subtitle}>
+        {"You're all set up. Complete one quick step to start receiving donations."}
+      </Text>
+
+      {/* ACTION REQUIRED card — hidden once menu photos are uploaded */}
+      {!hasMenuPhotos && (
+        <View style={es.warnCard}>
+          <View style={es.warnLabelRow}>
+            <Ionicons name="warning" size={14} color={colors.pickupOrange} />
+            <Text style={es.warnLabel}>ACTION REQUIRED</Text>
+          </View>
+          <Text style={es.warnTitle}>Add menu photos to receive donations</Text>
+          <Text style={es.warnBody}>
+            {"Donors can't sponsor meals here until they see your menu. Upload a photo of your menu board or a few dish shots to go live."}
+          </Text>
+          <TouchableOpacity style={es.warnBtn} activeOpacity={0.85} onPress={goAddPhotos}>
+            <Ionicons name="images" size={16} color={colors.textInverse} />
+            <Text style={es.warnBtnText}>Add menu photos</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* GET STARTED steps */}
+      <Text style={es.getStartedLabel}>GET STARTED</Text>
+
+      {steps.map((step, idx) => (
+        <React.Fragment key={step.num}>
+          <TouchableOpacity
+            style={es.stepRow}
+            activeOpacity={step.done ? 1 : 0.75}
+            onPress={() => handleStepPress(step.num)}
+            disabled={step.done}
+          >
+            {step.done ? (
+              <View style={es.doneCircle}>
+                <Ionicons name="checkmark" size={14} color={colors.textInverse} />
+              </View>
+            ) : (
+              <View style={es.numCircle}>
+                <Text style={es.numText}>{step.num}</Text>
+              </View>
+            )}
+
+            <View style={es.stepContent}>
+              <Text style={es.stepTitle}>{step.title}</Text>
+              <Text style={es.stepSub}>{step.sub}</Text>
+            </View>
+
+            {step.done ? (
+              <View style={es.doneCircle}>
+                <Ionicons name="checkmark" size={14} color={colors.textInverse} />
+              </View>
+            ) : (
+              <Ionicons name="arrow-forward" size={18} color={colors.accentPrimary} />
+            )}
+          </TouchableOpacity>
+          {idx < steps.length - 1 && <View style={es.stepDivider} />}
+        </React.Fragment>
+      ))}
+
+      {/* YOUR IMPACT SO FAR */}
+      <View style={es.impactHeader}>
+        <Text style={es.impactLabel}>YOUR IMPACT SO FAR</Text>
+        <TouchableOpacity onPress={goClaims} hitSlop={8}>
+          <Text style={es.impactLink}>See claims</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={es.impactStatRow}>
+        <StatCard value="0" label="PEOPLE FED" valueColor={colors.textPrimary} />
+        <StatCard value="0" label="DONATIONS"  valueColor={colors.textPrimary} />
+        <StatCard value="—" label="CLAIM RATE" valueColor={colors.textMuted} />
+      </View>
+
+      {/* Active donations — empty */}
+      <Text style={es.activeSectionTitle}>Active donations</Text>
+      <View style={es.emptyList}>
+        <MaterialCommunityIcons name="silverware-fork-knife" size={40} color={colors.borderDefault} />
+        <Text style={es.emptyTitle}>No donations yet</Text>
+        <Text style={es.emptySub}>
+          {"Finish adding menu photos, then post your first donation. Receivers nearby will see it right away."}
+        </Text>
+      </View>
+
+    </ScrollView>
+  );
+});
+
+const es = StyleSheet.create({
+  scroll: { paddingBottom: 100 },
+
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: colors.avatarBg,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    gap: 6,
+    marginHorizontal: spacing['2xl'],
+    marginTop: spacing.sm,
+    marginBottom: 12,
+  },
+  chipText: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    color: colors.accentPrimary,
+  },
+
+  title: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['2xl'],
+    lineHeight: 27.6,
+    letterSpacing: -0.6,
+    color: colors.textPrimary,
+    paddingHorizontal: spacing['2xl'],
+  },
+  subtitle: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
+    lineHeight: 21,
+    color: colors.textMuted,
+    paddingHorizontal: spacing['2xl'],
+    marginTop: 8,
+    marginBottom: spacing.lg,
+  },
+
+  warnCard: {
+    marginHorizontal: spacing['2xl'],
+    marginTop: 4,
+    marginBottom: spacing.xl,
+    borderRadius: radius.card,
+    borderWidth: 1.5,
+    borderColor: colors.warningYellowBorder,
+    backgroundColor: colors.warningYellowLight,
+    padding: 18,
+    overflow: 'hidden',
+  },
+  warnLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  warnLabel: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.xs,
+    letterSpacing: 0.88,
+    color: colors.pickupOrange,
+    textTransform: 'uppercase',
+  },
+  warnTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['16'],
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  warnBody: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
+    lineHeight: 21,
+    color: colors.textMuted,
+    marginBottom: 16,
+  },
+  warnBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.textPrimary,
+    borderRadius: radius.card,
+    height: 44,
+    gap: 8,
+  },
+  warnBtnText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.md,
+    letterSpacing: letterSpacings.button,
+    color: colors.textInverse,
+  },
+
+  getStartedLabel: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.xs,
+    letterSpacing: 0.88,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    paddingTop: 20,
+    paddingHorizontal: spacing['2xl'],
+    paddingBottom: 10,
+  },
+
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: spacing.lg,
+    gap: spacing.md,
+  },
+  doneCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.pill,
+    backgroundColor: colors.successGreen,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  numCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  numText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['12'],
+    color: colors.textMuted,
+  },
+  stepContent: { flex: 1 },
+  stepTitle: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['14'],
+    lineHeight: 21,
+    color: colors.textPrimary,
+  },
+  stepSub: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    lineHeight: 18,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  stepDivider: {
+    height: 1,
+    backgroundColor: colors.borderDefault,
+    marginLeft: spacing['2xl'] + 28 + spacing.md,
+  },
+
+  impactHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  impactLabel: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.xs,
+    letterSpacing: 0.88,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+  },
+  impactLink: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    color: colors.accentPrimary,
+  },
+  impactStatRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: spacing['2xl'],
+    marginBottom: spacing['2xl'],
+  },
+
+  activeSectionTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.lg,
+    letterSpacing: -0.425,
+    color: colors.textPrimary,
+    paddingHorizontal: spacing['2xl'],
+    marginBottom: spacing.lg,
+  },
+
+  emptyList: {
+    alignItems: 'center',
+    paddingHorizontal: spacing['2xl'],
+    paddingTop: spacing['3xl'],
+    paddingBottom: spacing['2xl'],
+    gap: spacing.sm,
+  },
+  emptyTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['14'],
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  emptySub: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    lineHeight: 17.4,
+    color: colors.textMuted,
+    textAlign: 'center',
+    maxWidth: 310,
+  },
+});
+
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function RestaurantDashboardScreen({ navigation }: Props) {
-  const [data, setData]       = useState<RestaurantDashboard | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData]                   = useState<RestaurantDashboard | null>(null);
+  const [loading, setLoading]             = useState(true);
+  const [hasMenuPhotos, setHasMenuPhotos] = useState(() => menuPhotosExist());
+  const [hasDonations, setHasDonations]   = useState(() => donationsExist());
   const { unreadCount } = useNotificationStore();
+  const { lat, lng } = useLocation();
 
-  useEffect(() => {
-    getDashboard().then((d) => {
-      setData(d);
-      setLoading(false);
-    });
-  }, []);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = useCallback(
+    () => Promise.all([getDashboard(), getMenuPhotos()])
+      .then(([d]) => {
+        setData(d);
+        setHasMenuPhotos(menuPhotosExist());
+        setHasDonations(donationsExist());
+        console.log('[Dashboard] data:', JSON.stringify(d, null, 2));
+      })
+      .catch(() => {}),
+    [lat, lng],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      loadData().finally(() => setLoading(false));
+    }, [loadData]),
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData().finally(() => setRefreshing(false));
+  }, [loadData]);
 
   const goToPost = useCallback(() => {
     navigation.navigate('Donations', { screen: 'PostDonation' } as never);
   }, [navigation]);
 
+  const isEmpty = useMemo(
+    () => !!data && !hasDonations && data.livesImpacted === 0 && data.todayListings.length === 0 && data.yesterdayListings.length === 0 && data.pastGroups.length === 0,
+    [data, hasDonations],
+  );
+
+  const initials = useMemo(
+    () => (data?.restaurantName ?? '')
+      .split(' ')
+      .slice(0, 2)
+      .map((w) => w[0] ?? '')
+      .join('')
+      .toUpperCase(),
+    [data?.restaurantName],
+  );
+
   if (loading) return <DashboardSkeleton />;
   if (!data)   return null;
-
-  const initials = data.restaurantName
-    .split(' ')
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase();
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
 
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </View>
+        <TouchableOpacity
+          style={styles.avatar}
+          onPress={() => navigation.navigate('Profile')}
+          hitSlop={8}
+          activeOpacity={0.7}
+        >
+          {data.photoUrl ? (
+            <ImageWithSkeleton source={{ uri: data.photoUrl }} style={styles.avatarImg} resizeMode="cover" />
+          ) : (
+            <Text style={styles.avatarText}>{initials}</Text>
+          )}
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.bellBtn}
           onPress={() => navigation.navigate('Alerts')}
@@ -182,9 +591,12 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
+      {isEmpty && <EmptyDashboard restaurantName={data.restaurantName} hasMenuPhotos={hasMenuPhotos} hasDonations={hasDonations} navigation={navigation} refreshing={refreshing} onRefresh={onRefresh} />}
+      {!isEmpty && (
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
       >
 
         {/* Hero */}
@@ -252,7 +664,24 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
           </>
         )}
 
+        {/* Past date groups (e.g. "19 Jul") — active donations from earlier dates */}
+        {data.pastGroups.map((group) => (
+          <React.Fragment key={group.label}>
+            <View style={[styles.dayHeader, styles.dayHeaderGap]}>
+              <Text style={styles.dayLabel}>{group.label}</Text>
+              <Text style={styles.daySummary}>
+                {group.listings.length} listings · {group.fed} fed
+              </Text>
+            </View>
+            {group.listings.map((item) => (
+              <DonationRow key={item.id} item={item} />
+            ))}
+          </React.Fragment>
+        ))}
+
+
       </ScrollView>
+        )}
 
       <PostFAB onPress={goToPost} />
 
@@ -280,6 +709,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.avatarBg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarImg: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
   },
   avatarText: {
     fontSize: fontSizes.sm,

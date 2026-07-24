@@ -4,12 +4,13 @@
   },
   "build": {
     "preview": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://13.48.42.184:8000/api/v1"
+      },
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
-        "withoutCredentials": false,
-        "environment": {},
-        "arch": "arm64"
+        "withoutCredentials": false
       }
     },
     "production": {

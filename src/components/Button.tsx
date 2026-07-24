@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -7,7 +7,7 @@ import {
   StyleSheet,
   ViewStyle,
 } from 'react-native';
-import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, layout } from '../constants/theme';
+import { colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, layout } from '../constants/theme';
 
 interface ButtonProps {
   label: string;
@@ -20,7 +20,7 @@ interface ButtonProps {
   rightIcon?: React.ReactNode;
 }
 
-export default function Button({
+function Button({
   label,
   onPress,
   variant = 'primary',
@@ -108,3 +108,5 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
 });
+
+export default memo(Button);

@@ -11,7 +11,7 @@ export type FoodStatus = 'AVAILABLE' | 'PARTIALLY_CLAIMED' | 'FULLY_CLAIMED' | '
 
 export type FoodListStatus = 'ACTIVE' | 'PAST' | 'INACTIVE';
 
-export type ClaimStatus = 'CLAIMED';
+export type ClaimStatus = 'CLAIMED' | 'COLLECTED';
 export type ClaimHistoryItemStatus = 'CLAIMED' | 'EXPIRED';
 
 export type SponsorshipType = 'DIRECT' | 'SPONSORED_NAMED' | 'SPONSORED_ANONYMOUS';
@@ -241,10 +241,16 @@ export interface RestaurantDonation {
   sponsorInitials?: string | null;
   noShowCount?: number;
   expiredCount?: number;
+  estimatedReachLabel?: string;
+  isRepeating?: boolean;
+  repeatTimeLabel?: string;
+  nextPostLabel?: string;
+  donationSourceNote?: string;
   claims?: Array<{
     id: string;
     receiverName: string;
     claimedAt: string;
+    collectedAt?: string;
     status: ClaimStatus;
   }>;
 }
@@ -264,11 +270,13 @@ export interface CreateDonationPayload {
   quantityOriginal: number;
   pickupStart: string;
   pickupEnd: string;
-  photoUrl?: string | null;
+  isRepeating?: boolean;
+  localPhotoUri?: string | null;
 }
 
 export interface RestaurantDashboard {
   restaurantName: string;
+  photoUrl: string | null;
   livesImpacted: number;
   donationsThisYear: number;
   growthPctThisWeek: number;
@@ -282,6 +290,50 @@ export interface RestaurantDashboard {
   todayListings: RestaurantDonation[];
   yesterdayListings: RestaurantDonation[];
   yesterdayFed: number;
+  pastGroups: Array<{ label: string; listings: RestaurantDonation[]; fed: number }>;
+}
+
+// ─── Analytics ───────────────────────────────────────────────────────────────
+
+export interface AnalyticsDish {
+  id: string;
+  name: string;
+  photoUrl: string | null;
+  mealCount: number;
+  claimRatePct: number;
+}
+
+export interface AnalyticsSponsor {
+  id: string;
+  displayName: string;
+  initials: string | null;
+  sponsoredCount: number;
+  totalAmountSGD: number;
+  isAnonymous: boolean;
+}
+
+export interface WeeklyMealPoint {
+  week: string;
+  meals: number;
+}
+
+export interface ClaimRatePoint {
+  week: string;
+  ratePct: number;
+}
+
+export interface RestaurantAnalytics {
+  livesFed: number;
+  totalDonations: number;
+  claimRatePct: number;
+  growthPctThisWeek: number;
+  directCount: number;
+  sponsoredCount: number;
+  weeklyMeals: WeeklyMealPoint[];
+  claimRateTrend: ClaimRatePoint[];
+  heatmap: number[][];
+  topDishes: AnalyticsDish[];
+  topSponsors: AnalyticsSponsor[];
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

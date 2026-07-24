@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,11 @@ import {
   StyleSheet,
   Animated,
   Dimensions,
+  StyleProp,
+  ViewStyle,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Claim } from '../../types';
@@ -89,12 +90,20 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
 
   // Confetti origin: top inset + scroll paddingTop + half the success circle height
   const confettiOriginY = insets.top + 72 + 62;
+  const confettiContainerStyle = useMemo<StyleProp<ViewStyle>>(
+    () => [StyleSheet.absoluteFill, { top: confettiOriginY }],
+    [confettiOriginY],
+  );
+  const closeBtnStyle = useMemo<StyleProp<ViewStyle>>(
+    () => [styles.closeBtn, { top: insets.top + spacing.md }],
+    [insets.top],
+  );
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
 
       {/* Confetti overlay — full screen, non-interactive */}
-      <View style={[StyleSheet.absoluteFill, { top: confettiOriginY }]} pointerEvents="none">
+      <View style={confettiContainerStyle} pointerEvents="none">
         {confetti.map((p, i) => (
           <Animated.View
             key={i}
@@ -119,7 +128,7 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
 
       {/* Close button — no bg, no border */}
       <TouchableOpacity
-        style={[styles.closeBtn, { top: insets.top + spacing.md }]}
+        style={closeBtnStyle}
         onPress={goHome}
         hitSlop={8}
       >

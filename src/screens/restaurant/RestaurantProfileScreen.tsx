@@ -6,8 +6,10 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -21,6 +23,7 @@ import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
 } from '../../constants/theme';
 import { ProfileStackParamList } from '../../navigation/RestaurantTabs';
+import { flagFromPhone } from '../../components/CountryPicker';
 
 type Props = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'RestaurantProfile'>;
@@ -118,22 +121,30 @@ function ProfileSkeleton() {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function RestaurantProfileScreen({ navigation }: Props) {
-  const [profile, setProfile] = useState<RestaurantProfile | null>(null);
-  const [loading, setLoading]     = useState(true);
+  const [profile, setProfile]       = useState<RestaurantProfile | null>(null);
+  const [loading, setLoading]       = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const { refreshToken, clearAuth } = useAuthStore();
   const { unreadCount }             = useNotificationStore();
 
+  const loadData = useCallback(
+    () => getRestaurantProfile().then(setProfile).catch(() => {}),
+    [],
+  );
+
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      getRestaurantProfile()
-        .then(setProfile)
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    }, []),
+      loadData().finally(() => setLoading(false));
+    }, [loadData]),
   );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData().finally(() => setRefreshing(false));
+  }, [loadData]);
 
   const initials = useMemo(
     () => (profile ? getInitials(profile.name) : ''),
@@ -160,6 +171,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
   if (loading) return <ProfileSkeleton />;
 
   const p = profile;
+  const PhoneFlag = flagFromPhone(p?.contactPhone ?? '');
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
@@ -178,16 +190,24 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
+      >
 
         {/* Avatar section */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>{initials}</Text>
+            {p?.photoUrl ? (
+              <ImageWithSkeleton source={{ uri: p.photoUrl }} style={styles.avatarImage} resizeMode="cover" />
+            ) : (
+              <Text style={styles.avatarText}>{initials}</Text>
+            )}
           </View>
           <Text style={styles.restaurantName}>{p?.name ?? ''}</Text>
           <View style={styles.phoneRow}>
-            <Text style={styles.phoneFlag}>🇸🇬</Text>
+            <PhoneFlag size={18} />
             <Text style={styles.phoneText}>{p?.contactPhone ?? ''}</Text>
           </View>
           <Text style={styles.addressText}>{p?.address ?? ''}</Text>
@@ -230,6 +250,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
             iconBg={colors.avatarBg}
             title="Menu photos"
             subtitle="Shown to donors"
+            onPress={() => navigation.navigate('MenuPhotos')}
           />
           <View style={styles.divider} />
           <ProfileRow
@@ -255,6 +276,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
             iconColor={colors.textPrimary}
             iconBg={colors.surfaceSecondary}
             title="Analytics"
+            onPress={() => navigation.navigate('RestaurantAnalytics')}
           />
         </View>
 
@@ -383,6 +405,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarImage: {
+    width: 88,
+    height: 88,
+    borderRadius: radius.pill,
+  },
   avatarText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
@@ -402,7 +429,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: 4,
   },
-  phoneFlag: { fontSize: fontSizes['14'] },
   phoneText: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes['14'],

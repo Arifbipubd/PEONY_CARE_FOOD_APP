@@ -197,12 +197,34 @@ export interface ApiRestaurantDonation {
   sponsor_initials?: string | null;
   no_show_count?: number;
   expired_count?: number;
+  estimated_reach_label?: string;
   claims?: Array<{
     id: string;
     receiver_name: string;
     claimed_at: string;
+    collected_at?: string;
     status: string;
   }>;
+  // Recurrence — backend uses recurrence_type, not is_repeating
+  recurrence_type?: string;          // "NONE" | "DAILY" | "WEEKLY" | "CUSTOM"
+  recurrence_label?: string | null;
+  recurrence_days?: number[];
+  recurrence_schedule_summary?: string | null;
+  recurrence_badge?: string | null;
+  // Donation source — backend wraps in a source object
+  source?: {
+    type: string;    // "SELF" | "SPONSORED_NAMED" | "SPONSORED_ANONYMOUS"
+    label: string;
+    detail: string;
+    display: string;
+  };
+  source_note?: string;
+  time_until_close?: string;
+  // Legacy optional fields kept for backward compat
+  is_repeating?: boolean;
+  repeat_time_label?: string;
+  next_post_label?: string;
+  donation_source_note?: string;
 }
 
 export interface ApiDonationSummary {
@@ -234,7 +256,11 @@ export interface ApiRestaurantProfile {
   contact_name: string;
   contact_email: string;
   contact_phone: string;
+  cuisine?: string;
   opening_hours: string;
+  opens_at?: string;
+  closes_at?: string;
+  open_days?: number[];
   about: string;
   photo_url: string | null;
   is_approved: boolean;
@@ -246,15 +272,41 @@ export interface ApiRestaurantProfile {
   review_count: number;
 }
 
+export interface ApiRestaurantDashboardGroup {
+  key: string;
+  label: string;
+  date: string | null;
+  listings_count: number;
+  portions: number;
+  fed: number;
+  items: ApiRestaurantDonation[];
+}
+
 export interface ApiRestaurantDashboard {
+  // Backward-compat flat fields (always present)
   lives_impacted: number;
   donations_this_year: number;
   claim_rate_pct: number;
   active_count: number;
   claimed_today: number;
   today_listings: ApiRestaurantDonation[];
-  // Fields not yet returned by the backend — optional with safe defaults
+  // Injected by getDashboard after profile call
   restaurant_name?: string;
+  // Nested structure returned by backend
+  impact?: {
+    lives_impacted: number;
+    donations_this_year: number;
+    week_over_week_pct: number;
+  };
+  this_week?: {
+    donations: number;
+    meals: number;
+    inactive_count: number;
+  };
+  active_donations?: {
+    groups: ApiRestaurantDashboardGroup[];
+  };
+  // Legacy optional fields kept for safety
   growth_pct_this_week?: number;
   this_week_donations?: number;
   this_week_meals?: number;

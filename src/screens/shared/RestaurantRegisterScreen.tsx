@@ -4,10 +4,8 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +16,7 @@ import LogoBadge from '../../components/LogoBadge';
 import CountryPicker, { CountryOption, COUNTRIES } from '../../components/CountryPicker';
 import { sendOtp } from '../../services/auth';
 import { ApiError } from '../../services/api';
+import { setOnConfirm } from '../restaurant/RestaurantLocationScreen';
 import {
   colors, spacing, fontSizes, fontFamilies, letterSpacings, radius,
 } from '../../constants/theme';
@@ -34,6 +33,8 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
   const [phone, setPhone]                   = useState('');
   const [country, setCountry]               = useState<CountryOption>(COUNTRIES[0]);
   const [email, setEmail]                   = useState('');
+  const [lat, setLat]                        = useState(0);
+  const [lng, setLng]                        = useState(0);
   const [termsAccepted, setTermsAccepted]   = useState(false);
   const [loading, setLoading]               = useState(false);
   const [error, setError]                   = useState('');
@@ -55,12 +56,11 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
   const isSg = country.code === 'SG';
   const isValidPhone = isSg
     ? /^[689]\d{7}$/.test(cleaned)
-    : /^1[3-9]\d{8}$/.test(cleaned);
+    : /^0?1[3-9]\d{8}$/.test(cleaned);
   const phoneError = isSg
     ? (cleaned.length > 0 && !/^[689]/.test(cleaned) ? 'Must start with 6, 8 or 9' :
        cleaned.length > 8 ? 'Must be exactly 8 digits' : '')
-    : (cleaned.length > 0 && !/^1[3-9]/.test(cleaned) ? 'Must start with 13–19' :
-       cleaned.length > 10 ? 'Must be exactly 10 digits' : '');
+    : (cleaned.length > 11 ? 'Please enter a valid phone number' : '');
 
   const canSubmit =
     restaurantName.trim().length > 0 &&
@@ -82,7 +82,8 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
     setError('');
     setLoading(true);
     try {
-      const fullPhone = `${country.dial}${cleaned}`;
+      const localPart = cleaned.startsWith('0') ? cleaned.slice(1) : cleaned;
+      const fullPhone = `${country.dial}${localPart}`;
       await sendOtp(fullPhone, 'REGISTER');
       navigation.navigate('Otp', {
         phone: fullPhone,
@@ -95,6 +96,8 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
           contactName:    contactName.trim(),
           email:          email.trim(),
           contactPhone:   fullPhone,
+          latitude:       lat,
+          longitude:      lng,
         },
       });
     } catch (err: unknown) {
@@ -116,15 +119,14 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
         <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
       </TouchableOpacity>
 
-      <KeyboardAvoidingView
+      <KeyboardAwareScrollView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        contentContainerStyle={styles.body}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid
+        extraScrollHeight={20}
       >
-        <ScrollView
-          contentContainerStyle={styles.body}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
           <LogoBadge size={80} />
 
           <Text style={styles.title}>Register your restaurant</Text>
@@ -152,7 +154,22 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
                 placeholder="443 Joo Chiat Rd, Singapore"
                 leftIcon={<Ionicons name="location" size={18} color={colors.textMuted} />}
               />
-              <TouchableOpacity style={styles.pinRow} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.pinRow}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setOnConfirm((result) => {
+                    setLat(result.latitude);
+                    setLng(result.longitude);
+                    setAddress(result.address);
+                  });
+                  navigation.navigate('RestaurantLocation', {
+                    latitude:  lat || 1.3521,
+                    longitude: lng || 103.8198,
+                    address,
+                  });
+                }}
+              >
                 <Ionicons name="bookmark" size={14} color={colors.accentPrimary} />
                 <Text style={styles.pinText}>Pin exact location on map</Text>
               </TouchableOpacity>
@@ -168,7 +185,7 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
               label="Mobile number"
               value={phone}
               onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); clearError(); }}
-              placeholder={isSg ? '91234567' : '1712345678'}
+              placeholder={isSg ? '91234567' : '01712345678'}
               keyboardType="number-pad"
               error={phoneError}
               leftSection={
@@ -225,8 +242,7 @@ export default function RestaurantRegisterScreen({ navigation }: Props) {
               Log in
             </Text>
           </Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

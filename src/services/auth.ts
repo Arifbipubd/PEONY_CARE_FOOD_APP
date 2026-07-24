@@ -46,6 +46,8 @@ export const verifyOtp = async (
 export const registerReceiver = async (
   displayName: string,
   registrationToken: string,
+  latitude?: number | null,
+  longitude?: number | null,
 ): Promise<{
   accessToken: string;
   refreshToken: string;
@@ -54,30 +56,18 @@ export const registerReceiver = async (
   const storedName = await AsyncStorage.getItem('peony_pending_name');
   const display_name = storedName ?? displayName;
 
-  if (__DEV__) {
-    console.log('[AUTH] registerReceiver', {
-      display_name,
-      hasRegistrationToken: Boolean(registrationToken),
-    });
-  }
-
-  try {
-    const res = await api.post(
-      '/auth/register/receiver/',
-      { display_name, latitude: 1.3521, longitude: 103.8198 },
-      { headers: { 'Registration-Token': registrationToken } },
-    );
-    await AsyncStorage.removeItem('peony_pending_name');
-    const data = res.data.data;
-    return {
-      accessToken: data.access,
-      refreshToken: data.refresh,
-      user: { id: data.user.id, role: data.user.role as UserRole, phone: data.user.phone },
-    };
-  } catch (err) {
-    logApiCatch('registerReceiver', err);
-    throw err;
-  }
+  const res = await api.post(
+    '/auth/register/receiver/',
+    { display_name, latitude: latitude ?? 0, longitude: longitude ?? 0 },
+    { headers: { 'Registration-Token': registrationToken } },
+  );
+  await AsyncStorage.removeItem('peony_pending_name');
+  const data = res.data.data;
+  return {
+    accessToken: data.access,
+    refreshToken: data.refresh,
+    user: { id: data.user.id, role: data.user.role as UserRole, phone: data.user.phone },
+  };
 };
 
 export const registerDonor = async (
@@ -123,6 +113,8 @@ export const registerRestaurant = async (
     contact_name: string;
     contact_email: string;
     contact_phone?: string;
+    latitude: number;
+    longitude: number;
   },
   registrationToken: string,
 ): Promise<{

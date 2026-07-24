@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fontSizes, fontWeights, spacing } from '../constants/theme';
 
-export default function PlaceholderScreen({ route }: { route?: RouteProp<any, any> }) {
+function PlaceholderScreen({ route }: { route?: RouteProp<any, any> }) {
   const navigation = useNavigation();
   return (
     <SafeAreaView style={styles.screen}>
@@ -34,3 +35,5 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 });
+
+export default memo(PlaceholderScreen);

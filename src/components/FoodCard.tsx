@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import ImageWithSkeleton from './ImageWithSkeleton';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { FoodItem, FoodCategory } from '../types';
 import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, layout } from '../constants/theme';
@@ -36,7 +37,7 @@ const FoodCard = React.memo(function FoodCard({ item, onPress }: FoodCardProps) 
 
       {/* Image + overlaid badges */}
       <View>
-        <Image source={{ uri: item.photoUrl || undefined }} style={styles.image} resizeMode="cover" />
+        <ImageWithSkeleton source={{ uri: item.photoUrl || undefined }} style={styles.image} resizeMode="cover" />
         <View style={styles.imageBadges}>
           <View style={styles.badgeCategory}>
             <Text style={styles.badgeCategoryText}>{formatCategory(item.category)}</Text>

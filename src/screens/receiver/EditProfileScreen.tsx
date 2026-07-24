@@ -2,17 +2,19 @@ import { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import { requestCameraPermissionsAsync, launchCameraAsync, requestMediaLibraryPermissionsAsync, launchImageLibraryAsync } from 'expo-image-picker';
 import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
 import { useProfileStore } from '../../store/profileStore';
+import { api } from '../../services/api';
 import {
   colors, spacing, fontSizes, fontFamilies, radius,
 } from '../../constants/theme';
@@ -33,11 +35,13 @@ function initials(name: string): string {
 export default function EditProfileScreen({ navigation }: Props) {
   const { photoUrl, displayName, setProfile } = useProfileStore();
   const [pendingUri, setPendingUri] = useState<string | null>(photoUrl);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const handleCamera = useCallback(async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    const { status } = await requestCameraPermissionsAsync();
     if (status !== 'granted') return;
-    const result = await ImagePicker.launchCameraAsync({
+    const result = await launchCameraAsync({
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -48,9 +52,9 @@ export default function EditProfileScreen({ navigation }: Props) {
   }, []);
 
   const handleGallery = useCallback(async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status } = await requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') return;
-    const result = await ImagePicker.launchImageLibraryAsync({
+    const result = await launchImageLibraryAsync({
       mediaTypes: 'images',
       allowsEditing: true,
       aspect: [1, 1],
@@ -65,10 +69,34 @@ export default function EditProfileScreen({ navigation }: Props) {
     setPendingUri(null);
   }, []);
 
-  const handleSave = useCallback(() => {
-    setProfile({ photoUrl: pendingUri });
-    navigation.goBack();
-  }, [pendingUri, setProfile, navigation]);
+  const handleSave = useCallback(async () => {
+    if (saving) return;
+    setSaving(true);
+    setSaveError('');
+    try {
+      if (pendingUri === null) {
+        // User removed photo — send JSON
+        const res = await api.patch('/receiver/profile/', { remove_photo: true });
+        setProfile({ photoUrl: res.data.data.photo_url ?? null });
+      } else if (!pendingUri.startsWith('http')) {
+        // New local file — send multipart
+        const filename = pendingUri.split('/').pop() ?? 'photo.jpg';
+        const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpeg';
+        const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+        const formData = new FormData();
+        formData.append('photo', { uri: pendingUri, name: filename, type: mimeType } as unknown as Blob);
+        const res = await api.patch('/receiver/profile/', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        setProfile({ photoUrl: res.data.data.photo_url ?? null });
+      }
+      // No change (same remote URL) — skip API call
+      navigation.goBack();
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : 'Could not save photo. Try again.');
+      setSaving(false);
+    }
+  }, [saving, pendingUri, setProfile, navigation]);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -89,7 +117,7 @@ export default function EditProfileScreen({ navigation }: Props) {
         <View style={styles.avatarWrapper}>
           <View style={styles.avatarCircle}>
             {pendingUri ? (
-              <Image
+              <ImageWithSkeleton
                 source={{ uri: pendingUri }}
                 style={styles.avatarImage}
                 resizeMode="cover"
@@ -145,9 +173,24 @@ export default function EditProfileScreen({ navigation }: Props) {
           A clear face photo helps restaurant staff recognise you at pickup.
         </Text>
 
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.85}>
-          <Ionicons name="checkmark" size={18} color={colors.textInverse} />
-          <Text style={styles.saveBtnLabel}>Save changes</Text>
+        {!!saveError && (
+          <Text style={styles.saveError}>{saveError}</Text>
+        )}
+
+        <TouchableOpacity
+          style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+          onPress={handleSave}
+          activeOpacity={0.85}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator color={colors.textInverse} />
+          ) : (
+            <>
+              <Ionicons name="checkmark" size={18} color={colors.textInverse} />
+              <Text style={styles.saveBtnLabel}>Save changes</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -327,5 +370,16 @@ const styles = StyleSheet.create({
     fontSize: fontSizes['14'],
     letterSpacing: 0.28,
     color: colors.textPrimary,
+  },
+
+  saveBtnDisabled: { opacity: 0.6 },
+
+  saveError: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    color: colors.dangerRed,
+    textAlign: 'center',
+    paddingHorizontal: spacing['2xl'],
+    marginTop: spacing.lg,
   },
 });

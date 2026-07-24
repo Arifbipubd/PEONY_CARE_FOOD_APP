@@ -32,11 +32,11 @@ export type HomeStackParamList = {
   ReceiverHome:    undefined;
   FoodDetail:      { foodId: string };
   RestaurantPage:  { restaurantId: string; distanceKm?: number };
-  QrScanner:       undefined;
+  QrScanner:       { expectedFoodId: string };
   ClaimSuccess:    { claim: Claim };
   FoodUnavailable: { nearbyCount?: number };
   DailyLimit:      { resetsAt: string };
-  ScanError:       undefined;
+  ScanError:       { expectedFoodId: string };
   OfflineError:    undefined;
   ServerError:     { errorRef?: string };
   ReportListing:   { restaurantName: string; foodId: string };

@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { memo, useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -38,7 +38,7 @@ function formatPickupFull(start: string, end: string): string {
 }
 
 
-function DetailSkeleton() {
+const DetailSkeleton = memo(function DetailSkeleton() {
   const opacity = usePulse();
   return (
     <View style={styles.screen}>
@@ -62,7 +62,7 @@ function DetailSkeleton() {
       </SafeAreaView>
     </View>
   );
-}
+});
 
 const dSkelStyles = StyleSheet.create({
   content: {
@@ -102,14 +102,24 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
     });
   }, [foodId]);
 
+  const claimed = (food?.quantityOriginal ?? 0) - (food?.quantityAvailable ?? 0);
+  const pct = food != null && food.quantityOriginal > 0
+    ? Math.round((claimed / food.quantityOriginal) * 100)
+    : 0;
+  const backBtnStyle = useMemo(
+    () => [styles.backBtn, { top: insets.top + spacing.md }],
+    [insets.top],
+  );
+  const progressFillStyle = useMemo(
+    () => [styles.progressFill, { width: `${pct}%` as `${number}%` }],
+    [pct],
+  );
+
   if (loading) {
     return <DetailSkeleton />;
   }
 
   if (!food) return null;
-
-  const claimed = food.quantityOriginal - food.quantityAvailable;
-  const pct     = Math.round((claimed / food.quantityOriginal) * 100);
 
   return (
     <View style={styles.screen}>
@@ -117,9 +127,9 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
 
         {/* Hero image + back button */}
         <View>
-          <Image source={{ uri: food.photoUrl }} style={styles.image} resizeMode="cover" />
+          <ImageWithSkeleton source={{ uri: food.photoUrl }} style={styles.image} resizeMode="cover" />
           <TouchableOpacity
-            style={[styles.backBtn, { top: insets.top + spacing.md }]}
+            style={backBtnStyle}
             onPress={() => navigation.goBack()}
           >
             <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
@@ -243,7 +253,7 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
             <Text style={styles.progressLabel}>{pct}%</Text>
           </View>
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${pct}%` as `${number}%` }]} />
+            <View style={progressFillStyle} />
           </View>
         </View>
         <TouchableOpacity
@@ -261,7 +271,7 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
         <TouchableOpacity
           style={styles.claimBtn}
           activeOpacity={0.85}
-          onPress={() => navigation.navigate('QrScanner')}
+          onPress={() => navigation.navigate('QrScanner', { expectedFoodId: food.id })}
         >
           <Text style={styles.claimBtnText}>CLAIM THIS FOOD</Text>
         </TouchableOpacity>

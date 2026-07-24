@@ -1,20 +1,22 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import {
   View,
   Text,
   TextInput,
-  Image,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
+  Modal,
+  FlatList,
+  Pressable,
 } from 'react-native';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { launchImageLibraryAsync } from 'expo-image-picker';
 import { setOnConfirm } from './RestaurantLocationScreen';
-import { getRestaurantProfile, updateRestaurantProfile } from '../../services/restaurant';
+import { getRestaurantProfile, updateRestaurantProfile, uploadRestaurantProfilePhoto } from '../../services/restaurant';
 import { RestaurantProfile } from '../../types';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
@@ -26,6 +28,12 @@ type Props = {
 };
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+
+const TIME_SLOTS: string[] = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2);
+  const m = i % 2 === 0 ? '00' : '30';
+  return `${String(h).padStart(2, '0')}:${m}`;
+});
 
 // ─── Section header ───────────────────────────────────────────────────────────
 
@@ -69,14 +77,16 @@ const FormField = memo(({
         !editable && styles.inputDisabled,
         multiline && styles.inputWrapMulti,
       ]}>
-        <Ionicons
-          name={iconName}
-          size={18}
-          color={editable ? colors.textMuted : colors.borderDefault}
-          style={styles.inputIcon}
-        />
+        {!multiline && (
+          <Ionicons
+            name={iconName}
+            size={18}
+            color={editable ? colors.textMuted : colors.borderDefault}
+            style={styles.inputIcon}
+          />
+        )}
         <TextInput
-          style={[styles.inputText, multiline && styles.inputTextMulti]}
+          style={[styles.inputText, multiline && styles.inputTextMulti, multiline && styles.inputTextMultiPad]}
           value={value}
           onChangeText={onChangeText}
           editable={editable}
@@ -97,59 +107,111 @@ const FormField = memo(({
 
 // ─── Phone field ──────────────────────────────────────────────────────────────
 
-const PhoneField = memo(({ value, onChangeText }: {
-  value: string;
-  onChangeText: (v: string) => void;
+const COUNTRIES = [
+  { flag: '🇸🇬', name: 'Singapore', code: '+65' },
+  { flag: '🇧🇩', name: 'Bangladesh', code: '+880' },
+] as const;
+
+type Country = typeof COUNTRIES[number];
+
+const PhoneField = memo(({ localNumber, countryCode, onChangeNumber, onChangeCode }: {
+  localNumber: string;
+  countryCode: string;
+  onChangeNumber: (v: string) => void;
+  onChangeCode: (c: string) => void;
 }) => {
   const [focused, setFocused] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const selected = COUNTRIES.find((c) => c.code === countryCode) ?? COUNTRIES[0];
+
+  const handleSelect = useCallback((c: Country) => {
+    onChangeCode(c.code);
+    setPickerOpen(false);
+  }, [onChangeCode]);
+
   return (
     <View>
       <Text style={styles.fieldLabel}>Phone number</Text>
       <View style={[styles.inputWrap, focused && styles.inputFocused]}>
-        <Text style={styles.phoneFlag}>🇸🇬</Text>
-        <Text style={styles.phonePrefix}>+65</Text>
+        <TouchableOpacity
+          style={styles.countryBtn}
+          activeOpacity={0.7}
+          onPress={() => setPickerOpen(true)}
+        >
+          <Text style={styles.countryFlag}>{selected.flag}</Text>
+          <Text style={styles.countryCode}>{selected.code}</Text>
+          <Ionicons name="chevron-down" size={14} color={colors.textMuted} />
+        </TouchableOpacity>
         <View style={styles.phoneDivider} />
         <TextInput
           style={styles.phoneInputText}
-          value={value}
-          onChangeText={onChangeText}
+          value={localNumber}
+          onChangeText={onChangeNumber}
           keyboardType="phone-pad"
-          maxLength={8}
+          placeholder="XXXXXXXXXX"
+          placeholderTextColor={colors.textMuted}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
         />
       </View>
+
+      <Modal
+        visible={pickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickerOpen(false)}
+      >
+        <Pressable style={styles.pickerOverlay} onPress={() => setPickerOpen(false)}>
+          <View style={styles.pickerSheet}>
+            <Text style={styles.pickerTitle}>Select country</Text>
+            <FlatList
+              data={COUNTRIES}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.pickerRow,
+                    item.code === countryCode && styles.pickerRowActive,
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => handleSelect(item)}
+                >
+                  <Text style={styles.pickerFlag}>{item.flag}</Text>
+                  <Text style={styles.pickerName}>{item.name}</Text>
+                  <Text style={styles.pickerCode}>{item.code}</Text>
+                  {item.code === countryCode && (
+                    <Ionicons name="checkmark" size={18} color={colors.accentPrimary} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 });
 
-// ─── Time field ───────────────────────────────────────────────────────────────
+// ─── Time picker button ───────────────────────────────────────────────────────
 
-const TimeField = memo(({ label, iconName, value, onChangeText }: {
+const TimePickerBtn = memo(({ label, iconName, value, onPress }: {
   label: string;
   iconName: React.ComponentProps<typeof Ionicons>['name'];
   value: string;
-  onChangeText: (v: string) => void;
-}) => {
-  const [focused, setFocused] = useState(false);
-  return (
-    <View style={styles.timeFieldWrap}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={[styles.inputWrap, focused && styles.inputFocused]}>
-        <Ionicons name={iconName} size={16} color={colors.textMuted} style={styles.inputIcon} />
-        <TextInput
-          style={[styles.inputText, styles.timeInputText]}
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType="numeric"
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-        />
-        <Ionicons name="time-outline" size={18} color={colors.textMuted} style={styles.clockIcon} />
-      </View>
-    </View>
-  );
-});
+  onPress: () => void;
+}) => (
+  <View style={styles.timeFieldWrap}>
+    <Text style={styles.fieldLabel}>{label}</Text>
+    <TouchableOpacity style={styles.inputWrap} onPress={onPress} activeOpacity={0.7}>
+      <Ionicons name={iconName} size={16} color={colors.textMuted} style={styles.inputIcon} />
+      <Text style={[styles.inputText, styles.timePickerText, !value && styles.timePlaceholder]}>
+        {value || '--:--'}
+      </Text>
+      <Ionicons name="time" size={18} color={colors.textMuted} style={styles.clockIcon} />
+    </TouchableOpacity>
+  </View>
+));
 
 // ─── Day chip ─────────────────────────────────────────────────────────────────
 
@@ -172,14 +234,15 @@ const DayChip = memo(({ day, selected, onPress }: {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function EditRestaurantDetailsScreen({ navigation }: Props) {
-  const [profile, setProfile]   = useState<RestaurantProfile | null>(null);
-  const [name, setName]         = useState('');
-  const [cuisine, setCuisine]   = useState('');
-  const [address, setAddress]   = useState('');
-  const [lat, setLat]           = useState(0);
-  const [lng, setLng]           = useState(0);
-  const [phone, setPhone]       = useState('');
-  const [email, setEmail]       = useState('');
+  const [profile, setProfile]       = useState<RestaurantProfile | null>(null);
+  const [name, setName]             = useState('');
+  const [cuisine, setCuisine]       = useState('');
+  const [address, setAddress]       = useState('');
+  const [lat, setLat]               = useState(0);
+  const [lng, setLng]               = useState(0);
+  const [countryCode, setCountryCode] = useState('+65');
+  const [phone, setPhone]           = useState('');
+  const [email, setEmail]           = useState('');
   const [opensAt, setOpensAt]   = useState('10:00');
   const [closesAt, setClosesAt] = useState('21:00');
   const [openDays, setOpenDays] = useState<Set<string>>(new Set(DAYS));
@@ -194,10 +257,20 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
         setAddress(p.address);
         setLat(p.latitude);
         setLng(p.longitude);
-        setPhone(p.contactPhone.replace('+65', '').trim());
+        const full = p.contactPhone ?? '';
+        if (full.startsWith('+880')) {
+          setCountryCode('+880');
+          setPhone(full.slice(4));
+        } else if (full.startsWith('+65')) {
+          setCountryCode('+65');
+          setPhone(full.slice(3));
+        } else {
+          setCountryCode('+65');
+          setPhone(full.replace(/^\+\d+/, ''));
+        }
         setEmail(p.contactEmail);
-        setOpensAt(p.opensAt ?? '10:00');
-        setClosesAt(p.closesAt ?? '21:00');
+        setOpensAt(p.opensAt?.slice(0, 5) ?? '10:00');
+        setClosesAt(p.closesAt?.slice(0, 5) ?? '21:00');
         if (p.openDays && p.openDays.length > 0) setOpenDays(new Set(p.openDays));
         setAbout(p.about);
       })
@@ -213,6 +286,49 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
     });
   }, []);
 
+  const [showTimeModal, setShowTimeModal] = useState(false);
+  const [timeTarget,    setTimeTarget]    = useState<'opens' | 'closes'>('opens');
+  const timeListRef = useRef<FlatList>(null);
+
+  const openTimePicker = useCallback((target: 'opens' | 'closes') => {
+    setTimeTarget(target);
+    setShowTimeModal(true);
+    const current = target === 'opens' ? opensAt : closesAt;
+    const idx = TIME_SLOTS.findIndex((s) => s === current);
+    if (idx >= 0) {
+      setTimeout(() => {
+        timeListRef.current?.scrollToIndex({ index: idx, animated: false });
+      }, 50);
+    }
+  }, [opensAt, closesAt]);
+
+  const selectTime = useCallback((time: string) => {
+    if (timeTarget === 'opens') setOpensAt(time);
+    else setClosesAt(time);
+    setShowTimeModal(false);
+  }, [timeTarget]);
+
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  const handleChangePhoto = useCallback(async () => {
+    const result = await launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    setPhotoPreview(asset.uri);
+    try {
+      const newUrl = await uploadRestaurantProfilePhoto(asset.uri);
+      setProfile((prev) => (prev ? { ...prev, photoUrl: newUrl } : prev));
+      setPhotoPreview(null);
+    } catch {
+      setPhotoPreview(null);
+    }
+  }, []);
+
   const [saving, setSaving] = useState(false);
 
   const handleSave = useCallback(async () => {
@@ -226,11 +342,15 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
 
       await updateRestaurantProfile({
         name,
+        cuisineType:  cuisine || undefined,
         address,
         latitude:     lat || undefined,
         longitude:    lng || undefined,
-        contactPhone: phone ? `+65${phone}` : undefined,
+        contactPhone: phone ? `${countryCode}${phone}` : undefined,
         contactEmail: email || undefined,
+        opensAt,
+        closesAt,
+        openDays:     Array.from(openDays),
         openingHours,
         about,
       });
@@ -240,7 +360,7 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
     } finally {
       setSaving(false);
     }
-  }, [saving, name, address, lat, lng, phone, email, opensAt, closesAt, openDays, about, navigation]);
+  }, [saving, name, address, lat, lng, countryCode, phone, email, opensAt, closesAt, openDays, about, navigation]);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -254,28 +374,27 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
         <View style={styles.headerSpacer} />
       </View>
 
-      <KeyboardAvoidingView
+      <KeyboardAwareScrollView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid
+        extraScrollHeight={20}
         >
 
           {/* Hero image + change photo */}
           <View style={styles.heroWrap}>
-            {profile?.photoUrl ? (
-              <Image
-                source={{ uri: profile.photoUrl }}
+            {(photoPreview ?? profile?.photoUrl) ? (
+              <ImageWithSkeleton
+                source={{ uri: photoPreview ?? profile!.photoUrl! }}
                 style={styles.heroImage}
                 resizeMode="cover"
               />
             ) : (
               <View style={[styles.heroImage, styles.heroPlaceholder]} />
             )}
-            <TouchableOpacity style={styles.changePhotoBtn} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.changePhotoBtn} activeOpacity={0.8} onPress={handleChangePhoto}>
               <Ionicons name="camera" size={14} color={colors.textPrimary} />
               <Text style={styles.changePhotoText}>Change photo</Text>
             </TouchableOpacity>
@@ -360,7 +479,12 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
           {/* CONTACT */}
           <SectionHeader iconName="at" label="CONTACT" />
           <View style={styles.section}>
-            <PhoneField value={phone} onChangeText={setPhone} />
+            <PhoneField
+              localNumber={phone}
+              countryCode={countryCode}
+              onChangeNumber={setPhone}
+              onChangeCode={setCountryCode}
+            />
             <FormField
               label="Contact email"
               iconName="mail"
@@ -374,8 +498,8 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
           <SectionHeader iconName="time" label="OPENING HOURS" />
           <View style={styles.section}>
             <View style={styles.timeRow}>
-              <TimeField label="Opens"  iconName="sunny"  value={opensAt}  onChangeText={setOpensAt} />
-              <TimeField label="Closes" iconName="moon"   value={closesAt} onChangeText={setClosesAt} />
+              <TimePickerBtn label="Opens"  iconName="sunny" value={opensAt}  onPress={() => openTimePicker('opens')} />
+              <TimePickerBtn label="Closes" iconName="moon"  value={closesAt} onPress={() => openTimePicker('closes')} />
             </View>
             <View style={styles.daysRow}>
               {DAYS.map((day) => (
@@ -399,13 +523,13 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
               value={about}
               onChangeText={setAbout}
               multiline
+              placeholder="Tell customers about your restaurant, cuisine, and what makes it special…"
             />
             <Text style={styles.hintText}>Shown on your public listing.</Text>
           </View>
 
           <View style={styles.bottomPad} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
 
       {/* Save button */}
       <SafeAreaView edges={['bottom']} style={styles.saveWrap}>
@@ -414,6 +538,51 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
           <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save changes'}</Text>
         </TouchableOpacity>
       </SafeAreaView>
+
+      {/* Time picker modal */}
+      <Modal
+        visible={showTimeModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowTimeModal(false)}
+      >
+        <View style={styles.timeOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowTimeModal(false)} />
+          <View style={styles.timeSheet}>
+            <Text style={styles.timeSheetTitle}>
+              {timeTarget === 'opens' ? 'Opens at' : 'Closes at'}
+            </Text>
+            <FlatList
+              ref={timeListRef}
+              data={TIME_SLOTS}
+              keyExtractor={(item) => item}
+              style={styles.timeList}
+              showsVerticalScrollIndicator={false}
+              removeClippedSubviews
+              maxToRenderPerBatch={24}
+              windowSize={10}
+              onScrollToIndexFailed={({ index }) => {
+                timeListRef.current?.scrollToOffset({ offset: index * 50, animated: false });
+              }}
+              renderItem={({ item }) => {
+                const selected = timeTarget === 'opens' ? opensAt === item : closesAt === item;
+                return (
+                  <TouchableOpacity
+                    style={styles.timeOption}
+                    onPress={() => selectTime(item)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.timeOptionText, selected && styles.timeOptionActive]}>
+                      {item}
+                    </Text>
+                    {selected && <Ionicons name="checkmark" size={20} color={colors.accentPrimary} />}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
 
     </SafeAreaView>
   );
@@ -563,7 +732,8 @@ const styles = StyleSheet.create({
     paddingRight: 16,
     includeFontPadding: false,
   },
-  inputTextMulti: { textAlignVertical: 'top' },
+  inputTextMulti:    { textAlignVertical: 'top' },
+  inputTextMultiPad: { paddingLeft: 14 },
 
   // UEN hint
   uenHintRow: {
@@ -598,22 +768,27 @@ const styles = StyleSheet.create({
   },
 
   // Phone field
-  phoneFlag: {
-    fontSize: fontSizes['14'],
-    marginLeft: 14,
+  countryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingLeft: 14,
+    paddingRight: 10,
   },
-  phonePrefix: {
+  countryFlag: {
+    fontSize: fontSizes['14'],
+  },
+  countryCode: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['14'],
     color: colors.textPrimary,
-    marginLeft: 6,
     includeFontPadding: false,
   },
   phoneDivider: {
     width: 1,
     height: 20,
     backgroundColor: colors.borderDefault,
-    marginHorizontal: 12,
+    marginRight: 10,
   },
   phoneInputText: {
     flex: 1,
@@ -624,14 +799,108 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
+  // Country picker modal
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  pickerSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
+    paddingTop: spacing['2xl'],
+    paddingBottom: spacing['4xl'],
+  },
+  pickerTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['16'],
+    color: colors.textPrimary,
+    letterSpacing: -0.24,
+    paddingHorizontal: spacing['2xl'],
+    marginBottom: spacing.lg,
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: 16,
+  },
+  pickerRowActive: {
+    backgroundColor: colors.accentLight,
+  },
+  pickerFlag: {
+    fontSize: 24,
+  },
+  pickerName: {
+    flex: 1,
+    fontFamily: fontFamilies.medium,
+    fontSize: fontSizes['14'],
+    color: colors.textPrimary,
+    includeFontPadding: false,
+  },
+  pickerCode: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
+    color: colors.textMuted,
+    includeFontPadding: false,
+  },
+
   // Time row
   timeRow: {
     flexDirection: 'row',
     gap: spacing.md,
   },
   timeFieldWrap: { flex: 1 },
-  timeInputText: { flex: 1 },
+  timePickerText: {
+    flex: 1,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
+    color: colors.textPrimary,
+    includeFontPadding: false,
+  },
+  timePlaceholder: { color: colors.textMuted },
   clockIcon: { marginRight: 12 },
+
+  // Time picker modal
+  timeOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  timeSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
+    paddingHorizontal: 20,
+    paddingTop: spacing['2xl'],
+    paddingBottom: spacing['4xl'],
+  },
+  timeSheetTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['16'],
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
+  timeList: { maxHeight: 300 },
+  timeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderDefault,
+  },
+  timeOptionText: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes.md,
+    color: colors.textPrimary,
+  },
+  timeOptionActive: {
+    fontFamily: fontFamilies.semiBold,
+    color: colors.accentPrimary,
+  },
 
   // Day chips
   daysRow: {
