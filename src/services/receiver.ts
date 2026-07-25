@@ -74,10 +74,10 @@ function mapApiClaimHistoryItem(d: ApiClaimHistoryItem): ClaimHistoryItem {
     restaurantPhotoUrl: d.restaurant_photo_url ?? null,
     photoUrl: d.photo_url || undefined,
     sponsorDisplayName: d.sponsor_display_name ?? undefined,
-    status: d.status as ClaimHistoryItem['status'],
+    status: (d.status === 'CLAIMED' || d.status === 'COLLECTED') ? 'CLAIMED' : 'EXPIRED',
     claimedAt: d.claimed_at,
     pickupWindow: d.pickup_window,
-    rating: d.rating,
+    rating: d.rating ?? undefined,
   };
 }
 
