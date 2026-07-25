@@ -339,6 +339,10 @@ export const deleteDonation = async (foodId: string): Promise<void> => {
   await api.delete(`/restaurant/donations/${foodId}/`);
 };
 
+export const collectClaim = async (claimId: string): Promise<void> => {
+  await api.post(`/restaurant/claims/${claimId}/collect/`, {});
+};
+
 export const updateDonation = async (foodId: string, payload: CreateDonationPayload): Promise<RestaurantDonation> => {
   let res;
   if (payload.localPhotoUri) {

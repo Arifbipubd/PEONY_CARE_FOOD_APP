@@ -8,7 +8,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp, useFocusEffect } from '@react-navigation/native';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { DonationsStackParamList } from '../../navigation/RestaurantTabs';
-import { getDonationDetail, deleteDonation, pauseDonation } from '../../services/restaurant';
+import { getDonationDetail, deleteDonation, pauseDonation, collectClaim } from '../../services/restaurant';
 import { RestaurantDonation } from '../../types';
 import CollectQrSheet     from '../../components/CollectQrSheet';
 import CollectFailedSheet  from '../../components/CollectFailedSheet';
@@ -54,6 +54,7 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
   const [loading, setLoading]      = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [collectState, setCollect] = useState<CollectState>(null);
+  const [collectingId, setCollectingId] = useState<string | null>(null);
   const [deleteVisible, setDelete] = useState(false);
   const [deleting, setDeleting]    = useState(false);
   const [pausing, setPausing]      = useState(false);
@@ -78,6 +79,28 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
   const openQr         = useCallback(() => setCollect('qr'),  []);
   const closeAllSheets = useCallback(() => setCollect(null),   []);
   const showQrAgain    = useCallback(() => setCollect('qr'),   []);
+
+  const handleMarkCollected = useCallback(async (claimId: string) => {
+    setCollectingId(claimId);
+    try {
+      await collectClaim(claimId);
+      setDonation((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          claims: prev.claims?.map((c) =>
+            c.id === claimId
+              ? { ...c, status: 'COLLECTED' as const, collectedAt: new Date().toISOString() }
+              : c,
+          ),
+        };
+      });
+    } catch {
+      // leave row unchanged — user can retry
+    } finally {
+      setCollectingId(null);
+    }
+  }, []);
   const openDelete     = useCallback(() => setDelete(true),   []);
   const closeDelete    = useCallback(() => setDelete(false),  []);
 
@@ -146,11 +169,13 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
 
         {/* Hero image */}
         <View>
-          <ImageWithSkeleton
-            source={{ uri: donation.photoUrl }}
-            style={styles.image}
-            resizeMode="cover"
-          />
+          {!!donation.photoUrl && (
+            <ImageWithSkeleton
+              source={{ uri: donation.photoUrl }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          )}
           <TouchableOpacity
             style={[styles.backBtn, { top: insets.top + spacing.md }]}
             onPress={() => navigation.goBack()}
@@ -253,8 +278,15 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
                     <Text style={styles.collectedBadgeText}>Collected</Text>
                   </View>
                 ) : (
-                  <TouchableOpacity style={styles.markBtn} onPress={openQr} activeOpacity={0.85}>
-                    <Text style={styles.markBtnText}>Mark collected</Text>
+                  <TouchableOpacity
+                    style={[styles.markBtn, collectingId === claim.id && styles.markBtnLoading]}
+                    onPress={() => handleMarkCollected(claim.id)}
+                    activeOpacity={0.85}
+                    disabled={collectingId === claim.id}
+                  >
+                    <Text style={styles.markBtnText}>
+                      {collectingId === claim.id ? 'Saving…' : 'Mark collected'}
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -626,6 +658,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentPrimary,
     borderRadius: radius.pill,
   },
+  markBtnLoading: { opacity: 0.6 },
   markBtnText: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xs,
