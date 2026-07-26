@@ -5,11 +5,11 @@ import {
   ScrollView,
   TouchableOpacity,
   FlatList,
-  Image,
   StyleSheet,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Svg, { Polyline, Polygon } from 'react-native-svg';
@@ -53,7 +53,7 @@ const RowSeparator = React.memo(() => <View style={styles.separator} />);
 const DishRow = React.memo(({ item }: { item: AnalyticsDish }) => (
   <View style={styles.listRow}>
     {item.photoUrl ? (
-      <Image source={{ uri: item.photoUrl }} style={styles.dishThumb} resizeMode="cover" />
+      <ImageWithSkeleton source={{ uri: item.photoUrl }} style={styles.dishThumb} resizeMode="cover" />
     ) : (
       <View style={[styles.dishThumb, styles.dishThumbPlaceholder]} />
     )}

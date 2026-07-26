@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius, fontSizes, fontFamilies, letterSpacings } from '../constants/theme';
@@ -7,7 +8,7 @@ interface PostFABProps {
   label?: string;
 }
 
-export default function PostFAB({ onPress, label = 'Post food' }: PostFABProps) {
+function PostFAB({ onPress, label = 'Post food' }: PostFABProps) {
   return (
     <TouchableOpacity style={styles.fab} onPress={onPress} activeOpacity={0.85}>
       <Ionicons name="add" size={20} color={colors.textInverse} />
@@ -41,3 +42,5 @@ const styles = StyleSheet.create({
     letterSpacing: letterSpacings.buttonSm,
   },
 });
+
+export default memo(PostFAB);

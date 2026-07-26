@@ -1,15 +1,16 @@
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -23,7 +24,7 @@ import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, lineHeights,
 } from '../../constants/theme';
 import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
-import SgFlag from '../../components/SgFlag';
+import { flagFromPhone } from '../../components/CountryPicker';
 
 type Props = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'ReceiverProfile'>;
@@ -165,103 +166,124 @@ const pSkelStyles = StyleSheet.create({
 export default function ReceiverProfileScreen({ navigation }: Props) {
   const { refreshToken, clearAuth, user } = useAuthStore();
   const { unreadCount } = useNotificationStore();
-  const [profile, setProfile] = useState<ReceiverProfile | null>(null);
-  const [loading, setLoading]   = useState(true);
+  const [profile, setProfile]       = useState<ReceiverProfile | null>(null);
+  const [loading, setLoading]       = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const { displayName: storedName, setProfile: storeSetProfile } = useProfileStore();
+
+  const loadData = useCallback(
+    () => getReceiverProfile()
+      .then((p) => {
+        setProfile(p);
+        storeSetProfile({ photoUrl: p.photoUrl, displayName: p.displayName });
+      })
+      .catch((e) => { console.log('[ReceiverProfile] error', e); }),
+    [storeSetProfile],
+  );
 
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      getReceiverProfile()
-        .then((p) => {
-          setProfile(p);
-          storeSetProfile({ photoUrl: p.photoUrl, displayName: p.displayName });
-        })
-        .catch((e) => { console.log('[ReceiverProfile] error', e); })
-        .finally(() => setLoading(false));
-    }, [storeSetProfile]),
+      loadData().finally(() => setLoading(false));
+    }, [loadData]),
   );
 
-  async function handleLogout() {
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData().finally(() => setRefreshing(false));
+  }, [loadData]);
+
+  const handleLogout = useCallback(async () => {
     setLoggingOut(true);
     try {
       if (refreshToken) await logout(refreshToken);
     } finally {
       clearAuth();
     }
-  }
+  }, [refreshToken, clearAuth]);
+
+  const effectiveProfile = useMemo<ReceiverProfile>(
+    () => profile ?? {
+      id: user?.id ?? '',
+      displayName: storedName || 'Receiver',
+      phone: user?.phone ?? '',
+      photoUrl: null,
+      browseRadiusKm: 5,
+      memberSince: '',
+      daysActive: 0,
+      totalClaims: 0,
+      lastClaimDate: null,
+      lifetimeMeals: 0,
+      restaurantsCount: 0,
+    },
+    [profile, user, storedName],
+  );
+
+  const PhoneFlag = flagFromPhone(effectiveProfile.phone);
+
+  const accountRows = useMemo<MenuRow[]>(
+    () => [
+      {
+        icon: 'location',
+        iconBg: colors.avatarBg,
+        iconColor: colors.accentPrimary,
+        label: 'Location settings',
+        subtitle: '5 km radius · Joo Chiat',
+        onPress: () => navigation.navigate('LocationSettings'),
+      },
+      {
+        icon: 'notifications',
+        iconBg: colors.goldLight,
+        iconColor: colors.goldDark,
+        label: 'Notifications',
+        subtitle: '3 channels enabled',
+        onPress: () => navigation.navigate('NotificationSettings'),
+      },
+      {
+        icon: 'download-outline',
+        iconBg: colors.surfaceSecondary,
+        iconColor: colors.textPrimary,
+        label: 'Download my data',
+        subtitle: 'Get a copy of your data',
+        onPress: () => navigation.navigate('ExportData'),
+      },
+      {
+        icon: 'trash-outline',
+        iconBg: colors.accentLight,
+        iconColor: colors.textPrimary,
+        label: 'Delete account',
+        labelColor: colors.dangerRed,
+        subtitle: 'Permanently remove your data',
+        onPress: () => navigation.navigate('DeleteAccount'),
+      },
+    ],
+    [navigation],
+  );
+
+  const supportRows = useMemo<MenuRow[]>(
+    () => [
+      {
+        icon: 'help-circle',
+        iconBg: colors.surfaceSecondary,
+        iconColor: colors.textMuted,
+        label: 'Help & FAQ',
+        onPress: () => navigation.navigate('HelpFaq'),
+      },
+      {
+        icon: 'document-text',
+        iconBg: colors.surfaceSecondary,
+        iconColor: colors.textMuted,
+        label: 'Terms & Privacy',
+        onPress: () => navigation.navigate('TermsPrivacy'),
+      },
+    ],
+    [navigation],
+  );
 
   if (loading) {
     return <ProfileSkeleton />;
   }
-
-  const effectiveProfile: ReceiverProfile = profile ?? {
-    id: user?.id ?? '',
-    displayName: storedName || 'Receiver',
-    phone: user?.phone ?? '',
-    photoUrl: null,
-    browseRadiusKm: 5,
-    memberSince: '',
-    daysActive: 0,
-    totalClaims: 0,
-    lastClaimDate: null,
-    lifetimeMeals: 0,
-    restaurantsCount: 0,
-  };
-
-  const accountRows: MenuRow[] = [
-    {
-      icon: 'location',
-      iconBg: colors.avatarBg,
-      iconColor: colors.accentPrimary,
-      label: 'Location settings',
-      subtitle: '5 km radius · Joo Chiat',
-      onPress: () => navigation.navigate('LocationSettings'),
-    },
-    {
-      icon: 'notifications',
-      iconBg: colors.goldLight,
-      iconColor: colors.goldDark,
-      label: 'Notifications',
-      subtitle: '3 channels enabled',
-      onPress: () => navigation.navigate('NotificationSettings'),
-    },
-    {
-      icon: 'download-outline',
-      iconBg: colors.surfaceSecondary,
-      iconColor: colors.textPrimary,
-      label: 'Download my data',
-      subtitle: 'Get a copy of your data',
-      onPress: () => navigation.navigate('ExportData'),
-    },
-    {
-      icon: 'trash-outline',
-      iconBg: colors.accentLight,
-      iconColor: colors.textPrimary,
-      label: 'Delete account',
-      labelColor: colors.dangerRed,
-      subtitle: 'Permanently remove your data',
-      onPress: () => navigation.navigate('DeleteAccount'),
-    },
-  ];
-
-  const supportRows: MenuRow[] = [
-    {
-      icon: 'help-circle',
-      iconBg: colors.surfaceSecondary,
-      iconColor: colors.textMuted,
-      label: 'Help & FAQ',
-      onPress: () => navigation.navigate('HelpFaq'),
-    },
-    {
-      icon: 'document-text',
-      iconBg: colors.surfaceSecondary,
-      iconColor: colors.textMuted,
-      label: 'Terms & Privacy',
-      onPress: () => navigation.navigate('TermsPrivacy'),
-    },
-  ];
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -284,13 +306,17 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
+      >
 
         {/* Avatar */}
         <View style={styles.avatarWrapper}>
           <View style={styles.avatarCircle}>
             {effectiveProfile.photoUrl ? (
-              <Image source={{ uri: effectiveProfile.photoUrl }} style={styles.avatarImage} resizeMode="cover" />
+              <ImageWithSkeleton source={{ uri: effectiveProfile.photoUrl }} style={styles.avatarImage} resizeMode="cover" />
             ) : (
               <Text style={styles.avatarText}>{initials(effectiveProfile.displayName)}</Text>
             )}
@@ -305,28 +331,22 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
 
         {/* Phone row */}
         <View style={styles.phoneRow}>
-          <SgFlag size={16} />
+          <PhoneFlag size={16} />
           <Text style={styles.phone}>{formatSGPhone(effectiveProfile.phone)}</Text>
         </View>
 
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={[styles.statNumber, { color: colors.accentPrimary }]}>
-              {effectiveProfile.lifetimeMeals}
-            </Text>
+            <Text style={styles.statNumberAccent}>{effectiveProfile.lifetimeMeals}</Text>
             <Text style={styles.statLabel}>MEALS</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={[styles.statNumber, { color: colors.goldDark }]}>
-              {effectiveProfile.restaurantsCount}
-            </Text>
+            <Text style={styles.statNumberGold}>{effectiveProfile.restaurantsCount}</Text>
             <Text style={styles.statLabel}>RESTAURANTS</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={[styles.statNumber, { color: colors.textPrimary }]}>
-              {effectiveProfile.daysActive}
-            </Text>
+            <Text style={styles.statNumberPrimary}>{effectiveProfile.daysActive}</Text>
             <Text style={styles.statLabel}>DAYS</Text>
           </View>
         </View>
@@ -517,6 +537,27 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.bold,
     lineHeight: lineHeights.subheading,
     letterSpacing: -0.84,
+  },
+  statNumberAccent: {
+    fontSize: fontSizes['2xl'],
+    fontFamily: fontFamilies.bold,
+    lineHeight: lineHeights.subheading,
+    letterSpacing: -0.84,
+    color: colors.accentPrimary,
+  },
+  statNumberGold: {
+    fontSize: fontSizes['2xl'],
+    fontFamily: fontFamilies.bold,
+    lineHeight: lineHeights.subheading,
+    letterSpacing: -0.84,
+    color: colors.goldDark,
+  },
+  statNumberPrimary: {
+    fontSize: fontSizes['2xl'],
+    fontFamily: fontFamilies.bold,
+    lineHeight: lineHeights.subheading,
+    letterSpacing: -0.84,
+    color: colors.textPrimary,
   },
   statLabel: {
     fontSize: fontSizes.xs,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   KeyboardTypeOptions,
   ViewStyle,
 } from 'react-native';
-import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, layout } from '../constants/theme';
+import { colors, spacing, radius, fontSizes, fontFamilies, layout } from '../constants/theme';
 
 interface InputProps {
   label?: string;
@@ -24,7 +24,7 @@ interface InputProps {
   style?: ViewStyle;
 }
 
-export default function Input({
+function Input({
   label,
   value,
   onChangeText,
@@ -39,6 +39,8 @@ export default function Input({
   style,
 }: InputProps) {
   const [focused, setFocused] = useState(false);
+  const handleFocus = useCallback(() => setFocused(true), []);
+  const handleBlur  = useCallback(() => setFocused(false), []);
 
   return (
     <View style={[styles.wrapper, style]}>
@@ -70,8 +72,8 @@ export default function Input({
             secureTextEntry={secureTextEntry}
             editable={editable}
             maxLength={maxLength}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             style={styles.input}
           />
         </View>
@@ -152,3 +154,5 @@ const styles = StyleSheet.create({
     color: colors.errorRed,
   },
 });
+
+export default memo(Input);

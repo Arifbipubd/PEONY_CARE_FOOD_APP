@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,11 @@ import {
   StyleSheet,
   Animated,
   Dimensions,
+  StyleProp,
+  ViewStyle,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Claim } from '../../types';
@@ -81,6 +82,7 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
 
   const goReview = () =>
     navigation.navigate('WriteReview', {
+      restaurantId: claim.restaurantId,
       claimId: claim.claimId,
       restaurantName: claim.restaurantName,
       restaurantPhotoUrl: claim.restaurantPhotoUrl,
@@ -89,12 +91,20 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
 
   // Confetti origin: top inset + scroll paddingTop + half the success circle height
   const confettiOriginY = insets.top + 72 + 62;
+  const confettiContainerStyle = useMemo<StyleProp<ViewStyle>>(
+    () => [StyleSheet.absoluteFill, { top: confettiOriginY }],
+    [confettiOriginY],
+  );
+  const closeBtnStyle = useMemo<StyleProp<ViewStyle>>(
+    () => [styles.closeBtn, { top: insets.top + spacing.md }],
+    [insets.top],
+  );
 
   return (
     <SafeAreaView style={styles.screen} edges={['bottom']}>
 
       {/* Confetti overlay — full screen, non-interactive */}
-      <View style={[StyleSheet.absoluteFill, { top: confettiOriginY }]} pointerEvents="none">
+      <View style={confettiContainerStyle} pointerEvents="none">
         {confetti.map((p, i) => (
           <Animated.View
             key={i}
@@ -119,7 +129,7 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
 
       {/* Close button — no bg, no border */}
       <TouchableOpacity
-        style={[styles.closeBtn, { top: insets.top + spacing.md }]}
+        style={closeBtnStyle}
         onPress={goHome}
         hitSlop={8}
       >
@@ -194,6 +204,9 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
           <Ionicons name="star" size={18} color={colors.textInverse} />
           <Text style={styles.primaryBtnText}>Rate this restaurant</Text>
         </TouchableOpacity>
+        <Text style={styles.reviewNote}>
+          You can review after the restaurant marks your claim as collected.
+        </Text>
         <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.7} onPress={goHome}>
           <Ionicons name="home" size={18} color={colors.textPrimary} />
           <Text style={styles.secondaryBtnText}>Back to browse</Text>
@@ -373,6 +386,17 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.md,
     letterSpacing: letterSpacings.button,
     color: colors.textInverse,
+  },
+
+  reviewNote: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingHorizontal: spacing['2xl'],
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+    includeFontPadding: false,
   },
 
   secondaryBtn: {

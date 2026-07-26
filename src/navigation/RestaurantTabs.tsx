@@ -45,16 +45,17 @@ export type RestaurantTabParamList = {
 };
 
 export type DonationsStackParamList = {
-  DonationList:          undefined;
+  DonationList:          { initialTab?: 'active' | 'past' | 'inactive' } | undefined;
   DonationDetail:        { donationId: string };
-  PostDonation:          undefined;
+  PostDonation:          { donationId?: string } | undefined;
   PostDonationSuccess:   {
-    foodName:     string;
-    quantity:     number;
-    unit:         string;
-    category:     string;
-    pickupWindow: string;
-    donationId:   string;
+    foodName:             string;
+    quantity:             number;
+    unit:                 string;
+    category:             string;
+    pickupWindow:         string;
+    donationId:           string;
+    estimatedReachLabel?: string;
   };
 };
 

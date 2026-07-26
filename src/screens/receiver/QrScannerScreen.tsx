@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -57,11 +57,14 @@ export default function QrScannerScreen({ navigation, route }: Props) {
     ).start();
   }, []);
 
-  const handleScan = async (qrPayload: string) => {
+  const handleScan = useCallback(async (qrPayload: string) => {
     if (scanned) return;
     setScanned(true);
 
-    const foodId = qrPayload.split('|')[0] ?? '';
+    const parts = qrPayload.split('|');
+    const foodId       = parts[0] ?? '';
+    const restaurantId = parts[1] ?? '';
+
     if (!foodId || lat === null || lng === null) {
       navigation.navigate('ScanError', { expectedFoodId });
       return;
@@ -74,6 +77,7 @@ export default function QrScannerScreen({ navigation, route }: Props) {
 
     try {
       const claim = await claimFood(foodId, qrPayload, lat, lng);
+      if (!claim.restaurantId && restaurantId) claim.restaurantId = restaurantId;
       navigation.navigate('ClaimSuccess', { claim });
     } catch (err) {
       if (err instanceof ApiError) {
@@ -89,7 +93,7 @@ export default function QrScannerScreen({ navigation, route }: Props) {
         setScanned(false);
       }
     }
-  };
+  }, [scanned, lat, lng, expectedFoodId, navigation]);
 
   if (!permission?.granted) {
     const canAskAgain = permission?.canAskAgain ?? true;

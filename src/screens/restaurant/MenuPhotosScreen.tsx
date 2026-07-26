@@ -2,7 +2,6 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   FlatList,
   ScrollView,
@@ -13,7 +12,8 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { launchImageLibraryAsync, MediaTypeOptions } from 'expo-image-picker';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { getMenuPhotos, uploadMenuPhotos, deleteMenuPhoto, MenuPhoto } from '../../services/restaurant';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -237,8 +237,8 @@ export default function MenuPhotosScreen({ navigation }: Props) {
   const handleAddPhoto = useCallback(async () => {
     const remaining = MAX_PHOTOS - photos.length;
     if (remaining <= 0 || uploading) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    const result = await launchImageLibraryAsync({
+      mediaTypes: MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       selectionLimit: remaining,
       quality: 0.8,
@@ -294,7 +294,7 @@ export default function MenuPhotosScreen({ navigation }: Props) {
     const photo = item as MenuPhoto;
     return (
       <View style={styles.photoTile}>
-        <Image
+        <ImageWithSkeleton
           source={{ uri: photo.url }}
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
@@ -366,7 +366,7 @@ export default function MenuPhotosScreen({ navigation }: Props) {
               scrollEventThrottle={16}
             >
               {photos.map((photo, idx) => (
-                <Image
+                <ImageWithSkeleton
                   key={photo.id ?? idx}
                   source={{ uri: photo.url }}
                   style={{ width: CONTENT_W, height: CAROUSEL_H }}

@@ -4,6 +4,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  FlatList,
   StyleSheet,
   ActivityIndicator,
   Keyboard,
@@ -11,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, Region } from 'react-native-maps';
-import * as Location from 'expo-location';
+import { reverseGeocodeAsync, geocodeAsync, requestForegroundPermissionsAsync, getCurrentPositionAsync, Accuracy } from 'expo-location';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { colors, spacing, radius, fontSizes, fontFamilies, letterSpacings } from '../../constants/theme';
@@ -29,6 +30,13 @@ const DELTA = { latitudeDelta: 0.008, longitudeDelta: 0.008 };
 const SG_DEFAULT = { latitude: 1.3521, longitude: 103.8198 };
 
 type LocationResult = { latitude: number; longitude: number; address: string };
+
+type NominatimResult = {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+};
 let _onConfirm: ((result: LocationResult) => void) | null = null;
 
 // Called by EditRestaurantDetailsScreen before navigating here
@@ -75,14 +83,17 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
   const [city, setCity]           = useState('');
   const [postalCode, setPostal]   = useState('');
   const [searchQuery, setQuery]   = useState('');
-  const [searching, setSearching] = useState(false);
-  const [locating, setLocating]   = useState(false);
+  const [searching, setSearching]   = useState(false);
+  const [locating, setLocating]     = useState(false);
+  const [notFound, setNotFound]     = useState(false);
+  const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
 
-  const mapRef = useRef<MapView>(null);
+  const mapRef     = useRef<MapView>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
     try {
-      const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+      const results = await reverseGeocodeAsync({ latitude: lat, longitude: lng });
       if (results.length > 0) {
         const r = results[0];
         const street = [r.streetNumber, r.street].filter(Boolean).join(' ');
@@ -99,6 +110,38 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
     if (initLat && initLng) reverseGeocode(initLat, initLng);
   }, []);
 
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, []);
+
+  const fetchSuggestions = useCallback(async (query: string) => {
+    if (query.trim().length < 3) { setSuggestions([]); return; }
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=0`,
+        { headers: { 'User-Agent': 'PeonyCareFoodApp/1.0' } },
+      );
+      const data: NominatimResult[] = await res.json();
+      setSuggestions(data);
+    } catch {
+      setSuggestions([]);
+    }
+  }, []);
+
+  const handleSelectSuggestion = useCallback((item: NominatimResult) => {
+    const latitude  = parseFloat(item.lat);
+    const longitude = parseFloat(item.lon);
+    const newRegion = { ...DELTA, latitude, longitude };
+    setPin({ latitude, longitude });
+    setRegion(newRegion);
+    mapRef.current?.animateToRegion(newRegion, 500);
+    reverseGeocode(latitude, longitude);
+    setQuery(item.display_name.split(',')[0]);
+    setSuggestions([]);
+    setNotFound(false);
+    Keyboard.dismiss();
+  }, [reverseGeocode]);
+
   const handleDragEnd = useCallback((e: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
     const { latitude, longitude } = e.nativeEvent.coordinate;
     setPin({ latitude, longitude });
@@ -110,14 +153,17 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
     setPin({ latitude, longitude });
     mapRef.current?.animateToRegion({ ...DELTA, latitude, longitude }, 300);
     reverseGeocode(latitude, longitude);
+    setSuggestions([]);
   }, [reverseGeocode]);
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) return;
     Keyboard.dismiss();
     setSearching(true);
+    setNotFound(false);
+    setSuggestions([]);
     try {
-      const results = await Location.geocodeAsync(searchQuery.trim() + ', Singapore');
+      const results = await geocodeAsync(searchQuery.trim());
       if (results.length > 0) {
         const { latitude, longitude } = results[0];
         const newRegion = { ...DELTA, latitude, longitude };
@@ -125,9 +171,11 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
         setRegion(newRegion);
         mapRef.current?.animateToRegion(newRegion, 500);
         reverseGeocode(latitude, longitude);
+      } else {
+        setNotFound(true);
       }
     } catch {
-      // silent fail — user can try again
+      setNotFound(true);
     } finally {
       setSearching(false);
     }
@@ -136,9 +184,9 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
   const handleLocateMe = useCallback(async () => {
     setLocating(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      const { status } = await requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const pos = await getCurrentPositionAsync({ accuracy: Accuracy.Balanced });
       const { latitude, longitude } = pos.coords;
       setPin({ latitude, longitude });
       mapRef.current?.animateToRegion({ ...DELTA, latitude, longitude }, 400);
@@ -181,20 +229,50 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
         <Text style={styles.title}>Set location</Text>
       </View>
 
-      {/* Search bar */}
-      <View style={styles.searchBar}>
-        <Ionicons name="search" size={18} color={colors.textMuted} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search address or postal code"
-          placeholderTextColor={colors.textMuted}
-          value={searchQuery}
-          onChangeText={setQuery}
-          onSubmitEditing={handleSearch}
-          returnKeyType="search"
-          autoCorrect={false}
-        />
-        {searching && <ActivityIndicator size="small" color={colors.textMuted} />}
+      {/* Search bar + autocomplete */}
+      <View style={styles.searchWrapper}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={18} color={colors.textMuted} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search any city or address"
+            placeholderTextColor={colors.textMuted}
+            value={searchQuery}
+            onChangeText={(t) => {
+              setQuery(t);
+              setNotFound(false);
+              if (debounceRef.current) clearTimeout(debounceRef.current);
+              debounceRef.current = setTimeout(() => fetchSuggestions(t), 400);
+            }}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          {searching && <ActivityIndicator size="small" color={colors.textMuted} />}
+        </View>
+
+        {suggestions.length > 0 && (
+          <FlatList
+            style={styles.suggestionList}
+            data={suggestions}
+            keyExtractor={(item) => String(item.place_id)}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item, index }) => (
+              <TouchableOpacity
+                style={[styles.suggestionItem, index === suggestions.length - 1 && styles.suggestionItemLast]}
+                onPress={() => handleSelectSuggestion(item)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="location-outline" size={15} color={colors.textMuted} style={styles.suggestionIcon} />
+                <Text style={styles.suggestionText} numberOfLines={2}>{item.display_name}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        )}
+
+        {notFound && (
+          <Text style={styles.notFound}>No location found. Try a different search.</Text>
+        )}
       </View>
 
       {/* Map */}
@@ -295,6 +373,59 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 
+  searchWrapper: {
+    marginHorizontal: spacing.xl,
+    marginBottom: 12,
+    zIndex: 10,
+  },
+
+  notFound: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    color: colors.accentPrimary,
+    textAlign: 'center',
+    marginTop: 6,
+    paddingHorizontal: spacing.md,
+    includeFontPadding: false,
+  },
+
+  suggestionList: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.input,
+    maxHeight: 220,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderDefault,
+    gap: spacing.md,
+  },
+
+  suggestionItemLast: {
+    borderBottomWidth: 0,
+  },
+
+  suggestionIcon: {
+    flexShrink: 0,
+  },
+
+  suggestionText: {
+    flex: 1,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['14'],
+    color: colors.textPrimary,
+    includeFontPadding: false,
+  },
+
   // Search bar
   searchBar: {
     flexDirection: 'row',
@@ -302,8 +433,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     borderRadius: radius.input,
     height: 48,
-    marginHorizontal: spacing.xl,
-    marginBottom: 12,
+    marginBottom: 4,
     paddingHorizontal: spacing['2xl'],
     gap: 10,
   },

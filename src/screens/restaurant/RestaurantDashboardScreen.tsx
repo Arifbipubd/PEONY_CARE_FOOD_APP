@@ -4,12 +4,12 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import { getDashboard, getMenuPhotos, menuPhotosExist, donationsExist } from '../../services/restaurant';
@@ -119,7 +119,7 @@ const DonationRow = React.memo(({ item }: { item: RestaurantDonation }) => {
           <Ionicons name="checkmark" size={20} color={colors.successGreen} />
         </View>
       ) : item.photoUrl ? (
-        <Image source={{ uri: item.photoUrl }} style={styles.donationThumb} resizeMode="cover" />
+        <ImageWithSkeleton source={{ uri: item.photoUrl }} style={styles.donationThumb} resizeMode="cover" />
       ) : (
         <View style={[styles.donationThumb, styles.thumbPlaceholder]} />
       )}
@@ -146,9 +146,11 @@ type EmptyProps = {
   hasMenuPhotos:   boolean;
   hasDonations:    boolean;
   navigation: BottomTabNavigationProp<RestaurantTabParamList, 'Home'>;
+  refreshing:      boolean;
+  onRefresh:       () => void;
 };
 
-const EmptyDashboard = React.memo(({ restaurantName, hasMenuPhotos, hasDonations, navigation }: EmptyProps) => {
+const EmptyDashboard = React.memo(({ restaurantName, hasMenuPhotos, hasDonations, navigation, refreshing, onRefresh }: EmptyProps) => {
   const steps = useMemo(() => [
     {
       num: 1,
@@ -187,7 +189,11 @@ const EmptyDashboard = React.memo(({ restaurantName, hasMenuPhotos, hasDonations
   );
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={es.scroll}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={es.scroll}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
+    >
 
       {/* Account verified chip */}
       <View style={es.chip}>
@@ -510,35 +516,53 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
   const { unreadCount } = useNotificationStore();
   const { lat, lng } = useLocation();
 
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = useCallback(
+    () => Promise.all([getDashboard(), getMenuPhotos()])
+      .then(([d]) => {
+        setData(d);
+        setHasMenuPhotos(menuPhotosExist());
+        setHasDonations(donationsExist());
+        console.log('[Dashboard] data:', JSON.stringify(d, null, 2));
+      })
+      .catch(() => {}),
+    [lat, lng],
+  );
+
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      Promise.all([getDashboard(), getMenuPhotos()])
-        .then(([d]) => {
-          setData(d);
-          setHasMenuPhotos(menuPhotosExist());
-          setHasDonations(donationsExist());
-        })
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    }, [lat, lng]),
+      loadData().finally(() => setLoading(false));
+    }, [loadData]),
   );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData().finally(() => setRefreshing(false));
+  }, [loadData]);
 
   const goToPost = useCallback(() => {
     navigation.navigate('Donations', { screen: 'PostDonation' } as never);
   }, [navigation]);
 
+  const isEmpty = useMemo(
+    () => !!data && !hasDonations && data.livesImpacted === 0 && data.todayListings.length === 0 && data.yesterdayListings.length === 0 && data.pastGroups.length === 0,
+    [data, hasDonations],
+  );
+
+  const initials = useMemo(
+    () => (data?.restaurantName ?? '')
+      .split(' ')
+      .slice(0, 2)
+      .map((w) => w[0] ?? '')
+      .join('')
+      .toUpperCase(),
+    [data?.restaurantName],
+  );
+
   if (loading) return <DashboardSkeleton />;
   if (!data)   return null;
-
-  const isEmpty = !hasDonations && data.livesImpacted === 0 && data.todayListings.length === 0 && data.yesterdayListings.length === 0;
-
-  const initials = data.restaurantName
-    .split(' ')
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase();
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -551,7 +575,11 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
           hitSlop={8}
           activeOpacity={0.7}
         >
-          <Text style={styles.avatarText}>{initials}</Text>
+          {data.photoUrl ? (
+            <ImageWithSkeleton source={{ uri: data.photoUrl }} style={styles.avatarImg} resizeMode="cover" />
+          ) : (
+            <Text style={styles.avatarText}>{initials}</Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.bellBtn}
@@ -563,11 +591,12 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      {isEmpty && <EmptyDashboard restaurantName={data.restaurantName} hasMenuPhotos={hasMenuPhotos} hasDonations={hasDonations} navigation={navigation} />}
+      {isEmpty && <EmptyDashboard restaurantName={data.restaurantName} hasMenuPhotos={hasMenuPhotos} hasDonations={hasDonations} navigation={navigation} refreshing={refreshing} onRefresh={onRefresh} />}
       {!isEmpty && (
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
       >
 
         {/* Hero */}
@@ -635,6 +664,22 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
           </>
         )}
 
+        {/* Past date groups (e.g. "19 Jul") — active donations from earlier dates */}
+        {data.pastGroups.map((group) => (
+          <React.Fragment key={group.label}>
+            <View style={[styles.dayHeader, styles.dayHeaderGap]}>
+              <Text style={styles.dayLabel}>{group.label}</Text>
+              <Text style={styles.daySummary}>
+                {group.listings.length} listings · {group.fed} fed
+              </Text>
+            </View>
+            {group.listings.map((item) => (
+              <DonationRow key={item.id} item={item} />
+            ))}
+          </React.Fragment>
+        ))}
+
+
       </ScrollView>
         )}
 
@@ -664,6 +709,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.avatarBg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarImg: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
   },
   avatarText: {
     fontSize: fontSizes.sm,

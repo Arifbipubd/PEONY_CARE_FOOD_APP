@@ -1,23 +1,22 @@
-import { useState, useCallback } from 'react';
+import { memo, useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   SectionList,
   ScrollView,
   StyleSheet,
 } from 'react-native';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
+import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getClaimHistory, getReceiverProfile } from '../../services/receiver';
 import { ClaimHistory, ClaimHistoryItem, ReceiverProfile } from '../../types';
 import {
-  colors, spacing, radius, fontSizes, fontFamilies, fontWeights, letterSpacings, layout,
+  colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, layout,
 } from '../../constants/theme';
 import { HistoryStackParamList } from '../../navigation/ReceiverTabs';
 import { useNotificationStore } from '../../store/notificationStore';
@@ -49,10 +48,11 @@ function relativeTime(isoString: string): string {
   }
   if (diffDays === 1) return 'yesterday';
   if (diffDays < 7)  return `${diffDays} days ago`;
+  if (diffDays < 14) return `last ${date.toLocaleDateString('en-SG', { weekday: 'long' })}`;
   return date.toLocaleDateString('en-SG', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-function HistorySkeleton() {
+const HistorySkeleton = memo(function HistorySkeleton() {
   const opacity = usePulse();
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -82,7 +82,7 @@ function HistorySkeleton() {
       </ScrollView>
     </SafeAreaView>
   );
-}
+});
 
 const hSkelStyles = StyleSheet.create({
   header: {
@@ -122,6 +122,67 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const { unreadCount } = useNotificationStore();
 
+  const sections = useMemo<HistorySection[]>(
+    () => (history?.groupedByWeek ?? []).map((g) => ({
+      title: weekLabel(g.weekStart),
+      count: g.claims.length,
+      data:  g.claims,
+    })),
+    [history],
+  );
+
+  const goToReview = useCallback((item: ClaimHistoryItem) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (navigation.getParent() as any)?.navigate('Home', {
+      screen: 'WriteReview',
+      params: {
+        restaurantId: item.restaurantId ?? '',
+        claimId: item.id,
+        restaurantName: item.restaurantName,
+        restaurantPhotoUrl: item.restaurantPhotoUrl ?? null,
+        foodName: item.foodName,
+      },
+    });
+  }, [navigation]);
+
+  const pendingReview = useMemo<ClaimHistoryItem | null>(() => {
+    for (const section of sections) {
+      for (const item of section.data) {
+        if (item.status === 'CLAIMED' && item.rating == null) return item;
+      }
+    }
+    return null;
+  }, [sections]);
+
+  const renderItem = useCallback(({ item }: { item: ClaimHistoryItem }) => {
+    const collected = item.status === 'CLAIMED';
+    const subtitle  = item.sponsorDisplayName
+      ? `${item.restaurantName} · Sponsored by ${item.sponsorDisplayName}`
+      : `${item.restaurantName} · ${relativeTime(item.claimedAt)}`;
+    return (
+      <View style={styles.row}>
+        <ImageWithSkeleton source={{ uri: item.photoUrl || undefined }} style={styles.thumb} resizeMode="cover" />
+        <View style={styles.rowText}>
+          <Text style={styles.foodName} numberOfLines={1}>{item.foodName}</Text>
+          <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
+        </View>
+        {item.rating != null ? (
+          <TouchableOpacity onPress={() => goToReview(item)} activeOpacity={0.7} style={styles.ratingCol}>
+            <View style={styles.ratingRow}>
+              <Ionicons name="star" size={13} color={colors.warningYellow} />
+              <Text style={styles.ratingScore}>{item.rating.toFixed(1)}</Text>
+            </View>
+            <Text style={styles.editReview}>Edit review</Text>
+          </TouchableOpacity>
+        ) : (
+          <Text style={[styles.status, collected ? styles.collected : styles.expired]}>
+            {collected ? 'Collected' : 'Expired'}
+          </Text>
+        )}
+      </View>
+    );
+  }, [goToReview]);
+
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
@@ -136,12 +197,6 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
   if (loading) {
     return <HistorySkeleton />;
   }
-
-  const sections: HistorySection[] = (history?.groupedByWeek ?? []).map((g) => ({
-    title: weekLabel(g.weekStart),
-    count: g.claims.length,
-    data:  g.claims,
-  }));
 
   // ── Empty state ──────────────────────────────────────────────────────────────
   if (sections.length === 0) {
@@ -201,13 +256,29 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
         maxToRenderPerBatch={10}
         windowSize={5}
         ListHeaderComponent={
-          <View style={styles.stats}>
-            <Text style={styles.lifetimeLabel}>Lifetime</Text>
-            <Text style={styles.heading}>Claim history</Text>
-            <Text style={styles.bigNumber}>{profile?.lifetimeMeals ?? 0}</Text>
-            <Text style={styles.statsSubtitle}>
-              meals received across {profile?.restaurantsCount ?? 0} restaurants
-            </Text>
+          <View>
+            <View style={styles.stats}>
+              <Text style={styles.lifetimeLabel}>Lifetime</Text>
+              <Text style={styles.heading}>Claim history</Text>
+              <Text style={styles.bigNumber}>{profile?.lifetimeMeals ?? 0}</Text>
+              <Text style={styles.statsSubtitle}>
+                meals received across {profile?.restaurantsCount ?? 0} restaurants
+              </Text>
+            </View>
+            {pendingReview && (
+              <TouchableOpacity
+                style={styles.promptCard}
+                onPress={() => goToReview(pendingReview)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="star" size={22} color={colors.warningYellow} />
+                <View style={styles.promptText}>
+                  <Text style={styles.promptTitle}>Rate {pendingReview.restaurantName}</Text>
+                  <Text style={styles.promptSub}>Your latest meal — leave a quick review</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.warningYellow} />
+              </TouchableOpacity>
+            )}
           </View>
         }
         renderSectionHeader={({ section }) => (
@@ -216,24 +287,7 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
             <Text style={styles.sectionCount}>{section.count} meals</Text>
           </View>
         )}
-        renderItem={({ item }) => {
-          const collected = item.status === 'CLAIMED';
-          const subtitle  = item.sponsorDisplayName
-            ? `${item.restaurantName} · Sponsored by ${item.sponsorDisplayName}`
-            : `${item.restaurantName} · ${relativeTime(item.claimedAt)}`;
-          return (
-            <View style={styles.row}>
-              <Image source={{ uri: item.photoUrl || undefined }} style={styles.thumb} resizeMode="cover" />
-              <View style={styles.rowText}>
-                <Text style={styles.foodName} numberOfLines={1}>{item.foodName}</Text>
-                <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
-              </View>
-              <Text style={[styles.status, collected ? styles.collected : styles.expired]}>
-                {collected ? 'Collected' : 'Expired'}
-              </Text>
-            </View>
-          );
-        }}
+        renderItem={renderItem}
         contentContainerStyle={styles.listContent}
       />
 
@@ -373,7 +427,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing['2xl'],
     paddingVertical: spacing.sm,
-    backgroundColor: colors.surfaceSecondary,
   },
   sectionTitle: {
     fontSize: fontSizes['12'],
@@ -396,8 +449,8 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.borderDefault,
   },
   thumb: {
-    width: 44,
-    height: 44,
+    width: 56,
+    height: 56,
     borderRadius: radius.pill,
     backgroundColor: colors.borderDefault,
   },
@@ -424,4 +477,41 @@ const styles = StyleSheet.create({
   expired:   { color: colors.textMuted },
 
   listContent: { paddingBottom: spacing['4xl'] },
+
+  promptCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.goldLight,
+    borderRadius: radius.card,
+    padding: 16,
+    marginHorizontal: spacing['2xl'],
+    marginBottom: spacing['2xl'],
+    gap: spacing.md,
+  },
+  promptText: { flex: 1 },
+  promptTitle: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['14'],
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  promptSub: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes['12'],
+    color: colors.warningYellow,
+  },
+
+  ratingCol: { alignItems: 'flex-end' },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  ratingScore: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['14'],
+    color: colors.warningYellow,
+  },
+  editReview: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes['12'],
+    color: colors.accentPrimary,
+    marginTop: 2,
+  },
 });

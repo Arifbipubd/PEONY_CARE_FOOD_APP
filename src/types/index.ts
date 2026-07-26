@@ -11,7 +11,7 @@ export type FoodStatus = 'AVAILABLE' | 'PARTIALLY_CLAIMED' | 'FULLY_CLAIMED' | '
 
 export type FoodListStatus = 'ACTIVE' | 'PAST' | 'INACTIVE';
 
-export type ClaimStatus = 'CLAIMED';
+export type ClaimStatus = 'CLAIMED' | 'COLLECTED';
 export type ClaimHistoryItemStatus = 'CLAIMED' | 'EXPIRED';
 
 export type SponsorshipType = 'DIRECT' | 'SPONSORED_NAMED' | 'SPONSORED_ANONYMOUS';
@@ -103,6 +103,7 @@ export interface Claim {
 }
 
 export interface ReviewPayload {
+  restaurantId: string;
   claimId: string;
   rating: number;
   tags: string[];
@@ -113,11 +114,14 @@ export interface ClaimHistoryItem {
   id: string;
   foodName: string;
   restaurantName: string;
+  restaurantId?: string;
+  restaurantPhotoUrl?: string | null;
   photoUrl?: string;
   sponsorDisplayName?: string | null;
   status: ClaimHistoryItemStatus;
   claimedAt: string;
   pickupWindow: string;
+  rating?: number;
 }
 
 export interface ClaimHistory {
@@ -241,10 +245,16 @@ export interface RestaurantDonation {
   sponsorInitials?: string | null;
   noShowCount?: number;
   expiredCount?: number;
+  estimatedReachLabel?: string;
+  isRepeating?: boolean;
+  repeatTimeLabel?: string;
+  nextPostLabel?: string;
+  donationSourceNote?: string;
   claims?: Array<{
     id: string;
     receiverName: string;
     claimedAt: string;
+    collectedAt?: string;
     status: ClaimStatus;
   }>;
 }
@@ -264,11 +274,13 @@ export interface CreateDonationPayload {
   quantityOriginal: number;
   pickupStart: string;
   pickupEnd: string;
+  isRepeating?: boolean;
   localPhotoUri?: string | null;
 }
 
 export interface RestaurantDashboard {
   restaurantName: string;
+  photoUrl: string | null;
   livesImpacted: number;
   donationsThisYear: number;
   growthPctThisWeek: number;
@@ -282,6 +294,7 @@ export interface RestaurantDashboard {
   todayListings: RestaurantDonation[];
   yesterdayListings: RestaurantDonation[];
   yesterdayFed: number;
+  pastGroups: Array<{ label: string; listings: RestaurantDonation[]; fed: number }>;
 }
 
 // ─── Analytics ───────────────────────────────────────────────────────────────

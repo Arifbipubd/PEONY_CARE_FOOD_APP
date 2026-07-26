@@ -4,6 +4,7 @@ import {
   RestaurantDashboard, RestaurantDonation, RestaurantProfile, PublicRestaurant, FoodItem,
   DonationSummary, CreateDonationPayload, RestaurantAnalytics,
 } from '../types';
+import type { ClaimStatus } from '../types';
 import {
   ApiRestaurantDonation, ApiRestaurantDashboard, ApiPublicRestaurant,
   ApiRestaurantDetail, ApiRestaurantMealSummary,
@@ -11,6 +12,36 @@ import {
 } from '../types/api';
 import { MOCK_RESTAURANT_DASHBOARD } from '../mock/restaurantData';
 import { api } from './api';
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const DAY_ABBR = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+const DAY_TO_INT: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+
+function daysToInts(days: string[]): number[] {
+  return days.map((d) => DAY_TO_INT[d] ?? -1).filter((n) => n >= 0);
+}
+
+function intsToDays(ints: number[]): string[] {
+  return ints.map((n) => DAY_ABBR[n]).filter(Boolean) as string[];
+}
+
+function stripSeconds(t: string | undefined): string | undefined {
+  if (!t) return undefined;
+  const parts = t.split(':');
+  return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : t;
+}
+
+function parseOpeningHours(raw: string): { opensAt?: string; closesAt?: string; openDays?: string[] } {
+  if (!raw) return {};
+  const [timePart, daysPart] = raw.split(' · ');
+  const times = (timePart ?? '').split('–');
+  return {
+    opensAt:  times[0]?.trim() || undefined,
+    closesAt: times[1]?.trim() || undefined,
+    openDays: daysPart ? daysPart.split(', ').map((d) => d.trim()).filter(Boolean) : undefined,
+  };
+}
 
 // ─── Mappers ─────────────────────────────────────────────────────────────────
 
@@ -38,14 +69,26 @@ function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
     sponsorInitials: d.sponsor_initials ?? null,
     noShowCount: d.no_show_count,
     expiredCount: d.expired_count,
+    estimatedReachLabel: d.estimated_reach_label,
+    isRepeating: d.recurrence_type != null
+      ? d.recurrence_type !== 'NONE'
+      : d.is_repeating,
+    repeatTimeLabel: d.recurrence_label ?? d.recurrence_schedule_summary ?? d.repeat_time_label,
+    nextPostLabel: d.next_post_label,
+    donationSourceNote: d.source?.detail || d.source_note || d.donation_source_note,
     claims: d.claims?.map((c) => ({
       id: c.id,
       receiverName: c.receiver_name,
       claimedAt: c.claimed_at,
-      status: c.status as 'CLAIMED',
+      collectedAt: c.collected_at,
+      status: c.status as ClaimStatus,
     })),
   };
 }
+
+export const pauseDonation = async (foodId: string): Promise<void> => {
+  await api.patch(`/restaurant/donations/${foodId}/deactivate/`);
+};
 
 function mapApiDashboard(d: ApiRestaurantDashboard): RestaurantDashboard {
   const groups = d.active_donations?.groups ?? [];
@@ -57,8 +100,13 @@ function mapApiDashboard(d: ApiRestaurantDashboard): RestaurantDashboard {
     ?? d.today_portions
     ?? todayListings.reduce((sum, item) => sum + item.quantityOriginal, 0);
 
+  const pastGroups = groups
+    .filter((g) => g.label !== 'Today' && g.label !== 'Yesterday')
+    .map((g) => ({ label: g.label, listings: g.items.map(mapApiDonation), fed: g.fed ?? 0 }));
+
   return {
     restaurantName:    d.restaurant_name ?? '',
+    photoUrl:          null,
     livesImpacted:     d.impact?.lives_impacted    ?? d.lives_impacted,
     donationsThisYear: d.impact?.donations_this_year ?? d.donations_this_year,
     growthPctThisWeek: d.impact?.week_over_week_pct  ?? d.growth_pct_this_week ?? 0,
@@ -72,6 +120,7 @@ function mapApiDashboard(d: ApiRestaurantDashboard): RestaurantDashboard {
     todayListings,
     yesterdayListings: (yesterdayGroup?.items ?? d.yesterday_listings ?? []).map(mapApiDonation),
     yesterdayFed:      yesterdayGroup?.fed ?? d.yesterday_fed ?? 0,
+    pastGroups,
   };
 }
 
@@ -141,6 +190,12 @@ function mapApiRestaurantDetail(d: ApiRestaurantDetail): PublicRestaurant {
   };
 }
 
+function formatDateLabel(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' });
+}
+
 // ─── Service functions ────────────────────────────────────────────────────────
 
 export const getApprovalStatus = async (): Promise<{
@@ -161,9 +216,12 @@ export const getApprovalStatus = async (): Promise<{
 
 
 export const getDashboard = async (): Promise<RestaurantDashboard> => {
-  const [dashRes, profileRes] = await Promise.all([
+  const [dashRes, profileRes, activeRes] = await Promise.all([
     api.get('/restaurant/dashboard/'),
     api.get('/restaurant/profile/'),
+    // Active donations endpoint returns ALL date groups (Today, 19 Jul, etc.)
+    // The dashboard endpoint only gives us Today — so we need this to build pastGroups.
+    api.get('/restaurant/donations/', { params: { status: 'active' } }).catch(() => null),
   ]);
   const raw: ApiRestaurantDashboard = dashRes.data.data;
   if ((raw.active_count ?? 0) > 0 || (raw.donations_this_year ?? 0) > 0) {
@@ -173,7 +231,47 @@ export const getDashboard = async (): Promise<RestaurantDashboard> => {
     ...raw,
     restaurant_name: profileRes.data.data.name as string,
   };
-  return mapApiDashboard(d);
+  const mapped = mapApiDashboard(d);
+  mapped.photoUrl = (profileRes.data.data.photo_url as string | null) ?? null;
+
+  if (activeRes) {
+    // Mirror DonationListScreen: flatten the response (ignore API group labels),
+    // then group client-side by pickup_start date — same logic as groupByDate().
+    const activeData = activeRes.data.data as Record<string, unknown>;
+    const rawGroups = activeData?.groups as Array<{ items?: ApiRestaurantDonation[]; donations?: ApiRestaurantDonation[] }> | undefined;
+    let flatItems: ApiRestaurantDonation[] = [];
+    if (Array.isArray(rawGroups) && rawGroups.length > 0) {
+      flatItems = rawGroups.flatMap((g) => g.items ?? g.donations ?? []);
+    } else {
+      const flat = (activeData?.donations ?? activeData?.items ?? activeData?.results) as ApiRestaurantDonation[] | undefined;
+      if (Array.isArray(flat)) flatItems = flat;
+    }
+
+    if (flatItems.length > 0) {
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const byDate = new Map<string, ApiRestaurantDonation[]>();
+      for (const item of flatItems) {
+        const date = (item.pickup_start ?? '').slice(0, 10);
+        if (date === todayIso) continue;
+        const arr = byDate.get(date) ?? [];
+        arr.push(item);
+        byDate.set(date, arr);
+      }
+      const existingLabels = new Set(mapped.pastGroups.map((g) => g.label));
+      for (const [date, items] of byDate.entries()) {
+        const label = formatDateLabel(date);
+        if (existingLabels.has(label)) continue;
+        mapped.pastGroups.push({
+          label,
+          listings: items.map(mapApiDonation),
+          fed: items.reduce((sum, i) => sum + (i.quantity_claimed ?? 0), 0),
+        });
+        existingLabels.add(label);
+      }
+    }
+  }
+
+  return mapped;
 };
 
 export const getDonations = async (): Promise<{
@@ -241,6 +339,46 @@ export const deleteDonation = async (foodId: string): Promise<void> => {
   await api.delete(`/restaurant/donations/${foodId}/`);
 };
 
+export const collectClaim = async (claimId: string): Promise<void> => {
+  await api.post(`/restaurant/claims/${claimId}/collect/`, {});
+};
+
+export const updateDonation = async (foodId: string, payload: CreateDonationPayload): Promise<RestaurantDonation> => {
+  let res;
+  if (payload.localPhotoUri) {
+    const filename = payload.localPhotoUri.split('/').pop() ?? 'photo.jpg';
+    const ext      = filename.split('.').pop()?.toLowerCase() ?? 'jpeg';
+    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+    const formData = new FormData();
+    formData.append('name',         payload.name);
+    formData.append('description',  payload.description ?? '');
+    formData.append('category',     payload.category);
+    formData.append('unit',         payload.unit);
+    formData.append('quantity',     String(payload.quantityOriginal));
+    formData.append('pickup_start', payload.pickupStart);
+    formData.append('pickup_end',   payload.pickupEnd);
+    if (payload.isRepeating != null) {
+      formData.append('recurrence_type', payload.isRepeating ? 'DAILY' : 'NONE');
+    }
+    formData.append('photo', { uri: payload.localPhotoUri, name: filename, type: mimeType } as unknown as Blob);
+    res = await api.patch(`/restaurant/donations/${foodId}/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  } else {
+    res = await api.patch(`/restaurant/donations/${foodId}/`, {
+      name:         payload.name,
+      description:  payload.description,
+      category:     payload.category,
+      unit:         payload.unit,
+      quantity:     payload.quantityOriginal,
+      pickup_start: payload.pickupStart,
+      pickup_end:   payload.pickupEnd,
+      ...(payload.isRepeating != null && { recurrence_type: payload.isRepeating ? 'DAILY' : 'NONE' }),
+    });
+  }
+  return mapApiDonation(res.data.data);
+};
+
 export const createDonation = async (payload: CreateDonationPayload): Promise<RestaurantDonation> => {
   let res;
   if (payload.localPhotoUri) {
@@ -255,6 +393,9 @@ export const createDonation = async (payload: CreateDonationPayload): Promise<Re
     formData.append('quantity',     String(payload.quantityOriginal));
     formData.append('pickup_start', payload.pickupStart);
     formData.append('pickup_end',   payload.pickupEnd);
+    if (payload.isRepeating != null) {
+      formData.append('recurrence_type', payload.isRepeating ? 'DAILY' : 'NONE');
+    }
     formData.append('photo', { uri: payload.localPhotoUri, name: filename, type: mimeType } as unknown as Blob);
     res = await api.post('/restaurant/donations/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -268,6 +409,7 @@ export const createDonation = async (payload: CreateDonationPayload): Promise<Re
       quantity:     payload.quantityOriginal,
       pickup_start: payload.pickupStart,
       pickup_end:   payload.pickupEnd,
+      ...(payload.isRepeating != null && { recurrence_type: payload.isRepeating ? 'DAILY' : 'NONE' }),
     });
   }
   _hasDonations = true;
@@ -335,11 +477,15 @@ export const getAnalytics = async (range: string = '30D'): Promise<RestaurantAna
 
 export interface UpdateRestaurantProfilePayload {
   name?:          string;
+  cuisineType?:   string;
   address?:       string;
   latitude?:      number;
   longitude?:     number;
   contactPhone?:  string;
   contactEmail?:  string;
+  opensAt?:       string;
+  closesAt?:      string;
+  openDays?:      string[];
   openingHours?:  string;
   about?:         string;
 }
@@ -364,16 +510,21 @@ export const updateRestaurantProfile = async (
 ): Promise<RestaurantProfile> => {
   const body: Record<string, unknown> = {};
   if (payload.name         != null) body.name          = payload.name;
+  if (payload.cuisineType  != null) body.cuisine       = payload.cuisineType;
   if (payload.address      != null) body.address        = payload.address;
   if (payload.latitude     != null) body.latitude       = payload.latitude;
   if (payload.longitude    != null) body.longitude      = payload.longitude;
   if (payload.contactPhone != null) body.contact_phone  = payload.contactPhone;
   if (payload.contactEmail != null) body.contact_email  = payload.contactEmail;
+  if (payload.opensAt      != null) body.opens_at       = payload.opensAt;
+  if (payload.closesAt     != null) body.closes_at      = payload.closesAt;
+  if (payload.openDays     != null) body.open_days      = daysToInts(payload.openDays);
   if (payload.openingHours != null) body.opening_hours  = payload.openingHours;
   if (payload.about        != null) body.about          = payload.about;
 
   const res = await api.patch('/restaurant/profile/', body);
   const p: ApiRestaurantProfile = res.data.data;
+  const parsedUpdate = parseOpeningHours(p.opening_hours ?? '');
   return {
     id:             p.id,
     name:           p.name,
@@ -385,7 +536,11 @@ export const updateRestaurantProfile = async (
     contactName:    p.contact_name,
     contactEmail:   p.contact_email,
     contactPhone:   p.contact_phone,
+    cuisineType:    p.cuisine,
     openingHours:   p.opening_hours ?? '',
+    opensAt:  stripSeconds(p.opens_at)  ?? parsedUpdate.opensAt,
+    closesAt: stripSeconds(p.closes_at) ?? parsedUpdate.closesAt,
+    openDays: p.open_days?.length ? intsToDays(p.open_days) : parsedUpdate.openDays,
     about:          p.about ?? '',
     photoUrl:       p.photo_url,
     isApproved:     p.is_approved,
@@ -446,6 +601,7 @@ export const deleteMenuPhoto = async (photoId: string): Promise<MenuPhoto[]> => 
 export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
   const res = await api.get('/restaurant/profile/');
   const p: ApiRestaurantProfile = res.data.data;
+  const parsed = parseOpeningHours(p.opening_hours ?? '');
   return {
     id: p.id,
     name: p.name,
@@ -457,7 +613,11 @@ export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
     contactName: p.contact_name,
     contactEmail: p.contact_email,
     contactPhone: p.contact_phone,
+    cuisineType: p.cuisine,
     openingHours: p.opening_hours ?? '',
+    opensAt:  p.opens_at  ?? parsed.opensAt,
+    closesAt: p.closes_at ?? parsed.closesAt,
+    openDays: p.open_days?.length ? intsToDays(p.open_days) : parsed.openDays,
     about: p.about ?? '',
     photoUrl: p.photo_url,
     isApproved: p.is_approved,
