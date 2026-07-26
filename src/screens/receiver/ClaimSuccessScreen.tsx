@@ -83,7 +83,6 @@ export default function ClaimSuccessScreen({ navigation, route }: Props) {
   const goReview = () =>
     navigation.navigate('WriteReview', {
       restaurantId: claim.restaurantId,
-      claimId: claim.claimId,
       restaurantName: claim.restaurantName,
       restaurantPhotoUrl: claim.restaurantPhotoUrl,
       foodName: claim.foodName,

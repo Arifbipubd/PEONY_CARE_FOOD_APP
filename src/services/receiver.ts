@@ -5,9 +5,11 @@
 import {
   FoodItem, DailyLimitStatus, Claim, ClaimHistory, ClaimHistoryItem,
   ReceiverProfile, LocationSettings, RecentPlace, ReviewPayload,
+  ReviewForm, Review, ReviewTag, ReportReason,
 } from '../types';
 import {
   ApiFoodItem, ApiFoodDetail, ApiDailyLimit, ApiClaimHistoryItem, ApiRecentPlace,
+  ApiReviewForm, ApiReview, ApiReviewTag, ApiReportReason,
 } from '../types/api';
 import { api } from './api';
 
@@ -202,12 +204,112 @@ export const getLocationSettings = async (): Promise<LocationSettings> => {
   };
 };
 
+function mapApiReviewTag(t: ApiReviewTag): ReviewTag {
+  return { id: t.id, code: t.code, label: t.label };
+}
+
+function mapApiReview(r: ApiReview): Review {
+  return {
+    id: r.id,
+    restaurantId: r.restaurant_id,
+    rating: r.rating,
+    ratingLabel: r.rating_label,
+    tagCodes: r.tag_codes,
+    tags: r.tags.map(mapApiReviewTag),
+    comment: r.comment,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+function mapApiReviewForm(d: ApiReviewForm): ReviewForm {
+  return {
+    restaurantId: d.restaurant_id,
+    restaurantName: d.restaurant_name,
+    latestFoodName: d.latest_food_name,
+    collectedAt: d.collected_at,
+    collectedLabel: d.collected_label,
+    contextSubtitle: d.context_subtitle,
+    canReview: d.can_review,
+    hasReview: d.has_review,
+    tags: d.tags.map(mapApiReviewTag),
+    review: d.review ? mapApiReview(d.review) : null,
+  };
+}
+
 export const submitReview = async (payload: ReviewPayload): Promise<void> => {
   await api.post(`/receiver/restaurants/${payload.restaurantId}/review/`, {
-    claim_id: payload.claimId,
     rating: payload.rating,
-    tags: payload.tags,
+    tag_codes: payload.tagCodes,
     comment: payload.comment || undefined,
+  });
+};
+
+export const getReview = async (restaurantId: string): Promise<ReviewForm> => {
+  const res = await api.get(`/receiver/restaurants/${restaurantId}/review/`);
+  return mapApiReviewForm(res.data.data as ApiReviewForm);
+};
+
+export const updateReview = async (
+  restaurantId: string,
+  payload: ReviewPayload,
+): Promise<Review> => {
+  const res = await api.patch(`/receiver/restaurants/${restaurantId}/review/`, {
+    rating: payload.rating,
+    tag_codes: payload.tagCodes,
+    comment: payload.comment || undefined,
+  });
+  return mapApiReview(res.data.data as ApiReview);
+};
+
+export const deleteReview = async (restaurantId: string): Promise<void> => {
+  await api.delete(`/receiver/restaurants/${restaurantId}/review/`);
+};
+
+export const updateLocationSettings = async (settings: {
+  searchRadiusKm?: number;
+  locationServicesEnabled?: boolean;
+  saveLocationHistory?: boolean;
+  latitude?: number;
+  longitude?: number;
+}): Promise<LocationSettings> => {
+  const body: Record<string, unknown> = {};
+  if (settings.searchRadiusKm          != null) body.browse_radius_km          = settings.searchRadiusKm;
+  if (settings.locationServicesEnabled  != null) body.location_services_enabled = settings.locationServicesEnabled;
+  if (settings.saveLocationHistory      != null) body.save_location_history     = settings.saveLocationHistory;
+  if (settings.latitude                 != null) body.latitude                  = settings.latitude;
+  if (settings.longitude                != null) body.longitude                 = settings.longitude;
+  const res = await api.patch('/receiver/settings/location/', body);
+  const s = res.data.data;
+  return {
+    searchRadiusKm: s.browse_radius_km,
+    radiusOptionsKm: s.radius_options_km,
+    locationServicesEnabled: s.location_services_enabled,
+    saveLocationHistory: s.save_location_history,
+    latitude: s.latitude,
+    longitude: s.longitude,
+    recentPlacesCount: s.recent_places_count,
+    recentPlaces: (s.recent_places as ApiRecentPlace[]).map(mapApiRecentPlace),
+  };
+};
+
+export const getReportReasons = async (): Promise<ReportReason[]> => {
+  const res = await api.get('/receiver/reports/reasons/');
+  return (res.data.data as ApiReportReason[]).map((r) => ({
+    id: r.id,
+    code: r.code,
+    label: r.label,
+  }));
+};
+
+export const reportFood = async (
+  foodId: string,
+  reasonId: string,
+  comment?: string,
+): Promise<void> => {
+  await api.post(`/receiver/donations/${foodId}/report/`, {
+    reason_id: reasonId,
+    comment: comment || undefined,
   });
 };
 

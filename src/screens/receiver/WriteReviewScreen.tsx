@@ -40,7 +40,7 @@ const TAGS = [
 const RATING_LABELS = ['No rating yet', 'Poor', 'Fair', 'Good', 'Very good', 'Excellent'];
 
 export default function WriteReviewScreen({ navigation, route }: Props) {
-  const { restaurantId, claimId, restaurantName, restaurantPhotoUrl, foodName } = route.params;
+  const { restaurantId, restaurantName, restaurantPhotoUrl, foodName } = route.params;
 
   const [rating, setRating] = useState(0);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -66,7 +66,7 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
     setSubmitting(true);
     setSubmitError('');
     try {
-      await submitReview({ restaurantId, claimId, rating, tags: selectedTags, comment: comment.trim() });
+      await submitReview({ restaurantId, rating, tagCodes: selectedTags, comment: comment.trim() });
       navigation.navigate('ReceiverHome');
     } catch (err: unknown) {
       if (err instanceof ApiError && err.code === 'NO_COLLECTED_CLAIM') {
@@ -76,7 +76,7 @@ export default function WriteReviewScreen({ navigation, route }: Props) {
       }
       setSubmitting(false);
     }
-  }, [restaurantId, rating, selectedTags, comment, claimId, navigation]);
+  }, [restaurantId, rating, selectedTags, comment, navigation]);
 
   const handleMaybeLater = useCallback(() => {
     navigation.navigate('ReceiverHome');

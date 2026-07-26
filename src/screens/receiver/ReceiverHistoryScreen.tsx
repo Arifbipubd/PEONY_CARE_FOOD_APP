@@ -137,7 +137,6 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
       screen: 'WriteReview',
       params: {
         restaurantId: item.restaurantId ?? '',
-        claimId: item.id,
         restaurantName: item.restaurantName,
         restaurantPhotoUrl: item.restaurantPhotoUrl ?? null,
         foodName: item.foodName,
