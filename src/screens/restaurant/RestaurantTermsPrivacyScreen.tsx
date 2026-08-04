@@ -31,9 +31,9 @@ type SectionData = {
 };
 
 const HERO_SUBTITLE: Record<Tab, string> = {
-  terms:   'How Peony Care works for restaurant partners.',
+  terms:   'How UDUFood works for restaurant partners.',
   privacy: 'What we collect and how we use it.',
-  cookies: 'How Peony Care handles your data and what you agree to.',
+  cookies: 'How UDUFood handles your data and what you agree to.',
 };
 
 const TERMS_SECTIONS: SectionData[] = [
@@ -53,11 +53,11 @@ const TERMS_SECTIONS: SectionData[] = [
   },
   {
     heading: '3. Sponsored donations',
-    body: "When an individual donor sponsors meals at your restaurant, you'll receive a notification listing the dishes and quantity. Prepare them as you would a regular order. Peony Care processes the payment from the donor and transfers it to your registered bank account.",
+    body: "When an individual donor sponsors meals at your restaurant, you'll receive a notification listing the dishes and quantity. Prepare them as you would a regular order. UDUFood processes the payment from the donor and transfers it to your registered bank account.",
   },
   {
     heading: '4. No-show claims',
-    body: "After a pickup window closes, mark any receiver who didn't collect as No-show in the app. The portion returns to the pool so others can claim it. Peony Care tracks no-show patterns to improve platform reliability.",
+    body: "After a pickup window closes, mark any receiver who didn't collect as No-show in the app. The portion returns to the pool so others can claim it. UDUFood tracks no-show patterns to improve platform reliability.",
   },
   {
     heading: '5. Account termination',
@@ -81,8 +81,8 @@ const PRIVACY_SECTIONS: SectionData[] = [
   {
     heading: 'PDPA compliance',
     bodyParts: [
-      { text: "Peony Care complies with Singapore's Personal Data Protection Act (PDPA). You can request to view, correct, or delete your business profile at any time by emailing " },
-      { text: 'privacy@peonycare.sg', accent: true },
+      { text: "UDUFood complies with Singapore's Personal Data Protection Act (PDPA). You can request to view, correct, or delete your business profile at any time by emailing " },
+      { text: 'privacy@udufood.sg', accent: true },
       { text: '.' },
     ],
   },
@@ -260,7 +260,7 @@ export default function RestaurantTermsPrivacyScreen({ navigation }: Props) {
 
         <View style={styles.footerCard}>
           <Text style={styles.footerNote}>Questions about your data? Email</Text>
-          <Text style={styles.footerEmail}>privacy@peonycare.sg.</Text>
+          <Text style={styles.footerEmail}>privacy@udufood.sg.</Text>
         </View>
 
       </ScrollView>

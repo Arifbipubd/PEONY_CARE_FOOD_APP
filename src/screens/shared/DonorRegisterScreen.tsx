@@ -68,7 +68,7 @@ export default function DonorRegisterScreen({ navigation }: Props) {
         enableOnAndroid
         extraScrollHeight={20}
         >
-          <LogoBadge size={80} />
+          <LogoBadge width={160} />
 
           <Text style={styles.title}>Become a donor</Text>
 

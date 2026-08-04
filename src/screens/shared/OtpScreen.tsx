@@ -145,7 +145,7 @@ export default function OtpScreen({ navigation, route }: Props) {
       </TouchableOpacity>
 
       <View style={styles.body}>
-        <LogoBadge size={80} />
+        <LogoBadge width={160} />
 
         <Text style={styles.title}>Check your inbox</Text>
         <Text style={styles.subtitle}>

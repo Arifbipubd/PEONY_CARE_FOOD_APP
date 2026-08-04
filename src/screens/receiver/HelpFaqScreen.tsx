@@ -147,7 +147,7 @@ export default function HelpFaqScreen({ navigation }: Props) {
           </View>
           <View style={styles.contactText}>
             <Text style={styles.contactTitle}>Email us</Text>
-            <Text style={styles.contactSub}>support@peonycare.sg</Text>
+            <Text style={styles.contactSub}>support@udufood.sg</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </View>
@@ -170,7 +170,7 @@ export default function HelpFaqScreen({ navigation }: Props) {
         <View style={styles.footerCard}>
           <Text style={styles.footerNote}>
             {'Still need help? Email '}
-            <Text style={styles.footerEmail}>support@peonycare.sg</Text>
+            <Text style={styles.footerEmail}>support@udufood.sg</Text>
             {' — we usually reply within 4 hours.'}
           </Text>
         </View>

@@ -53,7 +53,7 @@ export default function DeleteAccountScreen({ navigation }: Props) {
   }, [isConfirmed, loading, clearAuth]);
 
   const handleMailto = useCallback(() => {
-    Linking.openURL('mailto:support@peonycare.sg');
+    Linking.openURL('mailto:support@udufood.sg');
   }, []);
 
   return (
@@ -134,7 +134,7 @@ export default function DeleteAccountScreen({ navigation }: Props) {
           <Text style={styles.infoText}>
             Need help instead? Email{' '}
             <Text style={styles.infoEmail} onPress={handleMailto}>
-              support@peonycare.sg
+              support@udufood.sg
             </Text>
             {' '}— we may be able to fix the issue without deleting.
           </Text>

@@ -25,7 +25,7 @@ export default function OfflineErrorScreen({ navigation, onRetry }: Props) {
         </View>
         <Text style={styles.heading}>No connection</Text>
         <Text style={styles.body}>
-          We can't reach Peony Care servers right now.{'\n'}Check your Wi-Fi or mobile data and try again.
+          We can't reach UDUFood servers right now.{'\n'}Check your Wi-Fi or mobile data and try again.
         </Text>
       </View>
 

@@ -41,7 +41,7 @@ const FAQ_ITEMS: FaqEntry[] = [
     a: 'After the pickup window ends, tap No-show on the claim. The portion returns to the pool so others can claim it.',
   },
   {
-    q: 'Is there a fee to use Peony Care?',
+    q: 'Is there a fee to use UDUFood?',
     a: 'No. Posting donations and receiving sponsored orders is free for restaurant partners — forever.',
   },
 ];
@@ -127,7 +127,7 @@ export default function RestaurantHelpFaqScreen({ navigation }: Props) {
   }, []);
 
   const handleEmail = useCallback(() => {
-    Linking.openURL('mailto:partners@peonycare.sg');
+    Linking.openURL('mailto:partners@udufood.sg');
   }, []);
 
   return (
@@ -152,7 +152,7 @@ export default function RestaurantHelpFaqScreen({ navigation }: Props) {
           </View>
           <View style={styles.contactText}>
             <Text style={styles.contactTitle}>Email us</Text>
-            <Text style={styles.contactSub}>partners@peonycare.sg</Text>
+            <Text style={styles.contactSub}>partners@udufood.sg</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TouchableOpacity>
@@ -174,7 +174,7 @@ export default function RestaurantHelpFaqScreen({ navigation }: Props) {
           <Text style={styles.footerNote}>
             {'Still need help? Email '}
             <Text style={styles.footerEmail} onPress={handleEmail}>
-              partners@peonycare.sg
+              partners@udufood.sg
             </Text>
             {' — we usually reply within 4 hours.'}
           </Text>
