@@ -2,13 +2,15 @@
 
 import {
   RestaurantDashboard, RestaurantDonation, RestaurantProfile, PublicRestaurant, FoodItem,
-  DonationSummary, CreateDonationPayload, RestaurantAnalytics,
+  DonationSummary, CreateDonationPayload, RestaurantAnalytics, RestaurantClaim,
+  ClaimReportContext, LocationResult, LocationSearchResponse,
 } from '../types';
 import type { ClaimStatus } from '../types';
 import {
   ApiRestaurantDonation, ApiRestaurantDashboard, ApiPublicRestaurant,
   ApiRestaurantDetail, ApiRestaurantMealSummary,
-  ApiRestaurantProfile,
+  ApiRestaurantProfile, ApiRestaurantClaim, ApiClaimReportContext,
+  ApiLocationResult, ApiLocationSearchResponse,
 } from '../types/api';
 import { MOCK_RESTAURANT_DASHBOARD } from '../mock/restaurantData';
 import { api, logApiCatch } from './api';
@@ -91,7 +93,7 @@ function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
 }
 
 export const pauseDonation = async (foodId: string): Promise<void> => {
-  await api.patch(`/restaurant/donations/${foodId}/deactivate/`);
+  await api.post(`/restaurant/donations/${foodId}/close/`);
 };
 
 function mapApiDashboard(d: ApiRestaurantDashboard): RestaurantDashboard {
@@ -349,15 +351,8 @@ export const getDonationDetail = async (foodId: string): Promise<RestaurantDonat
 };
 
 export const reactivateDonation = async (foodId: string): Promise<RestaurantDonation> => {
-  logRestaurant('reactivateDonation → request', { foodId });
-  try {
-    const res = await api.patch(`/restaurant/donations/${foodId}/reactivate/`);
-    logRestaurant('reactivateDonation ← response', { status: res.status, data: res.data });
-    return mapApiDonation(res.data.data);
-  } catch (err) {
-    logApiCatch('restaurant.reactivateDonation', err);
-    throw err;
-  }
+  const res = await api.post(`/restaurant/donations/${foodId}/reactivate/`);
+  return mapApiDonation(res.data.data);
 };
 
 export const deleteDonation = async (foodId: string): Promise<void> => {
@@ -369,6 +364,109 @@ export const deleteDonation = async (foodId: string): Promise<void> => {
     logApiCatch('restaurant.deleteDonation', err);
     throw err;
   }
+};
+
+function mapApiRestaurantClaim(c: ApiRestaurantClaim): RestaurantClaim {
+  return {
+    id: c.id,
+    receiverName: c.receiver_name,
+    receiverInitials: c.receiver_initials,
+    foodId: c.food_id,
+    foodName: c.food_name,
+    itemsLabel: c.items_label,
+    claimedAt: c.claimed_at,
+    collectedAt: c.collected_at,
+    collectedAtLabel: c.collected_at_label,
+    noShowAt: c.no_show_at,
+    pickupWindow: c.pickup_window,
+    pickupWindowShort: c.pickup_window_short,
+    status: c.status,
+    statusKey: c.status_key,
+    statusLabel: c.status_label,
+    canMarkCollected: c.can_mark_collected,
+    canMarkNoShow: c.can_mark_no_show,
+    canUndoNoShow: c.can_undo_no_show,
+  };
+}
+
+export const getClaimsForDonation = async (foodId: string): Promise<RestaurantClaim[]> => {
+  const res = await api.get(`/restaurant/donations/${foodId}/claims/`);
+  return (res.data.data as ApiRestaurantClaim[]).map(mapApiRestaurantClaim);
+};
+
+export const collectClaim = async (claimId: string): Promise<void> => {
+  await api.post(`/restaurant/claims/${claimId}/collect/`, {});
+};
+
+function mapApiLocationResult(d: ApiLocationResult): LocationResult {
+  return {
+    addressLine: d.address_line,
+    address: d.address,
+    postalCode: d.postal_code,
+    latitude: d.latitude,
+    longitude: d.longitude,
+    country: d.country,
+    subtitle: d.subtitle,
+    display: d.display,
+  };
+}
+
+export const searchLocation = async (q: string): Promise<LocationSearchResponse> => {
+  const res = await api.get('/restaurant/location/search/', { params: { q } });
+  const d: ApiLocationSearchResponse = res.data.data;
+  return {
+    query: d.query,
+    count: d.count,
+    results: d.results.map(mapApiLocationResult),
+  };
+};
+
+export const reverseGeocode = async (lat: number, lng: number): Promise<LocationResult> => {
+  const res = await api.get('/restaurant/location/reverse/', { params: { lat, lng } });
+  return mapApiLocationResult(res.data.data as ApiLocationResult);
+};
+
+export const confirmLocation = async (payload: {
+  address: string;
+  addressLine?: string;
+  postalCode?: string;
+  latitude: number;
+  longitude: number;
+}): Promise<LocationResult> => {
+  const res = await api.post('/restaurant/location/confirm/', {
+    address: payload.address,
+    address_line: payload.addressLine,
+    postal_code: payload.postalCode,
+    latitude: payload.latitude,
+    longitude: payload.longitude,
+  });
+  return mapApiLocationResult(res.data.data as ApiLocationResult);
+};
+
+export const getClaimReportContext = async (claimId: string): Promise<ClaimReportContext> => {
+  const res = await api.get(`/restaurant/claims/${claimId}/report/`);
+  const d: ApiClaimReportContext = res.data.data;
+  return {
+    claimId: d.claim_id,
+    receiverName: d.receiver_name,
+    receiverPhoneTail: d.receiver_phone_tail,
+    foodName: d.food_name,
+    pickupWindowShort: d.pickup_window_short,
+    contextLine: d.context_line,
+    footerNote: d.footer_note,
+    reasons: d.reasons.map((r) => ({ id: r.id, code: r.code, label: r.label })),
+  };
+};
+
+export const submitClaimReport = async (
+  claimId: string,
+  reasonId: string,
+  comment?: string,
+): Promise<void> => {
+  await api.post(`/restaurant/claims/${claimId}/report/`, {
+    reason_id: reasonId,
+    comment: comment || undefined,
+  });
 };
 
 export const updateDonation = async (foodId: string, payload: CreateDonationPayload): Promise<RestaurantDonation> => {
@@ -444,23 +542,34 @@ export const createDonation = async (payload: CreateDonationPayload): Promise<Re
   return mapApiDonation(res.data.data);
 };
 
-export const getTodaysClaims = async (): Promise<{ total: number; claims: RestaurantDonation[] }> => {
-  // Still mock — log clearly so it isn't mistaken for a live API call.
-  logRestaurant('getTodaysClaims → MOCK (API not wired yet)');
-  await new Promise((r) => setTimeout(r, 400));
-  const result = {
-    total: MOCK_RESTAURANT_DASHBOARD.claimed_today,
-    claims: MOCK_RESTAURANT_DASHBOARD.today_listings.map(mapApiDonation),
+export interface TodaysClaimsData {
+  total:     number;
+  pending:   number;
+  collected: number;
+  noShow:    number;
+  claims:    RestaurantClaim[];
+}
+
+export const getTodaysClaims = async (): Promise<TodaysClaimsData> => {
+  const res  = await api.get('/restaurant/claims/today/');
+  const raw  = res.data.data;
+  const arr  = Array.isArray(raw) ? raw : (raw.claims ?? raw.results ?? []);
+  const claims = (arr as ApiRestaurantClaim[]).map(mapApiRestaurantClaim);
+  const counts = raw.counts ?? {};
+  const pending   = (counts.pending   as number | undefined) ?? claims.filter(c => (c.statusKey ?? c.status) === 'CLAIMED').length;
+  const collected = (counts.collected as number | undefined) ?? claims.filter(c => (c.statusKey ?? c.status) === 'COLLECTED').length;
+  const noShow    = (counts.no_show   as number | undefined) ?? claims.filter(c => (c.statusKey ?? c.status) === 'NO_SHOW').length;
+  return {
+    total:     (raw.total as number | undefined) ?? claims.length,
+    pending,
+    collected,
+    noShow,
+    claims,
   };
-  logRestaurant('getTodaysClaims ← MOCK response', {
-    total: result.total,
-    claimsCount: result.claims.length,
-  });
-  return result;
-  /* REAL API:
-  const res = await api.get('/restaurant/claims/today/');
-  return res.data.data;
-  */
+};
+
+export const markNoShow = async (claimId: string): Promise<void> => {
+  await api.post(`/restaurant/claims/${claimId}/no-show/`, {});
 };
 
 export const getAnalytics = async (range: string = '30D'): Promise<RestaurantAnalytics> => {
@@ -627,6 +736,13 @@ export const uploadMenuPhotos = async (
 
 export const deleteMenuPhoto = async (photoId: string): Promise<MenuPhoto[]> => {
   const res = await api.delete(`/restaurant/menu-photos/${photoId}/`);
+  const photos = mapMenuPhotos(res.data.data);
+  _menuPhotoCount = photos.length;
+  return photos;
+};
+
+export const reorderMenuPhotos = async (photoIds: string[]): Promise<MenuPhoto[]> => {
+  const res = await api.patch('/restaurant/menu-photos/reorder/', { photo_ids: photoIds });
   const photos = mapMenuPhotos(res.data.data);
   _menuPhotoCount = photos.length;
   return photos;

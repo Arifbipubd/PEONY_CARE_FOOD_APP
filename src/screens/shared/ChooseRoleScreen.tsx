@@ -47,7 +47,7 @@ export default function ChooseRoleScreen({ navigation }: Props) {
       </TouchableOpacity>
 
       <View style={styles.body}>
-        <Text style={styles.title}>Join Peony Care</Text>
+        <Text style={styles.title}>Join UDUFood</Text>
         <Text style={styles.subtitle}>Choose how you'd like to contribute</Text>
 
         <View style={styles.cards}>

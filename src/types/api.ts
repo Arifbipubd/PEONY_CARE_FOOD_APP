@@ -70,11 +70,16 @@ export interface ApiClaimHistoryItem {
   id: string;
   food_name: string;
   restaurant_name: string;
-  photo_url?: string;
+  restaurant_id?: string;
+  restaurant_photo_url?: string | null;
+  photo_url?: string | null;
   sponsor_display_name?: string | null;
   status: string;
   claimed_at: string;
   pickup_window: string;
+  rating?: number | null;
+  has_review?: boolean;
+  can_review?: boolean;
 }
 
 export interface ApiClaimHistory {
@@ -355,4 +360,100 @@ export interface ApiAuthTokens {
   access: string;
   refresh: string;
   user: ApiAuthUser;
+}
+
+export interface ApiLocationResult {
+  address_line: string;
+  address: string;
+  postal_code: string;
+  latitude: number;
+  longitude: number;
+  country?: string;
+  subtitle?: string;
+  display?: string;
+  snapped?: boolean;
+  distance_m?: number | null;
+}
+
+export interface ApiLocationSearchResponse {
+  query: string;
+  count: number;
+  results: ApiLocationResult[];
+}
+
+export interface ApiClaimReportReason {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface ApiClaimReportContext {
+  claim_id: string;
+  receiver_name: string;
+  receiver_phone_tail: string;
+  food_name: string;
+  pickup_window_short: string;
+  context_line: string;
+  footer_note: string;
+  reasons: ApiClaimReportReason[];
+}
+
+export interface ApiRestaurantClaim {
+  id: string;
+  receiver_name: string;
+  receiver_initials?: string;
+  food_id?: string;
+  food_name: string;
+  items_label?: string;
+  claimed_at: string;
+  collected_at: string | null;
+  collected_at_label?: string | null;
+  no_show_at?: string | null;
+  pickup_window: string;
+  pickup_window_short?: string;
+  status: string;
+  status_key?: string;
+  status_label: string;
+  can_mark_collected: boolean;
+  can_mark_no_show?: boolean;
+  can_undo_no_show?: boolean;
+}
+
+export interface ApiReportReason {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface ApiReviewTag {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface ApiReview {
+  id: string;
+  restaurant_id: string;
+  rating: number;
+  rating_label: string | null;
+  tag_codes: string[];
+  tags: ApiReviewTag[];
+  comment: string;
+  created_at: string;
+  updated_at: string;
+  message?: string;
+  success_message?: string;
+}
+
+export interface ApiReviewForm {
+  restaurant_id: string;
+  restaurant_name: string;
+  latest_food_name?: string;
+  collected_at: string | null;
+  collected_label: string;
+  context_subtitle: string;
+  can_review: boolean;
+  has_review: boolean;
+  tags: ApiReviewTag[];
+  review: ApiReview | null;
 }

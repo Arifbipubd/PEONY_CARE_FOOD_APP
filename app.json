@@ -1,17 +1,17 @@
  {
   "expo": {
-    "name": "Peony Care Food App",
-    "slug": "peony-care-food-app",
+    "name": "UDUFood",
+    "slug": "udufood",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.peonycare.foodapp"
+      "bundleIdentifier": "com.udufood.app"
     },
     "android": {
-      "package": "com.peonycare.foodapp",
+      "package": "com.udufood.app",
       "adaptiveIcon": {
         "backgroundColor": "#D31B1B",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -32,13 +32,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Peony Care needs camera access to scan claim QR codes."
+          "cameraPermission": "UDUFood needs camera access to scan claim QR codes."
         }
       ],
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Peony Care needs your location to show food donations near you."
+          "locationAlwaysAndWhenInUsePermission": "UDUFood needs your location to show food donations near you."
         }
       ],
       [

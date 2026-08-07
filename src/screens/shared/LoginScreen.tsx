@@ -86,7 +86,7 @@ export default function LoginScreen({ navigation }: Props) {
       >
         <View style={styles.body}>
           <View style={styles.logoWrap}>
-            <LogoBadge size={80} />
+            <LogoBadge width={160} />
           </View>
 
           <Text style={styles.title}>Welcome back</Text>

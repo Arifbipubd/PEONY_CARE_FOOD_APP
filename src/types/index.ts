@@ -102,10 +102,47 @@ export interface Claim {
   };
 }
 
-export interface ReviewPayload {
-  claimId: string;
+export interface ReportReason {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface ReviewTag {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface Review {
+  id: string;
+  restaurantId: string;
   rating: number;
-  tags: string[];
+  ratingLabel: string | null;
+  tagCodes: string[];
+  tags: ReviewTag[];
+  comment: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewForm {
+  restaurantId: string;
+  restaurantName: string;
+  latestFoodName?: string;
+  collectedAt: string | null;
+  collectedLabel: string;
+  contextSubtitle: string;
+  canReview: boolean;
+  hasReview: boolean;
+  tags: ReviewTag[];
+  review: Review | null;
+}
+
+export interface ReviewPayload {
+  restaurantId: string;
+  rating: number;
+  tagCodes: string[];
   comment: string;
 }
 
@@ -113,11 +150,14 @@ export interface ClaimHistoryItem {
   id: string;
   foodName: string;
   restaurantName: string;
+  restaurantId?: string;
+  restaurantPhotoUrl?: string | null;
   photoUrl?: string;
   sponsorDisplayName?: string | null;
   status: ClaimHistoryItemStatus;
   claimedAt: string;
   pickupWindow: string;
+  rating?: number;
 }
 
 export interface ClaimHistory {
@@ -216,6 +256,61 @@ export interface RestaurantProfile {
   reviewCount: number;
 }
 
+export interface LocationResult {
+  addressLine: string;
+  address: string;
+  postalCode: string;
+  latitude: number;
+  longitude: number;
+  country?: string;
+  subtitle?: string;
+  display?: string;
+}
+
+export interface LocationSearchResponse {
+  query: string;
+  count: number;
+  results: LocationResult[];
+}
+
+export interface ClaimReportReason {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface ClaimReportContext {
+  claimId: string;
+  receiverName: string;
+  receiverPhoneTail: string;
+  foodName: string;
+  pickupWindowShort: string;
+  contextLine: string;
+  footerNote: string;
+  reasons: ClaimReportReason[];
+}
+
+export interface RestaurantClaim {
+  id: string;
+  receiverName: string;
+  receiverInitials?: string;
+  foodId?: string;
+  foodName: string;
+  itemsLabel?: string;
+  claimedAt: string;
+  collectedAt: string | null;
+  collectedAtLabel?: string | null;
+  noShowAt?: string | null;
+  pickupWindow: string;
+  pickupWindowShort?: string;
+  status: string;
+  statusKey?: string;
+  statusLabel: string;
+  canMarkCollected: boolean;
+  canMarkNoShow?: boolean;
+  canUndoNoShow?: boolean;
+}
+
 // RestaurantDonation is a food listing from the restaurant's own management view.
 // Includes list_status, food_qr_data — NOT part of receiver view.
 export interface RestaurantDonation {
@@ -251,7 +346,7 @@ export interface RestaurantDonation {
     receiverName: string;
     claimedAt: string;
     collectedAt?: string;
-    status: ClaimStatus;
+    status: string;
   }>;
 }
 

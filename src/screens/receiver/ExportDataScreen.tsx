@@ -60,7 +60,7 @@ export default function ExportDataScreen({ navigation }: Props) {
         <Text style={styles.title}>Download my data</Text>
 
         <Text style={styles.desc}>
-          Get a copy of everything Peony Care holds about you, as required by Singapore's PDPA.
+          Get a copy of everything UDUFood holds about you, as required by Singapore's PDPA.
         </Text>
 
         <View style={styles.exportSection}>

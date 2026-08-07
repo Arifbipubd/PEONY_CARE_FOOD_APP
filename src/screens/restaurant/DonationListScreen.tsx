@@ -9,12 +9,14 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getDonations, reactivateDonation, deleteDonation } from '../../services/restaurant';
+import { ApiError } from '../../services/api';
 import { RestaurantDonation, DonationSummary } from '../../types';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import PostFAB from '../../components/PostFAB';
@@ -337,6 +339,11 @@ export default function DonationListScreen({ navigation, route }: Props) {
         : prev,
       );
       getDonations().then((result) => setActive(result.active));
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError
+        ? err.message
+        : 'Could not reactivate. Please try again.';
+      Alert.alert('Cannot reactivate', msg);
     } finally {
       setActionLoading((prev) => { const s = new Set(prev); s.delete(id); return s; });
     }

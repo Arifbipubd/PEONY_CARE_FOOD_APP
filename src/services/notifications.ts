@@ -1,10 +1,10 @@
 // Notifications service — list, mark read, mark all read.
-// MOCK MODE ACTIVE — real API calls are commented out below each function.
+// MOCK MODE ACTIVE for list/read — backend only exposes unread-count so far.
 
 import { AppNotification } from '../types';
 import { ApiNotification } from '../types/api';
 import { MOCK_NOTIFICATIONS } from '../mock/notifications';
-// import { api } from './api';
+import { api } from './api';
 
 function mapApiNotification(d: ApiNotification): AppNotification {
   return {
@@ -40,4 +40,9 @@ export const markAllRead = async (): Promise<void> => {
   /* REAL API:
   await api.post('/notifications/read-all/');
   */
+};
+
+export const getUnreadCount = async (): Promise<number> => {
+  const res = await api.get('/notifications/unread-count/');
+  return (res.data.data.unread_count as number) ?? 0;
 };
