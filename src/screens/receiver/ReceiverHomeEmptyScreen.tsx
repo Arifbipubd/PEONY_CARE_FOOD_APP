@@ -97,9 +97,8 @@ function ReceiverHomeEmptyScreen({
           </Text>
         </View>
 
-        {/* HOW PEONY CARE WORKS */}
         <View style={styles.stepsSection}>
-          <Text style={styles.stepsLabel}>HOW PEONY CARE WORKS</Text>
+          <Text style={styles.stepsLabel}>HOW UDUFOOD WORKS</Text>
           {STEPS.map((step, idx) => (
             <View key={step.n}>
               <View style={styles.stepRow}>

@@ -255,7 +255,6 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const fetchData = useCallback((overrideLat?: number, overrideLng?: number) => {
     const useLat = overrideLat ?? lat ?? undefined;
     const useLng = overrideLng ?? lng ?? undefined;
-    console.log('[Home] fetchData lat:', useLat, 'lng:', useLng);
     return Promise.allSettled([
       browseFood(useLat, useLng),
       getDailyLimit(),
@@ -263,14 +262,14 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
       getReceiverProfile(),
       getNotifications(),
     ]).then(([items, limit, rests, profile, notifications]) => {
-      console.log('[Home] foods:', items.status, items.status === 'fulfilled' ? items.value.length : (items as PromiseRejectedResult).reason);
-      console.log('[Home] restaurants:', rests.status, rests.status === 'fulfilled' ? rests.value.length : (rests as PromiseRejectedResult).reason);
       if (items.status === 'fulfilled')         setFoods(items.value);
       if (limit.status === 'fulfilled')         setDailyLimit(limit.value);
       if (rests.status === 'fulfilled')         setRestaurants(rests.value);
       if (profile.status === 'fulfilled') {
-        console.log('[Home] profile', profile.value);
         setProfile({ displayName: profile.value.displayName });
+        if (profile.value.browseRadiusKm) {
+          setFilters((f) => ({ ...f, maxDistanceKm: profile.value.browseRadiusKm! }));
+        }
       }
       if (notifications.status === 'fulfilled') setNotifications(notifications.value);
       setLoading(false);

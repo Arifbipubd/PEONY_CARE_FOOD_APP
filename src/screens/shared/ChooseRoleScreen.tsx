@@ -20,15 +20,6 @@ const ROLES = [
     screen: 'RestaurantRegister' as const,
   },
   {
-    key: 'DONOR' as const,
-    title: 'Individual Donor',
-    subtitle: 'Sponsor meals for those in need',
-    iconBg: colors.goldLight,
-    iconColor: colors.goldDark,
-    renderIcon: (color: string) => <MaterialCommunityIcons name="hand-heart" size={24} color={color} />,
-    screen: 'DonorRegister' as const,
-  },
-  {
     key: 'RECEIVER' as const,
     title: 'Receiver',
     subtitle: 'Find complimentary food near you',

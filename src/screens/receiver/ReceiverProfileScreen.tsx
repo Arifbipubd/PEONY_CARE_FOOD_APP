@@ -178,7 +178,7 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
         setProfile(p);
         storeSetProfile({ photoUrl: p.photoUrl, displayName: p.displayName });
       })
-      .catch((e) => { console.log('[ReceiverProfile] error', e); }),
+      .catch(() => {}),
     [storeSetProfile],
   );
 
@@ -229,7 +229,7 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
         iconBg: colors.avatarBg,
         iconColor: colors.accentPrimary,
         label: 'Location settings',
-        subtitle: '5 km radius · Joo Chiat',
+        subtitle: `${effectiveProfile.browseRadiusKm ?? 5} km radius`,
         onPress: () => navigation.navigate('LocationSettings'),
       },
       {
@@ -258,7 +258,7 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
         onPress: () => navigation.navigate('DeleteAccount'),
       },
     ],
-    [navigation],
+    [navigation, effectiveProfile],
   );
 
   const supportRows = useMemo<MenuRow[]>(

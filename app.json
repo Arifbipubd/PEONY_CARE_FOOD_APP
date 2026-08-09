@@ -1,17 +1,23 @@
  {
   "expo": {
     "name": "UDUFood",
-    "slug": "udufood",
+    "slug": "peony-care-food-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#D31B1B"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.udufood.app"
     },
     "android": {
       "package": "com.udufood.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#D31B1B",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -20,8 +26,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.CAMERA"
       ]
     },
     "web": {
@@ -45,7 +50,8 @@
         "expo-build-properties",
         {
           "android": {
-            "usesCleartextTraffic": true
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           }
         }
       ]

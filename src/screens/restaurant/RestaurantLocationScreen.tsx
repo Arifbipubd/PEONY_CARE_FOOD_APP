@@ -118,8 +118,8 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
     if (query.trim().length < 3) { setSuggestions([]); return; }
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=0`,
-        { headers: { 'User-Agent': 'PeonyCareFoodApp/1.0' } },
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=0&accept-language=en`,
+        { headers: { 'User-Agent': 'PeonyCareFoodApp/1.0', 'Accept-Language': 'en' } },
       );
       const data: NominatimResult[] = await res.json();
       setSuggestions(data);
@@ -129,18 +129,23 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
   }, []);
 
   const handleSelectSuggestion = useCallback((item: NominatimResult) => {
+    Keyboard.dismiss();
     const latitude  = parseFloat(item.lat);
     const longitude = parseFloat(item.lon);
-    const newRegion = { ...DELTA, latitude, longitude };
-    setPin({ latitude, longitude });
-    setRegion(newRegion);
-    mapRef.current?.animateToRegion(newRegion, 500);
-    reverseGeocode(latitude, longitude);
-    setQuery(item.display_name.split(',')[0]);
+    const parts     = item.display_name.split(',').map(p => p.trim());
+    const placeName = parts[0];
+    const cityName  = parts.length > 2 ? parts[parts.length - 3] : (parts[1] ?? '');
+    setQuery(placeName);
+    setAddress(placeName);
+    setCity(cityName);
+    setPostal('');
     setSuggestions([]);
     setNotFound(false);
-    Keyboard.dismiss();
-  }, [reverseGeocode]);
+    setPin({ latitude, longitude });
+    const newRegion = { ...DELTA, latitude, longitude };
+    setRegion(newRegion);
+    mapRef.current?.animateToRegion(newRegion, 500);
+  }, []);
 
   const handleDragEnd = useCallback((e: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
     const { latitude, longitude } = e.nativeEvent.coordinate;
@@ -242,7 +247,7 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
               setQuery(t);
               setNotFound(false);
               if (debounceRef.current) clearTimeout(debounceRef.current);
-              debounceRef.current = setTimeout(() => fetchSuggestions(t), 400);
+              debounceRef.current = setTimeout(() => fetchSuggestions(t), 1000);
             }}
             onSubmitEditing={handleSearch}
             returnKeyType="search"
@@ -347,8 +352,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.textPrimary,
     alignItems: 'center',
     justifyContent: 'center',
   },
