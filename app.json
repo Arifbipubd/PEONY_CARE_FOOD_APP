@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#D31B1B"
+      "backgroundColor": "#C8102E"
     },
     "ios": {
       "supportsTablet": false,
@@ -19,7 +19,7 @@
       "package": "com.udufood.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#D31B1B",
+        "backgroundColor": "#C8102E",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
