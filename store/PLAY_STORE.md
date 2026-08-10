@@ -8,12 +8,13 @@ Use this when filling Play Console. Keep in sync with `src/constants/storeReview
 
 Deploy the HTML files in this folder:
 
-| File | Publish at |
-|------|------------|
-| `legal/privacy.html` | `https://udufood.com/privacy` |
-| `legal/terms.html` | `https://udufood.com/terms` |
+| Page | Live URL |
+|------|----------|
+| Privacy | https://api.udufood.com/privacy |
+| Terms | https://api.udufood.com/terms |
 
-Play Console → App content → Privacy policy → paste the privacy URL.
+Play Console → App content → Privacy policy → paste `https://api.udufood.com/privacy`.  
+Contact email everywhere: `support@udufood.com`.
 
 ---
 

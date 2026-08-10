@@ -55,7 +55,7 @@ const TERMS_SECTIONS: SectionData[] = [
   },
   {
     heading: '3. Sponsored donations',
-    body: "When an individual donor sponsors meals at your restaurant, you'll receive a notification listing the dishes and quantity. Prepare them as you would a regular order. UDUFood processes the payment from the donor and transfers it to your registered bank account.",
+    body: "Where sponsored or donor-supported listings are available, you may receive a notification with the dish list and quantity. Prepare them as described in the app — receivers claim them through UDUFood. We do not process card payments in the app today.",
   },
   {
     heading: '4. No-show claims',
@@ -63,7 +63,7 @@ const TERMS_SECTIONS: SectionData[] = [
   },
   {
     heading: '5. Account termination',
-    body: 'We may suspend or terminate restaurant accounts for false or misleading listings, harassment of receivers, repeated failure to fulfil posted donations, or fraudulent sponsored-order activity.',
+    body: 'We may suspend or terminate restaurant accounts for false or misleading listings, harassment of receivers, repeated failure to fulfil posted donations, or abuse of the platform.',
   },
 ];
 
@@ -73,12 +73,12 @@ const PRIVACY_SECTIONS: SectionData[] = [
     bullets: [
       'Business: restaurant name, UEN, address, opening hours.',
       'Contact: owner/manager name, business email, business mobile.',
-      'Operations: donations posted, claims received, sponsored orders, payout history.',
+      'Operations: donations posted, claims received, and related restaurant activity.',
     ],
   },
   {
     heading: 'How we use it',
-    body: "We use your data to list your restaurant on the platform for receivers to find, manage claims and sponsored orders, and pay you for sponsored donations. We don't sell your data — ever.",
+    body: "We use your data to list your restaurant on the platform for receivers to find and to manage claims and donation listings. We don't sell your data — ever.",
   },
   {
     heading: 'PDPA compliance',
@@ -92,26 +92,25 @@ const PRIVACY_SECTIONS: SectionData[] = [
     heading: "What's public vs private",
     bullets: [
       'Public: your restaurant name, address, hours, and dish photos — visible to all receivers and donors.',
-      'Private: your contact email, contact mobile, UEN, and payout records — never shown to other users.',
+      'Private: your contact email, contact mobile, and UEN — never shown to other users.',
     ],
   },
   {
     heading: 'How long we keep it',
-    body: 'Business data is retained while your restaurant account is open. After deletion: contact details removed within 30 days; UEN and tax-related records retained 7 years per ACRA and IRAS requirements; payout records retained 7 years.',
+    body: 'Business data is retained while your restaurant account is open. After deletion: contact details removed within 30 days; UEN and related business records may be retained where required for legal or regulatory purposes.',
   },
   {
     heading: 'Service providers',
     body: 'We use trusted third parties to operate the platform:',
     bullets: [
       'Twilio — SMS delivery for OTP codes.',
-      'Stripe — payout processing for sponsored donations.',
       'Cloudflare — security and DDoS protection.',
       'Iconify — icon assets (no personal data).',
     ],
   },
   {
     heading: 'Where your data lives',
-    body: 'Business data is stored in Singapore on AWS ap-southeast-1. Payment data is processed by Stripe (Singapore region).',
+    body: 'Business data is stored on AWS. We do not collect or process payment card data in the app.',
   },
   {
     heading: 'Age requirement',
@@ -130,7 +129,7 @@ const COOKIES_SECTIONS: SectionData[] = [
   },
   {
     heading: 'Third parties',
-    body: 'We use Cloudflare for security and Stripe for payment processing. No tracking pixels, no ad networks.',
+    body: 'We use Cloudflare for security. No tracking pixels, no ad networks.',
   },
 ];
 
