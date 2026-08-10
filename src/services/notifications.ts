@@ -1,9 +1,7 @@
-// Notifications service — list, mark read, mark all read.
-// MOCK MODE ACTIVE for list/read — backend only exposes unread-count so far.
+// Notifications service — list, mark read, mark all read, unread count.
 
 import { AppNotification } from '../types';
 import { ApiNotification } from '../types/api';
-import { MOCK_NOTIFICATIONS } from '../mock/notifications';
 import { api } from './api';
 
 function mapApiNotification(d: ApiNotification): AppNotification {
@@ -19,30 +17,37 @@ function mapApiNotification(d: ApiNotification): AppNotification {
 }
 
 export const getNotifications = async (): Promise<AppNotification[]> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 300));
-  return MOCK_NOTIFICATIONS.results.map(mapApiNotification);
-  /* REAL API:
-  const res = await api.get('/notifications/');
-  return (res.data.data.results as ApiNotification[]).map(mapApiNotification);
-  */
+  try {
+    const res = await api.get('/notifications/');
+    const results = (res.data?.data?.results ?? res.data?.results ?? []) as ApiNotification[];
+    return results.map(mapApiNotification);
+  } catch {
+    // Endpoint may not be fully live yet — fail soft so Alerts screen still opens.
+    return [];
+  }
 };
 
-export const markRead = async (_id: string): Promise<void> => {
-  // MOCK: no-op
-  /* REAL API:
-  await api.patch(`/notifications/${_id}/read/`);
-  */
+export const markRead = async (id: string): Promise<void> => {
+  try {
+    await api.patch(`/notifications/${id}/read/`);
+  } catch {
+    // no-op if backend route is unavailable
+  }
 };
 
 export const markAllRead = async (): Promise<void> => {
-  // MOCK: no-op
-  /* REAL API:
-  await api.post('/notifications/read-all/');
-  */
+  try {
+    await api.post('/notifications/read-all/');
+  } catch {
+    // no-op if backend route is unavailable
+  }
 };
 
 export const getUnreadCount = async (): Promise<number> => {
-  const res = await api.get('/notifications/unread-count/');
-  return (res.data.data.unread_count as number) ?? 0;
+  try {
+    const res = await api.get('/notifications/unread-count/');
+    return (res.data.data.unread_count as number) ?? 0;
+  } catch {
+    return 0;
+  }
 };

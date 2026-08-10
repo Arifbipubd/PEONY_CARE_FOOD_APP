@@ -54,7 +54,7 @@ export default function RestaurantDeleteAccountScreen({ navigation }: Props) {
   }, [isConfirmed, loading, clearAuth]);
 
   const handleMailto = useCallback(() => {
-    Linking.openURL('mailto:partners@udufood.sg');
+    Linking.openURL('mailto:support@udufood.com');
   }, []);
 
   return (
@@ -135,7 +135,7 @@ export default function RestaurantDeleteAccountScreen({ navigation }: Props) {
           <Text style={styles.infoText}>
             Need help instead? Email{' '}
             <Text style={styles.infoEmail} onPress={handleMailto}>
-              partners@udufood.sg
+              support@udufood.com
             </Text>
             {' '}— we may be able to fix the issue without deleting.
           </Text>

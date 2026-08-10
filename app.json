@@ -1,7 +1,7 @@
  {
   "expo": {
     "name": "UDUFood",
-    "slug": "peony-care-food-app",
+    "slug": "udufood",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -25,7 +25,13 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_BACKGROUND_LOCATION"
       ]
     },
     "web": {
@@ -36,13 +42,19 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "UDUFood needs camera access to scan claim QR codes."
+          "cameraPermission": "UDUFood needs camera access to scan claim QR codes and take profile photos.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ],
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "UDUFood needs your location to show food donations near you."
+          "locationWhenInUsePermission": "UDUFood needs your location to show complementary meals near you and confirm you are close enough to claim.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
         }
       ],
       [

@@ -35,17 +35,18 @@ Before implementing any feature, briefly note which of these optimisations apply
 
 ## Project Overview
 
-**Peony Care** — complementary meal donation app for Singaporeans in need. **Never use the term "free meal"** — always use "complementary meal" throughout all UI text, copy, comments, and documentation.  
-**Three roles:** Receiver (claims food) · Restaurant (posts listings) · Donor (sponsors — P2)  
-**Stack:** React Native + Expo · TypeScript strict · Android  
-**Backend:** Separate Django REST project (not in this repo). All screens use mock/dummy data now. Real API is connected later by swapping service functions.
+**UDUFood** — complementary meal donation app for Singaporeans in need. **Never use the term "free meal"** — always use "complementary meal" throughout all UI text, copy, comments, and documentation. 
+**Brand name:** Always **UDUFood** in UI, copy, comments, and docs (not “Peony Care”).
+**Three roles:** Receiver (claims food) · Restaurant (posts listings) · Donor (sponsors — P2) 
+**Stack:** React Native + Expo · TypeScript strict · Android 
+**Backend:** Separate Django REST project (not in this repo). Core services call the live API; some Donor edges may still use mocks until P2.
 
 ---
 
 ## Repository Structure
 
 ```
-peony-care-food-app/
+udufood/
 ├── src/
 │   ├── constants/
 │   │   └── theme.ts              # ALL design tokens — import from here only
