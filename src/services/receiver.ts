@@ -293,6 +293,10 @@ export const updateLocationSettings = async (settings: {
   };
 };
 
+export const clearLocationHistory = async (): Promise<void> => {
+  await api.delete('/receiver/settings/location/history/');
+};
+
 export const getReportReasons = async (): Promise<ReportReason[]> => {
   const res = await api.get('/receiver/reports/reasons/');
   return (res.data.data as ApiReportReason[]).map((r) => ({

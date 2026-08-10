@@ -5,14 +5,15 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomSwitch } from '../../components/CustomSwitch';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getLocationSettings } from '../../services/receiver';
-import { LocationSettings, RecentPlace } from '../../types';
+import { getLocationSettings, updateLocationSettings, clearLocationHistory } from '../../services/receiver';
+import { RecentPlace } from '../../types';
 import { colors, spacing, radius, fontSizes, fontFamilies, letterSpacings } from '../../constants/theme';
 import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
 
@@ -116,8 +117,9 @@ const lSkelStyles = StyleSheet.create({
 });
 
 export default function LocationSettingsScreen({ navigation }: Props) {
-  const [settings, setSettings] = useState<LocationSettings | null>(null);
   const [loading, setLoading]   = useState(true);
+  const [saving, setSaving]     = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const [searchRadius, setSearchRadius] = useState(5);
   const [locationSvc, setLocationSvc] = useState(true);
@@ -127,7 +129,6 @@ export default function LocationSettingsScreen({ navigation }: Props) {
   useEffect(() => {
     getLocationSettings()
       .then((s) => {
-        setSettings(s);
         setSearchRadius(s.searchRadiusKm);
         setLocationSvc(s.locationServicesEnabled);
         setSaveHistory(s.saveLocationHistory);
@@ -136,6 +137,17 @@ export default function LocationSettingsScreen({ navigation }: Props) {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const handleSave = () => {
+    setSaving(true);
+    updateLocationSettings({
+      searchRadiusKm: searchRadius,
+      locationServicesEnabled: locationSvc,
+      saveLocationHistory: saveHistory,
+    })
+      .then(() => navigation.goBack())
+      .catch(() => setSaving(false));
+  };
 
   if (loading) {
     return <LocationSkeleton />;
@@ -236,12 +248,22 @@ export default function LocationSettingsScreen({ navigation }: Props) {
           ))}
           <View style={styles.clearDivider} />
           <TouchableOpacity
-            onPress={() => setRecentPlaces([])}
+            onPress={() => {
+              if (clearing) return;
+              setClearing(true);
+              clearLocationHistory()
+                .then(() => setRecentPlaces([]))
+                .finally(() => setClearing(false));
+            }}
             activeOpacity={0.7}
             style={styles.clearBtn}
+            disabled={clearing}
           >
-            <Ionicons name="trash-outline" size={15} color={colors.accentPrimary} />
-            <Text style={styles.clearText}>Clear location history</Text>
+            {clearing
+              ? <ActivityIndicator size="small" color={colors.accentPrimary} />
+              : <Ionicons name="trash-outline" size={15} color={colors.accentPrimary} />
+            }
+            <Text style={styles.clearText}>{clearing ? 'Clearing…' : 'Clear location history'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -249,9 +271,12 @@ export default function LocationSettingsScreen({ navigation }: Props) {
 
       {/* Save button */}
       <View style={styles.saveWrap}>
-        <TouchableOpacity style={styles.saveBtn} activeOpacity={0.85}>
-          <Ionicons name="checkmark" size={20} color={colors.textInverse} />
-          <Text style={styles.saveBtnText}>Save settings</Text>
+        <TouchableOpacity style={styles.saveBtn} activeOpacity={0.85} onPress={handleSave} disabled={saving}>
+          {saving
+            ? <ActivityIndicator size="small" color={colors.textInverse} />
+            : <Ionicons name="checkmark" size={20} color={colors.textInverse} />
+          }
+          <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save settings'}</Text>
         </TouchableOpacity>
       </View>
 
