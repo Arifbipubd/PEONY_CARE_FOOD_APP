@@ -39,7 +39,7 @@ export const useAuthStore = create<AuthStore>()(
         set({ accessToken: null, refreshToken: null, user: null, isApproved: false }),
     }),
     {
-      name: 'peony-auth',
+      name: 'udufood-auth',
       storage: secureStorage,
       partialize: (state) => ({
         accessToken:  state.accessToken,

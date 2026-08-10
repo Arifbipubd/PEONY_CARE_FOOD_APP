@@ -62,7 +62,7 @@ export default function ReceiverRegisterScreen({ navigation }: Props) {
     try {
       const localPart = cleaned.startsWith('0') ? cleaned.slice(1) : cleaned;
       const fullPhone = `${country.dial}${localPart}`;
-      await AsyncStorage.setItem('peony_pending_name', name.trim());
+      await AsyncStorage.setItem('udufood_pending_name', name.trim());
       await sendOtp(fullPhone, 'REGISTER');
       navigation.navigate('Otp', {
         phone: fullPhone,

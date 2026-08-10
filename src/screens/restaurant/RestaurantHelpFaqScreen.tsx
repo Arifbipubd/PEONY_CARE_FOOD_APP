@@ -127,7 +127,7 @@ export default function RestaurantHelpFaqScreen({ navigation }: Props) {
   }, []);
 
   const handleEmail = useCallback(() => {
-    Linking.openURL('mailto:partners@udufood.sg');
+    Linking.openURL('mailto:support@udufood.com');
   }, []);
 
   return (
@@ -152,7 +152,7 @@ export default function RestaurantHelpFaqScreen({ navigation }: Props) {
           </View>
           <View style={styles.contactText}>
             <Text style={styles.contactTitle}>Email us</Text>
-            <Text style={styles.contactSub}>partners@udufood.sg</Text>
+            <Text style={styles.contactSub}>support@udufood.com</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TouchableOpacity>
@@ -174,7 +174,7 @@ export default function RestaurantHelpFaqScreen({ navigation }: Props) {
           <Text style={styles.footerNote}>
             {'Still need help? Email '}
             <Text style={styles.footerEmail} onPress={handleEmail}>
-              partners@udufood.sg
+              support@udufood.com
             </Text>
             {' — we usually reply within 4 hours.'}
           </Text>

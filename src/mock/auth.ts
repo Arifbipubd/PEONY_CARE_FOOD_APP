@@ -18,7 +18,7 @@ export const MOCK_OTP_SEND_RESPONSE = (phone: string, purpose: string): ApiOtpSe
 
 // verifyOtp always returns new-user so the registration flow can be tested end-to-end.
 export const MOCK_OTP_VERIFY_NEW_USER = (phone: string): ApiOtpVerifyNewUser => ({
-  registration_token: 'mock-registration-token-peony',
+  registration_token: 'mock-registration-token-udufood',
   phone,
   message: 'Phone verified. Complete registration to continue. (mock mode)',
 });

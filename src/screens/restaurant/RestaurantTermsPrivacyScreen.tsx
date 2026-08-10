@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +13,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
 } from '../../constants/theme';
+import { LEGAL_URLS } from '../../constants/legal';
 import { ProfileStackParamList } from '../../navigation/RestaurantTabs';
 
 type Props = {
@@ -82,7 +84,7 @@ const PRIVACY_SECTIONS: SectionData[] = [
     heading: 'PDPA compliance',
     bodyParts: [
       { text: "UDUFood complies with Singapore's Personal Data Protection Act (PDPA). You can request to view, correct, or delete your business profile at any time by emailing " },
-      { text: 'privacy@udufood.sg', accent: true },
+      { text: 'support@udufood.com', accent: true },
       { text: '.' },
     ],
   },
@@ -260,7 +262,24 @@ export default function RestaurantTermsPrivacyScreen({ navigation }: Props) {
 
         <View style={styles.footerCard}>
           <Text style={styles.footerNote}>Questions about your data? Email</Text>
-          <Text style={styles.footerEmail}>privacy@udufood.sg.</Text>
+          <Text
+            style={styles.footerEmail}
+            onPress={() => Linking.openURL(`mailto:${LEGAL_URLS.privacyEmail}`)}
+          >
+            {LEGAL_URLS.privacyEmail}
+          </Text>
+          <Text
+            style={styles.footerLink}
+            onPress={() => Linking.openURL(LEGAL_URLS.privacy)}
+          >
+            View privacy policy online
+          </Text>
+          <Text
+            style={styles.footerLink}
+            onPress={() => Linking.openURL(LEGAL_URLS.terms)}
+          >
+            View terms online
+          </Text>
         </View>
 
       </ScrollView>
@@ -400,5 +419,12 @@ const styles = StyleSheet.create({
     fontSize: fontSizes['12'],
     lineHeight: 18,
     color: colors.accentPrimary,
+  },
+  footerLink: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    lineHeight: 18,
+    color: colors.accentPrimary,
+    marginTop: spacing.sm,
   },
 });
