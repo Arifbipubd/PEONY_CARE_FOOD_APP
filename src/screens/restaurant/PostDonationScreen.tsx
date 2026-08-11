@@ -74,6 +74,24 @@ function isoToHHMM(iso: string): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+/** Local wall-clock ISO with device offset, e.g. 2026-08-11T19:08:00.000+06:00 — never UTC "Z". */
+function toLocalOffsetIso(d: Date): string {
+  const pad = (n: number, len = 2) => String(Math.abs(n)).padStart(len, '0');
+  const y = d.getFullYear();
+  const m = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const h = pad(d.getHours());
+  const min = pad(d.getMinutes());
+  const s = pad(d.getSeconds());
+  const ms = pad(d.getMilliseconds(), 3);
+  // getTimezoneOffset(): minutes behind UTC (Dhaka +06 → -360). Negate for ±HH:mm.
+  const offsetMin = -d.getTimezoneOffset();
+  const sign = offsetMin >= 0 ? '+' : '-';
+  const oh = pad(Math.floor(Math.abs(offsetMin) / 60));
+  const om = pad(Math.abs(offsetMin) % 60);
+  return `${y}-${m}-${day}T${h}:${min}:${s}.${ms}${sign}${oh}:${om}`;
+}
+
 function buildPickupIso(fromStr: string, untilStr: string): { start: string; end: string } {
   const parseHM = (t: string): [number, number] => {
     const parts = t.split(':');
@@ -85,7 +103,7 @@ function buildPickupIso(fromStr: string, untilStr: string): { start: string; end
   if (startDt <= now) startDt.setDate(startDt.getDate() + 1);
   const [uh, um] = parseHM(untilStr);
   const endDt = new Date(startDt.getFullYear(), startDt.getMonth(), startDt.getDate(), uh, um, 0);
-  return { start: startDt.toISOString(), end: endDt.toISOString() };
+  return { start: toLocalOffsetIso(startDt), end: toLocalOffsetIso(endDt) };
 }
 
 export default function PostDonationScreen({ navigation, route }: Props) {
