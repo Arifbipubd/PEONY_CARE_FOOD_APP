@@ -41,7 +41,7 @@ const FAQ_ITEMS: FaqEntry[] = [
     a: 'After the pickup window ends, tap No-show on the claim. The portion returns to the pool so others can claim it.',
   },
   {
-    q: 'Is there a fee to use UDUFood?',
+    q: 'Is there a fee to use Udufood?',
     a: 'No. Posting donations and receiving sponsored orders is free for restaurant partners — forever.',
   },
 ];

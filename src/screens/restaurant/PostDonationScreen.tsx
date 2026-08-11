@@ -81,11 +81,15 @@ export default function PostDonationScreen({ navigation, route }: Props) {
   const donationId = route.params?.donationId;
   const isEditMode = !!donationId;
   const [name,         setName]         = useState('');
+  const [nameError,    setNameError]    = useState('');
   const [category,     setCategory]     = useState<FoodCategory>('RICE');
   const [quantity,     setQuantity]     = useState('');
+  const [quantityError, setQuantityError] = useState('');
   const [unitIndex,    setUnitIndex]    = useState(0);
   const [pickupFrom,   setPickupFrom]   = useState('');
+  const [pickupFromError, setPickupFromError] = useState('');
   const [pickupUntil,  setPickupUntil]  = useState('');
+  const [pickupUntilError, setPickupUntilError] = useState('');
   const [schedule,     setSchedule]     = useState<ScheduleType>('one-time');
   const [notes,        setNotes]        = useState('');
   const [photoUri,     setPhotoUri]     = useState<string | null>(null);
@@ -147,9 +151,12 @@ export default function PostDonationScreen({ navigation, route }: Props) {
   const selectTime = useCallback((time: string) => {
     if (timeTarget === 'from') {
       setPickupFrom(time);
+      setPickupFromError('');
       setPickupUntil((prev) => (prev && prev > time ? prev : ''));
+      setPickupUntilError('');
     } else {
       setPickupUntil(time);
+      setPickupUntilError('');
     }
     setShowTimeModal(false);
   }, [timeTarget]);
@@ -172,19 +179,34 @@ export default function PostDonationScreen({ navigation, route }: Props) {
     }
   }, []);
 
+  const handleNameChange = useCallback((text: string) => {
+    setName(text);
+    if (nameError) setNameError('');
+  }, [nameError]);
+
+  const handleQuantityChange = useCallback((text: string) => {
+    setQuantity(text);
+    if (quantityError) setQuantityError('');
+  }, [quantityError]);
+
   const handleSubmit = useCallback(async () => {
-    if (!name.trim()) {
-      Alert.alert('Missing field', 'Please enter a food name.');
+    const nextNameError = !name.trim() ? 'Food name is required' : '';
+    const nextQuantityError =
+      !quantity.trim() || isNaN(Number(quantity)) || Number(quantity) <= 0
+        ? 'Enter a valid quantity'
+        : '';
+    const nextPickupFromError = !pickupFrom ? 'Pickup from is required' : '';
+    const nextPickupUntilError = !pickupUntil ? 'Until time is required' : '';
+
+    setNameError(nextNameError);
+    setQuantityError(nextQuantityError);
+    setPickupFromError(nextPickupFromError);
+    setPickupUntilError(nextPickupUntilError);
+
+    if (nextNameError || nextQuantityError || nextPickupFromError || nextPickupUntilError) {
       return;
     }
-    if (!quantity.trim() || isNaN(Number(quantity)) || Number(quantity) <= 0) {
-      Alert.alert('Missing field', 'Please enter a valid quantity.');
-      return;
-    }
-    if (!pickupFrom || !pickupUntil) {
-      Alert.alert('Missing field', 'Please select pickup start and end times.');
-      return;
-    }
+
     setSubmitting(true);
     try {
       const { start, end } = buildPickupIso(pickupFrom, pickupUntil);
@@ -219,7 +241,7 @@ export default function PostDonationScreen({ navigation, route }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [name, notes, category, unit, quantity, pickupFrom, pickupUntil, photoUri, photoChanged, isEditMode, donationId, navigation]);
+  }, [name, notes, category, unit, quantity, pickupFrom, pickupUntil, schedule, photoUri, photoChanged, isEditMode, donationId, navigation]);
 
   if (initializing) {
     return (
@@ -255,17 +277,25 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         <Text style={styles.title}>{isEditMode ? 'Update your\ndonation' : "What are you\ndonating?"}</Text>
 
         {/* FOOD NAME */}
-        <Text style={styles.fieldLabel}>FOOD NAME</Text>
+        <Text style={styles.fieldLabel}>
+          FOOD NAME
+          <Text style={styles.requiredMark}> *</Text>
+        </Text>
         <TextInput
-          style={[styles.input, { borderColor: bc('name') }]}
+          style={[
+            styles.input,
+            focusedField === 'name' && !nameError && styles.inputFocused,
+            !!nameError && styles.inputError,
+          ]}
           placeholder="e.g. Chicken Rice"
           placeholderTextColor={colors.textMuted}
           value={name}
-          onChangeText={setName}
+          onChangeText={handleNameChange}
           onFocus={() => setFocusedField('name')}
           onBlur={() => setFocusedField(null)}
           returnKeyType="next"
         />
+        {nameError ? <Text style={styles.fieldError}>{nameError}</Text> : null}
 
         {/* CATEGORY */}
         <Text style={[styles.fieldLabel, styles.sectionTop]}>CATEGORY</Text>
@@ -291,20 +321,31 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         {/* QUANTITY + UNIT */}
         <View style={[styles.row, styles.sectionTop]}>
           <View style={styles.half}>
-            <Text style={styles.fieldLabel}>QUANTITY</Text>
+            <Text style={styles.fieldLabel}>
+              QUANTITY
+              <Text style={styles.requiredMark}> *</Text>
+            </Text>
             <TextInput
-              style={[styles.input, { borderColor: bc('qty') }]}
+              style={[
+                styles.input,
+                focusedField === 'qty' && !quantityError && styles.inputFocused,
+                !!quantityError && styles.inputError,
+              ]}
               placeholder="0"
               placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               value={quantity}
-              onChangeText={setQuantity}
+              onChangeText={handleQuantityChange}
               onFocus={() => setFocusedField('qty')}
               onBlur={() => setFocusedField(null)}
             />
+            {quantityError ? <Text style={styles.fieldError}>{quantityError}</Text> : null}
           </View>
           <View style={styles.half}>
-            <Text style={styles.fieldLabel}>UNIT</Text>
+            <Text style={styles.fieldLabel}>
+              UNIT
+              <Text style={styles.requiredMark}> *</Text>
+            </Text>
             <TouchableOpacity
               style={[styles.inputWrap, styles.inlineRow]}
               onPress={() => setShowUnitModal(true)}
@@ -319,10 +360,16 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         {/* PICKUP FROM + UNTIL */}
         <View style={[styles.row, styles.sectionTop]}>
           <View style={styles.half}>
-            <Text style={styles.fieldLabel}>PICKUP FROM</Text>
+            <Text style={styles.fieldLabel}>
+              PICKUP FROM
+              <Text style={styles.requiredMark}> *</Text>
+            </Text>
             <TouchableOpacity
-              style={[styles.inputWrap, styles.inlineRow,
-                { borderColor: pickupFrom ? colors.accentPrimary : colors.borderDefault }]}
+              style={[
+                styles.inputWrap,
+                styles.inlineRow,
+                !!pickupFromError && styles.inputError,
+              ]}
               onPress={() => openTimePicker('from')}
               activeOpacity={0.8}
             >
@@ -331,13 +378,20 @@ export default function PostDonationScreen({ navigation, route }: Props) {
               </Text>
               <Ionicons name="time" size={18} color={colors.textMuted} />
             </TouchableOpacity>
+            {pickupFromError ? <Text style={styles.fieldError}>{pickupFromError}</Text> : null}
           </View>
           <View style={styles.half}>
-            <Text style={styles.fieldLabel}>UNTIL</Text>
+            <Text style={styles.fieldLabel}>
+              UNTIL
+              <Text style={styles.requiredMark}> *</Text>
+            </Text>
             <TouchableOpacity
-              style={[styles.inputWrap, styles.inlineRow,
+              style={[
+                styles.inputWrap,
+                styles.inlineRow,
                 !pickupFrom && styles.inputDisabled,
-                { borderColor: pickupUntil ? colors.accentPrimary : colors.borderDefault }]}
+                !!pickupUntilError && styles.inputError,
+              ]}
               onPress={() => openTimePicker('until')}
               disabled={!pickupFrom}
               activeOpacity={0.8}
@@ -347,11 +401,15 @@ export default function PostDonationScreen({ navigation, route }: Props) {
               </Text>
               <Ionicons name="time" size={18} color={!pickupFrom ? colors.borderDefault : colors.textMuted} />
             </TouchableOpacity>
+            {pickupUntilError ? <Text style={styles.fieldError}>{pickupUntilError}</Text> : null}
           </View>
         </View>
 
         {/* SCHEDULE */}
-        <Text style={[styles.fieldLabel, styles.sectionTop]}>SCHEDULE</Text>
+        <Text style={[styles.fieldLabel, styles.sectionTop]}>
+          SCHEDULE
+          <Text style={styles.requiredMark}> *</Text>
+        </Text>
         <View style={styles.schedRow}>
           {SCHEDULES.map(({ key, label }) => (
             <TouchableOpacity
@@ -593,6 +651,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 8,
   },
+  requiredMark: {
+    color: colors.errorRed,
+  },
   sectionTop: {
     marginTop: spacing.xl,
   },
@@ -606,6 +667,18 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
+  },
+  inputFocused: {
+    borderColor: colors.accentPrimary,
+  },
+  inputError: {
+    borderColor: colors.errorRed,
+  },
+  fieldError: {
+    marginTop: spacing.sm,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes.xs,
+    color: colors.errorRed,
   },
   inputWrap: {
     height: layout.inputHeight,

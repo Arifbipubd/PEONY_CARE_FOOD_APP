@@ -91,9 +91,10 @@ export default function DonorRegisterScreen({ navigation }: Props) {
             <Input
               label="Phone number"
               value={phone}
-              onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
+              onChangeText={(t) => { setPhone(t.replace(/\D/g, '').slice(0, 8)); setError(''); }}
               placeholder="91234567"
               keyboardType="number-pad"
+              maxLength={8}
               error={error}
               leftIcon={<Text style={styles.prefix}>+65</Text>}
             />

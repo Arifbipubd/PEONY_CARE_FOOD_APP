@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +8,8 @@ import DonorHistoryScreen     from '../screens/donor/DonorHistoryScreen';
 import NotificationsScreen    from '../screens/shared/NotificationsScreen';
 import DonorProfileScreen     from '../screens/donor/DonorProfileScreen';
 import CreditPreferenceScreen from '../screens/donor/CreditPreferenceScreen';
+import { getUnreadCount } from '../services/notifications';
+import { useNotificationStore } from '../store/notificationStore';
 import { colors, fontSizes }  from '../constants/theme';
 
 const Tab          = createBottomTabNavigator();
@@ -29,6 +32,13 @@ const TAB_ICONS = {
 };
 
 export default function DonorTabs() {
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const setUnreadCount = useNotificationStore((s) => s.setUnreadCount);
+
+  useEffect(() => {
+    getUnreadCount().then(setUnreadCount);
+  }, [setUnreadCount]);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -46,7 +56,14 @@ export default function DonorTabs() {
     >
       <Tab.Screen name="Home"    component={DonorHomeScreen} />
       <Tab.Screen name="History" component={DonorHistoryScreen} />
-      <Tab.Screen name="Alerts"  component={NotificationsScreen} />
+      <Tab.Screen
+        name="Alerts"
+        component={NotificationsScreen}
+        options={{
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.accentPrimary, fontSize: fontSizes.xs },
+        }}
+      />
       <Tab.Screen name="Profile" component={ProfileNavigator} />
     </Tab.Navigator>
   );

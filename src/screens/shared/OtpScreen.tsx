@@ -19,11 +19,13 @@ import {
   registerDonor,
   registerRestaurant,
 } from '../../services/auth';
-import { ApiError } from '../../services/api';
+import { ApiError, firstDetailMessage } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { UserRole } from '../../types';
 import LogoBadge from '../../components/LogoBadge';
+import { COUNTRIES } from '../../components/CountryPicker';
 import { colors, spacing, fontSizes, fontFamilies, lineHeights, letterSpacings, radius } from '../../constants/theme';
+import type { RestaurantRegisterDraft, RestaurantRegisterFieldErrors } from '../../navigation/AuthStack';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Otp'>;
@@ -33,25 +35,111 @@ type Props = {
 const CODE_LENGTH    = 4;
 const RESEND_SECONDS = 60;
 
+function splitPhone(fullPhone: string): { countryCode: 'SG' | 'BD'; local: string } {
+  const sorted = [...COUNTRIES].sort((a, b) => b.dial.length - a.dial.length);
+  const match = sorted.find((c) => fullPhone.startsWith(c.dial));
+  if (match) {
+    return { countryCode: match.code, local: fullPhone.slice(match.dial.length) };
+  }
+  return { countryCode: 'SG', local: fullPhone.replace(/^\+/, '') };
+}
+
+function restaurantFieldErrorsFromDetails(
+  details: Record<string, unknown> | undefined,
+): RestaurantRegisterFieldErrors {
+  return {
+    restaurantName: firstDetailMessage(details, 'restaurant_name') || undefined,
+    uen:            firstDetailMessage(details, 'uen') || undefined,
+    address:        firstDetailMessage(details, 'address') || undefined,
+    contactName:    firstDetailMessage(details, 'contact_name') || undefined,
+    phone:          firstDetailMessage(details, 'contact_phone') || undefined,
+    email:          firstDetailMessage(details, 'contact_email') || undefined,
+  };
+}
+
+function restaurantDraftFromPending(
+  pending: Extract<PendingRegistration, { role: 'RESTAURANT' }>,
+): RestaurantRegisterDraft {
+  const { countryCode, local } = splitPhone(pending.contactPhone);
+  return {
+    restaurantName: pending.restaurantName,
+    uen:            pending.uen,
+    address:        pending.address,
+    contactName:    pending.contactName,
+    email:          pending.email,
+    phone:          local,
+    countryCode,
+    latitude:       pending.latitude,
+    longitude:      pending.longitude,
+    termsAccepted:  true,
+  };
+}
+
 async function autoRegister(
   pending: PendingRegistration,
   token: string,
 ): Promise<{ accessToken: string; refreshToken: string; user: { id: string; phone: string; role: UserRole } }> {
-  if (pending.role === 'RECEIVER') return registerReceiver(pending.displayName, token);
-  if (pending.role === 'DONOR')    return registerDonor(pending.displayName, pending.email, token);
-  return registerRestaurant(
-    {
-      restaurant_name: pending.restaurantName,
-      uen:             pending.uen,
-      address:         pending.address,
-      contact_name:    pending.contactName,
-      contact_email:   pending.email,
-      contact_phone:   pending.contactPhone,
-      latitude:        pending.latitude,
-      longitude:       pending.longitude,
-    },
-    token,
-  );
+  if (__DEV__) {
+    console.log('[SIGNUP] autoRegister:start', {
+      role: pending.role,
+      hasToken: Boolean(token),
+      pending:
+        pending.role === 'RESTAURANT'
+          ? {
+              restaurantName: pending.restaurantName,
+              uen: pending.uen,
+              address: pending.address,
+              contactName: pending.contactName,
+              email: pending.email,
+              contactPhone: pending.contactPhone,
+              latitude: pending.latitude,
+              longitude: pending.longitude,
+            }
+          : pending.role === 'DONOR'
+            ? { displayName: pending.displayName, email: pending.email }
+            : { displayName: pending.displayName },
+    });
+  }
+  try {
+    let result;
+    if (pending.role === 'RECEIVER') {
+      result = await registerReceiver(pending.displayName, token);
+    } else if (pending.role === 'DONOR') {
+      result = await registerDonor(pending.displayName, pending.email, token);
+    } else {
+      result = await registerRestaurant(
+        {
+          restaurant_name: pending.restaurantName,
+          uen:             pending.uen,
+          address:         pending.address,
+          contact_name:    pending.contactName,
+          contact_email:   pending.email,
+          contact_phone:   pending.contactPhone,
+          latitude:        pending.latitude,
+          longitude:       pending.longitude,
+        },
+        token,
+      );
+    }
+    if (__DEV__) {
+      console.log('[SIGNUP] autoRegister:success', {
+        role: result.user.role,
+        userId: result.user.id,
+        phone: result.user.phone,
+      });
+    }
+    return result;
+  } catch (err) {
+    if (__DEV__) {
+      console.log('[SIGNUP] autoRegister:error', {
+        role: pending.role,
+        message: err instanceof Error ? err.message : String(err),
+        code: err instanceof ApiError ? err.code : undefined,
+        details: err instanceof ApiError ? err.details : undefined,
+      });
+    }
+    throw err;
+  }
 }
 
 export default function OtpScreen({ navigation, route }: Props) {
@@ -91,26 +179,84 @@ export default function OtpScreen({ navigation, route }: Props) {
     if (code.length < CODE_LENGTH) { setError('Enter all 4 digits'); return; }
     setLoading(true);
     setError('');
+    if (__DEV__) {
+      console.log('[SIGNUP] otp:verify:start', {
+        phone,
+        purpose,
+        codeLength: code.length,
+        hasPendingRegistration: Boolean(pendingRegistration),
+        pendingRole: pendingRegistration?.role,
+      });
+    }
     try {
       const result = await verifyOtp(phone, code);
+      if (__DEV__) {
+        console.log('[SIGNUP] otp:verify:result', {
+          isNewUser: result.isNewUser,
+          hasAccessToken: Boolean(result.accessToken),
+          hasRegistrationToken: Boolean(result.registrationToken),
+          userId: result.user?.id,
+          role: result.user?.role,
+        });
+      }
 
       if (!result.isNewUser && result.accessToken && result.refreshToken && result.user) {
+        if (__DEV__) console.log('[SIGNUP] otp:login:existingUser');
         setAuth(result.accessToken, result.refreshToken, result.user);
         return;
       }
 
       if (result.isNewUser && result.registrationToken && pendingRegistration) {
-        const reg = await autoRegister(pendingRegistration, result.registrationToken);
-        navigation.navigate('Permissions', {
-          accessToken:  reg.accessToken,
-          refreshToken: reg.refreshToken,
-          user:         reg.user as { id: string; phone: string; role: UserRole },
-        });
-        return;
+        try {
+          const reg = await autoRegister(pendingRegistration, result.registrationToken);
+          if (__DEV__) console.log('[SIGNUP] otp:navigate:Permissions', { role: reg.user.role });
+          navigation.navigate('Permissions', {
+            accessToken:  reg.accessToken,
+            refreshToken: reg.refreshToken,
+            user:         reg.user as { id: string; phone: string; role: UserRole },
+          });
+          return;
+        } catch (regErr: unknown) {
+          if (
+            regErr instanceof ApiError &&
+            regErr.code === 'VALIDATION_ERROR' &&
+            pendingRegistration.role === 'RESTAURANT'
+          ) {
+            const fieldErrors = restaurantFieldErrorsFromDetails(regErr.details);
+            if (__DEV__) {
+              console.log('[SIGNUP] otp:register:validation → RestaurantRegister', {
+                fieldErrors,
+                details: regErr.details,
+              });
+            }
+            navigation.navigate('RestaurantRegister', {
+              draft: restaurantDraftFromPending(pendingRegistration),
+              fieldErrors,
+              registrationToken: result.registrationToken,
+              fullPhone: phone,
+            });
+            return;
+          }
+          throw regErr;
+        }
       }
 
+      if (__DEV__) {
+        console.log('[SIGNUP] otp:unexpected', {
+          isNewUser: result.isNewUser,
+          hasRegistrationToken: Boolean(result.registrationToken),
+          hasPendingRegistration: Boolean(pendingRegistration),
+        });
+      }
       setError('Unexpected response. Please try again.');
     } catch (err: unknown) {
+      if (__DEV__) {
+        console.log('[SIGNUP] otp:verify:error', {
+          message: err instanceof Error ? err.message : String(err),
+          code: err instanceof ApiError ? err.code : undefined,
+          details: err instanceof ApiError ? err.details : undefined,
+        });
+      }
       setError(err instanceof Error ? err.message : 'Invalid code. Please try again.');
     } finally {
       setLoading(false);

@@ -61,8 +61,12 @@
         "expo-build-properties",
         {
           "android": {
-            "enableProguardInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": true
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "useLegacyPackaging": true,
+            "buildArchs": ["arm64-v8a"],
+            "enableBundleCompression": true,
+            "extraProguardRules": "-keep class com.google.android.gms.maps.** { *; }\n-keep class com.google.maps.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }"
           }
         }
       ]

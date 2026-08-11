@@ -113,7 +113,7 @@ export default function QrScannerScreen({ navigation, route }: Props) {
           </View>
           <Text style={styles.permissionHeading}>Camera access needed</Text>
           <Text style={styles.permissionBody}>
-            UDUFood needs your camera to scan the claim QR code at the counter.
+            Udufood needs your camera to scan the claim QR code at the counter.
           </Text>
           <TouchableOpacity
             style={styles.permissionBtn}
