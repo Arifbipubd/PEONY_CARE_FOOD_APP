@@ -12,7 +12,6 @@ import {
   ApiRestaurantProfile, ApiRestaurantClaim, ApiClaimReportContext,
   ApiLocationResult, ApiLocationSearchResponse,
 } from '../types/api';
-import { MOCK_RESTAURANT_DASHBOARD } from '../mock/restaurantData';
 import { api, logApiCatch } from './api';
 
 function logRestaurant(step: string, info?: unknown): void {
@@ -551,14 +550,16 @@ export interface TodaysClaimsData {
 }
 
 export const getTodaysClaims = async (): Promise<TodaysClaimsData> => {
-  const res  = await api.get('/restaurant/claims/today/');
-  const raw  = res.data.data;
-  const arr  = Array.isArray(raw) ? raw : (raw.claims ?? raw.results ?? []);
-  const claims = (arr as ApiRestaurantClaim[]).map(mapApiRestaurantClaim);
-  const counts = raw.counts ?? {};
-  const pending   = (counts.pending   as number | undefined) ?? claims.filter(c => (c.statusKey ?? c.status) === 'CLAIMED').length;
-  const collected = (counts.collected as number | undefined) ?? claims.filter(c => (c.statusKey ?? c.status) === 'COLLECTED').length;
-  const noShow    = (counts.no_show   as number | undefined) ?? claims.filter(c => (c.statusKey ?? c.status) === 'NO_SHOW').length;
+  const res = await api.get('/restaurant/claims/today/');
+  const raw = res.data.data;
+  // Backend returns grouped shape: { total, summary: { pending, collected, no_show }, groups: [{ key, claims[] }] }
+  const groups: Array<{ claims: ApiRestaurantClaim[] }> = raw.groups ?? [];
+  const flatArr: ApiRestaurantClaim[] = groups.flatMap((g) => g.claims ?? []);
+  const claims = flatArr.map(mapApiRestaurantClaim);
+  const summary = raw.summary ?? {};
+  const pending   = (summary.pending   as number | undefined) ?? claims.filter(c => (c.statusKey ?? c.status) === 'CLAIMED').length;
+  const collected = (summary.collected as number | undefined) ?? claims.filter(c => (c.statusKey ?? c.status) === 'COLLECTED').length;
+  const noShow    = (summary.no_show   as number | undefined) ?? claims.filter(c => (c.statusKey ?? c.status) === 'NO_SHOW').length;
   return {
     total:     (raw.total as number | undefined) ?? claims.length,
     pending,

@@ -274,7 +274,7 @@ export default function PostDonationScreen({ navigation, route }: Props) {
       >
         {/* Header */}
         <Text style={styles.eyebrow}>{isEditMode ? 'Edit listing' : 'New listing'}</Text>
-        <Text style={styles.title}>{isEditMode ? 'Update your\ndonation' : "What are you\ndonating?"}</Text>
+        <Text style={styles.title}>{isEditMode ? 'Update your donation' : 'What are you donating?'}</Text>
 
         {/* FOOD NAME */}
         <Text style={styles.fieldLabel}>

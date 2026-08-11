@@ -127,7 +127,15 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
 
         {/* Hero image + back button */}
         <View>
-          <ImageWithSkeleton source={{ uri: food.photoUrl }} style={styles.image} resizeMode="cover" />
+          {food.photoUrl ? (
+            <ImageWithSkeleton source={{ uri: food.photoUrl }} style={styles.image} resizeMode="cover" />
+          ) : (
+            <View style={[styles.image, styles.imagePlaceholder]}>
+              <View style={styles.placeholderCircle}>
+                <Ionicons name="restaurant" size={32} color={colors.textMuted} />
+              </View>
+            </View>
+          )}
           <TouchableOpacity
             style={backBtnStyle}
             onPress={() => navigation.goBack()}
@@ -292,6 +300,19 @@ const styles = StyleSheet.create({
     width: '100%',
     height: layout.foodImageHeight,
     backgroundColor: colors.borderDefault,
+  },
+  imagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceSecondary,
+  },
+  placeholderCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.pill,
+    backgroundColor: colors.borderDefault,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   backBtn: {

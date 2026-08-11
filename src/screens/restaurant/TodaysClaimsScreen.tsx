@@ -33,7 +33,7 @@ interface ReportState {
   submitting:        boolean;
 }
 
-const FILTER_ORDER: FilterKey[] = ['all', 'pending', 'collected', 'noShow'];
+const FILTER_ORDER: FilterKey[] = ['all', /* 'pending', */ 'collected', /* 'noShow' */];
 const FILTER_LABELS: Record<FilterKey, string> = {
   all: 'All', pending: 'Pending', collected: 'Collected', noShow: 'No-show',
 };

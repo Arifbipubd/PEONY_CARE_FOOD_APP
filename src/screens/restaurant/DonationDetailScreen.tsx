@@ -267,12 +267,18 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
 
         {/* Hero image */}
         <View>
-          {!!donation.photoUrl && (
+          {donation.photoUrl ? (
             <ImageWithSkeleton
               source={{ uri: donation.photoUrl }}
               style={styles.image}
               resizeMode="cover"
             />
+          ) : (
+            <View style={[styles.image, styles.imagePlaceholder]}>
+              <View style={styles.placeholderCircle}>
+                <Ionicons name="storefront" size={32} color={colors.textMuted} />
+              </View>
+            </View>
           )}
           <TouchableOpacity
             style={[styles.backBtn, { top: insets.top + spacing.md }]}
@@ -419,22 +425,24 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
             </TouchableOpacity>
           )}
 
-          {/* Edit + Pause buttons */}
-          <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.outlineBtn} onPress={handleEdit} activeOpacity={0.8}>
-              <Ionicons name="create" size={16} color={colors.textPrimary} />
-              <Text style={styles.outlineBtnText}>Edit listing</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.outlineBtn}
-              onPress={handlePause}
-              activeOpacity={0.8}
-              disabled={pausing}
-            >
-              <Ionicons name="pause" size={16} color={colors.textPrimary} />
-              <Text style={styles.outlineBtnText}>{pausing ? 'Pausing…' : 'Pause'}</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Edit + Pause — hidden once all portions are claimed and collected */}
+          {!allCollected && (
+            <View style={styles.actionRow}>
+              <TouchableOpacity style={styles.outlineBtn} onPress={handleEdit} activeOpacity={0.8}>
+                <Ionicons name="create" size={16} color={colors.textPrimary} />
+                <Text style={styles.outlineBtnText}>Edit listing</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.outlineBtn}
+                onPress={handlePause}
+                activeOpacity={0.8}
+                disabled={pausing}
+              >
+                <Ionicons name="pause" size={16} color={colors.textPrimary} />
+                <Text style={styles.outlineBtnText}>{pausing ? 'Pausing…' : 'Pause'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Delete */}
           <TouchableOpacity style={styles.deleteBtn} onPress={openDelete} activeOpacity={0.8}>
@@ -493,6 +501,19 @@ const styles = StyleSheet.create({
     width: '100%',
     height: layout.foodImageHeight,
     backgroundColor: colors.borderDefault,
+  },
+  imagePlaceholder: {
+    backgroundColor: colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  placeholderCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.pill,
+    backgroundColor: colors.borderDefault,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backBtn: {
     position: 'absolute',

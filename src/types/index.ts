@@ -157,7 +157,8 @@ export interface ClaimHistoryItem {
   status: ClaimHistoryItemStatus;
   claimedAt: string;
   pickupWindow: string;
-  rating?: number;
+  hasReview: boolean;
+  canReview: boolean;
 }
 
 export interface ClaimHistory {

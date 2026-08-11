@@ -554,6 +554,14 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
     } as never);
   }, [navigation]);
 
+  const goToClaims = useCallback(() => {
+    navigation.navigate('Profile', { screen: 'TodaysClaims' } as never);
+  }, [navigation]);
+
+  const goToAnalytics = useCallback(() => {
+    navigation.navigate('Profile', { screen: 'RestaurantAnalytics' } as never);
+  }, [navigation]);
+
   const isEmpty = useMemo(
     () => !!data && !hasDonations && data.livesImpacted === 0 && data.todayListings.length === 0 && data.yesterdayListings.length === 0 && data.pastGroups.length === 0,
     [data, hasDonations],
@@ -618,7 +626,13 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
           <Text style={styles.growthText}>+{data.growthPctThisWeek}% this week</Text>
         </View>
 
-        {/* Today stats */}
+        {/* Today section header + stats */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Today</Text>
+          <TouchableOpacity onPress={goToClaims} hitSlop={8}>
+            <Text style={styles.sectionLink}>See claims</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.statRow}>
           <StatCard value={String(data.activeCount)}  label="ACTIVE"        valueColor={colors.accentPrimary} />
           <StatCard value={String(data.claimedToday)} label="CLAIMED TODAY" valueColor={colors.textPrimary} />
@@ -628,7 +642,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
         {/* This week */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>This week</Text>
-          <TouchableOpacity hitSlop={8}>
+          <TouchableOpacity onPress={goToAnalytics} hitSlop={8}>
             <Text style={styles.sectionLink}>Details</Text>
           </TouchableOpacity>
         </View>
