@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, RefreshControl,
 } from 'react-native';
@@ -59,6 +59,13 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
   const [deleting, setDeleting]    = useState(false);
   const [pausing, setPausing]      = useState(false);
 
+  /** Snapshot when QR opens — used to detect a successful receiver scan while waiting. */
+  const qrBaselineRef = useRef<{
+    quantityClaimed: number;
+    claimIds: Set<string>;
+    collectedIds: Set<string>;
+  } | null>(null);
+
   const loadData = useCallback(
     () => getDonationDetail(donationId).then(setDonation).catch(() => {}),
     [donationId],
@@ -76,9 +83,96 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
     loadData().finally(() => setRefreshing(false));
   }, [loadData]);
 
-  const openQr         = useCallback(() => setCollect('qr'),  []);
-  const closeAllSheets = useCallback(() => setCollect(null),   []);
-  const showQrAgain    = useCallback(() => setCollect('qr'),   []);
+  const captureQrBaseline = useCallback((d: RestaurantDonation) => {
+    const claims = d.claims ?? [];
+    qrBaselineRef.current = {
+      quantityClaimed: d.quantityClaimed,
+      claimIds: new Set(claims.map((c) => c.id)),
+      collectedIds: new Set(
+        claims.filter((c) => c.status === 'COLLECTED').map((c) => c.id),
+      ),
+    };
+  }, []);
+
+  const openQr = useCallback(() => {
+    if (donation) captureQrBaseline(donation);
+    setCollect('qr');
+  }, [donation, captureQrBaseline]);
+
+  const closeAllSheets = useCallback(() => setCollect(null), []);
+
+  const showQrAgain = useCallback(() => {
+    if (donation) captureQrBaseline(donation);
+    setCollect('qr');
+  }, [donation, captureQrBaseline]);
+
+  // While QR is showing, poll until the receiver's scan succeeds, then finalize
+  // collect + show success. "Mark collected" stays as a manual fallback only.
+  useEffect(() => {
+    if (collectState !== 'qr') return;
+
+    let cancelled = false;
+    let finalizing = false;
+
+    const poll = async () => {
+      if (finalizing) return;
+      try {
+        const fresh = await getDonationDetail(donationId);
+        if (cancelled) return;
+
+        const baseline = qrBaselineRef.current;
+        if (!baseline) return;
+
+        const claims = fresh.claims ?? [];
+        const newlyClaimed = fresh.quantityClaimed > baseline.quantityClaimed;
+        const newClaims = claims.filter((c) => !baseline.claimIds.has(c.id));
+        const newlyCollected = claims.some(
+          (c) => c.status === 'COLLECTED' && !baseline.collectedIds.has(c.id),
+        );
+
+        if (!newlyClaimed && newClaims.length === 0 && !newlyCollected) return;
+
+        finalizing = true;
+
+        // New claims from this scan may still be CLAIMED — mark them collected.
+        const toFinalize = newClaims.filter((c) => c.status !== 'COLLECTED');
+
+        await Promise.all(
+          toFinalize.map((c) => collectClaim(c.id).catch(() => undefined)),
+        );
+        if (cancelled) return;
+
+        const now = new Date().toISOString();
+        const finalizedIds = new Set(toFinalize.map((c) => c.id));
+
+        setDonation({
+          ...fresh,
+          claims: claims.map((c) =>
+            c.status === 'COLLECTED' || finalizedIds.has(c.id)
+              ? {
+                  ...c,
+                  status: 'COLLECTED',
+                  collectedAt: c.collectedAt ?? now,
+                }
+              : c,
+          ),
+        });
+        setCollect('success');
+      } catch {
+        finalizing = false;
+        // Keep waiting — next tick retries.
+      }
+    };
+
+    const timeoutId = setTimeout(poll, 800);
+    const intervalId = setInterval(poll, 2500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+    };
+  }, [collectState, donationId]);
 
   const handleMarkCollected = useCallback(async (claimId: string) => {
     setCollectingId(claimId);
@@ -155,6 +249,10 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
     : 0;
   const leftToClaim = donation.quantityAvailable;
   const claims      = donation.claims ?? [];
+  const allCollected =
+    claims.length > 0 &&
+    leftToClaim === 0 &&
+    claims.every((c) => c.status === 'COLLECTED');
   const isSponsored = !!donation.sponsorDisplayName;
   const sourceName  = isSponsored ? donation.sponsorDisplayName! : 'Self-donated';
   const sourceNote  = donation.donationSourceNote
@@ -313,11 +411,13 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
             </View>
           </View>
 
-          {/* Show QR Code */}
-          <TouchableOpacity style={styles.qrBtn} onPress={openQr} activeOpacity={0.85}>
-            <Ionicons name="qr-code" size={20} color={colors.textInverse} />
-            <Text style={styles.qrBtnText}>Show QR Code</Text>
-          </TouchableOpacity>
+          {/* Show QR Code — hidden once every pack is claimed and collected */}
+          {!allCollected && (
+            <TouchableOpacity style={styles.qrBtn} onPress={openQr} activeOpacity={0.85}>
+              <Ionicons name="qr-code" size={20} color={colors.textInverse} />
+              <Text style={styles.qrBtnText}>Show QR Code</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Edit + Pause buttons */}
           <View style={styles.actionRow}>

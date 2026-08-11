@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, memo } from 'react';
+import { useState, useCallback, useMemo, memo, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
@@ -38,6 +38,12 @@ type IconConfig = {
   library?: 'mci';
 };
 
+type Section = {
+  key: string;
+  title: string;
+  data: AppNotification[];
+};
+
 function payloadString(payload: Record<string, unknown>, key: string): string | null {
   const value = payload[key];
   return typeof value === 'string' && value.length > 0 ? value : null;
@@ -73,7 +79,6 @@ function navigateFromNotification(
       });
       return;
     }
-    // Fallback: any payload with food_id opens food detail.
     if (foodId) {
       navigation.navigate('Home', {
         screen: 'FoodDetail',
@@ -120,32 +125,6 @@ function relTime(isoString: string): string {
   return new Date(isoString).toLocaleDateString('en-SG', { month: 'short', day: 'numeric' });
 }
 
-function daysDiff(isoString: string): number {
-  const notifDate = new Date(isoString);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  notifDate.setHours(0, 0, 0, 0);
-  return Math.round((today.getTime() - notifDate.getTime()) / 86400000);
-}
-
-function buildSections(notifications: AppNotification[]) {
-  const ORDER = ['Today', 'Yesterday', 'This week', 'Earlier'] as const;
-  const groups: Partial<Record<typeof ORDER[number], AppNotification[]>> = {};
-
-  for (const n of notifications) {
-    const d = daysDiff(n.createdAt);
-    const label: typeof ORDER[number] =
-      d === 0 ? 'Today' : d === 1 ? 'Yesterday' : d < 7 ? 'This week' : 'Earlier';
-    if (!groups[label]) groups[label] = [];
-    groups[label]!.push(n);
-  }
-
-  return ORDER.filter((label) => groups[label]).map((label) => ({
-    title: label,
-    data: groups[label]!,
-  }));
-}
-
 const NotifRow = memo(function NotifRow({
   item,
   onPress,
@@ -187,41 +166,60 @@ const NotifRow = memo(function NotifRow({
 export default function NotificationsScreen({ navigation }: Props) {
   const role = useAuthStore((s) => s.user?.role);
   const {
-    notifications, unreadCount, setInbox, setUnreadCount,
+    groups, unreadCount, page, hasNext,
+    setInbox, appendInbox, setUnreadCount,
     markRead: storeMarkRead, markAllRead: storeMarkAllRead,
   } = useNotificationStore();
-  const [loading, setLoading]       = useState(notifications.length === 0);
-  const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = useCallback(
-    () =>
-      getNotifications()
-        .then(({ items, unreadCount: count }) => {
-          setInbox(items, count);
+  const itemCount = useMemo(
+    () => groups.reduce((sum, g) => sum + g.items.length, 0),
+    [groups],
+  );
+
+  const [loading, setLoading]         = useState(itemCount === 0);
+  const [refreshing, setRefreshing]   = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadingMoreRef = useRef(false);
+
+  const loadPage = useCallback(
+    (pageNum: number, mode: 'replace' | 'append') => {
+      return getNotifications({ page: pageNum, pageSize: 20 })
+        .then((inbox) => {
+          if (mode === 'replace') setInbox(inbox);
+          else appendInbox(inbox);
         })
-        .catch(() => {}),
-    [setInbox],
+        .catch(() => {});
+    },
+    [setInbox, appendInbox],
   );
 
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      loadData().finally(() => setLoading(false));
-    }, [loadData]),
+      loadPage(1, 'replace').finally(() => setLoading(false));
+    }, [loadPage]),
   );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    loadData().finally(() => setRefreshing(false));
-  }, [loadData]);
+    loadPage(1, 'replace').finally(() => setRefreshing(false));
+  }, [loadPage]);
+
+  const onEndReached = useCallback(() => {
+    if (!hasNext || loadingMoreRef.current || loading || refreshing) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    loadPage(page + 1, 'append').finally(() => {
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
+    });
+  }, [hasNext, loading, refreshing, page, loadPage]);
 
   const handleTap = useCallback((item: AppNotification) => {
-    // 1) Mark as read (optimistic + API)
     if (item.readAt === null) {
       storeMarkRead(item.id);
       apiMarkRead(item.id).then(() => getUnreadCount().then(setUnreadCount));
     }
-    // 2) Deep-link to the related screen (e.g. food detail)
     navigateFromNotification(navigation, item, role);
   }, [storeMarkRead, setUnreadCount, navigation, role]);
 
@@ -230,7 +228,15 @@ export default function NotificationsScreen({ navigation }: Props) {
     apiMarkAllRead().then(() => setUnreadCount(0));
   }, [storeMarkAllRead, setUnreadCount]);
 
-  const sections = useMemo(() => buildSections(notifications), [notifications]);
+  const sections = useMemo<Section[]>(
+    () =>
+      groups.map((g) => ({
+        key: g.key,
+        title: g.label,
+        data: g.items,
+      })),
+    [groups],
+  );
 
   if (loading) {
     return (
@@ -249,8 +255,7 @@ export default function NotificationsScreen({ navigation }: Props) {
     );
   }
 
-  // ── Empty / mismatch state ───────────────────────────────────────────────────
-  if (notifications.length === 0) {
+  if (itemCount === 0) {
     const listFailed = unreadCount > 0;
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
@@ -285,7 +290,7 @@ export default function NotificationsScreen({ navigation }: Props) {
             onPress={() => {
               if (listFailed) {
                 setLoading(true);
-                loadData().finally(() => setLoading(false));
+                loadPage(1, 'replace').finally(() => setLoading(false));
                 return;
               }
               navigation.navigate('Home' as never);
@@ -298,7 +303,6 @@ export default function NotificationsScreen({ navigation }: Props) {
     );
   }
 
-  // ── Filled state ─────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
 
@@ -325,7 +329,21 @@ export default function NotificationsScreen({ navigation }: Props) {
         maxToRenderPerBatch={10}
         windowSize={5}
         stickySectionHeadersEnabled={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          loadingMore
+            ? <ActivityIndicator style={styles.footerLoader} color={colors.accentPrimary} />
+            : null
+        }
+        refreshControl={(
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.accentPrimary}
+            colors={[colors.accentPrimary]}
+          />
+        )}
       />
 
     </SafeAreaView>
@@ -335,7 +353,6 @@ export default function NotificationsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
 
-  // ── Header ───────────────────────────────────────────────────────────────────
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -353,7 +370,6 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
 
-  // ── Section header ───────────────────────────────────────────────────────────
   sectionHeader: {
     fontSize: fontSizes['12'],
     fontFamily: fontFamilies.medium,
@@ -362,10 +378,12 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
 
-  // ── Notification row ─────────────────────────────────────────────────────────
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: spacing['4xl'],
+  },
+  footerLoader: {
+    paddingVertical: spacing.xl,
   },
   row: {
     flexDirection: 'row',
@@ -420,7 +438,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
 
-  // ── Empty state ───────────────────────────────────────────────────────────────
   emptyBody: {
     flex: 1,
     alignItems: 'center',
