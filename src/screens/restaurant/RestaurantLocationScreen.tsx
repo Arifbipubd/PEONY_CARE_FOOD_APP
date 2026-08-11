@@ -119,7 +119,7 @@ export default function RestaurantLocationScreen({ navigation, route }: Props) {
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=0&accept-language=en`,
-        { headers: { 'User-Agent': 'UDUFood/1.0', 'Accept-Language': 'en' } },
+        { headers: { 'User-Agent': 'Udufood/1.0', 'Accept-Language': 'en' } },
       );
       const data: NominatimResult[] = await res.json();
       setSuggestions(data);

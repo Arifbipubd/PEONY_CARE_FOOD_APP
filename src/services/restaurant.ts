@@ -78,6 +78,8 @@ function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
     isRepeating: d.recurrence_type != null
       ? d.recurrence_type !== 'NONE'
       : d.is_repeating,
+    recurrenceType: d.recurrence_type ?? null,
+    recurrenceDays: d.recurrence_days ?? [],
     repeatTimeLabel: d.recurrence_label ?? d.recurrence_schedule_summary ?? d.repeat_time_label,
     nextPostLabel: d.next_post_label,
     donationSourceNote: d.source?.detail || d.source_note || d.donation_source_note,
@@ -468,7 +470,30 @@ export const submitClaimReport = async (
   });
 };
 
+/** Map create/update payload recurrence into API field names. */
+function resolveRecurrenceFields(
+  payload: CreateDonationPayload,
+): { recurrence_type: string; recurrence_days?: number[] } | null {
+  if (payload.recurrenceType != null) {
+    const days =
+      (payload.recurrenceType === 'CUSTOM' || payload.recurrenceType === 'WEEKLY')
+      && payload.recurrenceDays
+      && payload.recurrenceDays.length > 0
+        ? payload.recurrenceDays
+        : undefined;
+    return {
+      recurrence_type: payload.recurrenceType,
+      ...(days ? { recurrence_days: days } : {}),
+    };
+  }
+  if (payload.isRepeating != null) {
+    return { recurrence_type: payload.isRepeating ? 'DAILY' : 'NONE' };
+  }
+  return null;
+}
+
 export const updateDonation = async (foodId: string, payload: CreateDonationPayload): Promise<RestaurantDonation> => {
+  const recurrence = resolveRecurrenceFields(payload);
   let res;
   if (payload.localPhotoUri) {
     const filename = payload.localPhotoUri.split('/').pop() ?? 'photo.jpg';
@@ -482,8 +507,11 @@ export const updateDonation = async (foodId: string, payload: CreateDonationPayl
     formData.append('quantity',     String(payload.quantityOriginal));
     formData.append('pickup_start', payload.pickupStart);
     formData.append('pickup_end',   payload.pickupEnd);
-    if (payload.isRepeating != null) {
-      formData.append('recurrence_type', payload.isRepeating ? 'DAILY' : 'NONE');
+    if (recurrence) {
+      formData.append('recurrence_type', recurrence.recurrence_type);
+      if (recurrence.recurrence_days) {
+        formData.append('recurrence_days', JSON.stringify(recurrence.recurrence_days));
+      }
     }
     formData.append('photo', { uri: payload.localPhotoUri, name: filename, type: mimeType } as unknown as Blob);
     res = await api.patch(`/restaurant/donations/${foodId}/`, formData, {
@@ -498,13 +526,14 @@ export const updateDonation = async (foodId: string, payload: CreateDonationPayl
       quantity:     payload.quantityOriginal,
       pickup_start: payload.pickupStart,
       pickup_end:   payload.pickupEnd,
-      ...(payload.isRepeating != null && { recurrence_type: payload.isRepeating ? 'DAILY' : 'NONE' }),
+      ...recurrence,
     });
   }
   return mapApiDonation(res.data.data);
 };
 
 export const createDonation = async (payload: CreateDonationPayload): Promise<RestaurantDonation> => {
+  const recurrence = resolveRecurrenceFields(payload);
   let res;
   if (payload.localPhotoUri) {
     const filename = payload.localPhotoUri.split('/').pop() ?? 'photo.jpg';
@@ -518,8 +547,11 @@ export const createDonation = async (payload: CreateDonationPayload): Promise<Re
     formData.append('quantity',     String(payload.quantityOriginal));
     formData.append('pickup_start', payload.pickupStart);
     formData.append('pickup_end',   payload.pickupEnd);
-    if (payload.isRepeating != null) {
-      formData.append('recurrence_type', payload.isRepeating ? 'DAILY' : 'NONE');
+    if (recurrence) {
+      formData.append('recurrence_type', recurrence.recurrence_type);
+      if (recurrence.recurrence_days) {
+        formData.append('recurrence_days', JSON.stringify(recurrence.recurrence_days));
+      }
     }
     formData.append('photo', { uri: payload.localPhotoUri, name: filename, type: mimeType } as unknown as Blob);
     res = await api.post('/restaurant/donations/', formData, {
@@ -534,7 +566,7 @@ export const createDonation = async (payload: CreateDonationPayload): Promise<Re
       quantity:     payload.quantityOriginal,
       pickup_start: payload.pickupStart,
       pickup_end:   payload.pickupEnd,
-      ...(payload.isRepeating != null && { recurrence_type: payload.isRepeating ? 'DAILY' : 'NONE' }),
+      ...recurrence,
     });
   }
   _hasDonations = true;

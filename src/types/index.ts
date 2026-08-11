@@ -339,6 +339,10 @@ export interface RestaurantDonation {
   expiredCount?: number;
   estimatedReachLabel?: string;
   isRepeating?: boolean;
+  /** Backend: "NONE" | "DAILY" | "WEEKLY" | "CUSTOM" */
+  recurrenceType?: string | null;
+  /** Weekday indices Mon=0 … Sun=6 when recurrence is CUSTOM/WEEKLY */
+  recurrenceDays?: number[];
   repeatTimeLabel?: string;
   nextPostLabel?: string;
   donationSourceNote?: string;
@@ -358,6 +362,8 @@ export interface DonationSummary {
   weeklyMeals: number;
 }
 
+export type RecurrenceType = 'NONE' | 'DAILY' | 'WEEKLY' | 'CUSTOM';
+
 export interface CreateDonationPayload {
   name: string;
   description: string;
@@ -366,7 +372,11 @@ export interface CreateDonationPayload {
   quantityOriginal: number;
   pickupStart: string;
   pickupEnd: string;
+  /** Prefer recurrenceType; kept for callers that only know daily vs not */
   isRepeating?: boolean;
+  recurrenceType?: RecurrenceType;
+  /** Weekday indices Mon=0 … Sun=6 for CUSTOM / WEEKLY */
+  recurrenceDays?: number[];
   localPhotoUri?: string | null;
 }
 

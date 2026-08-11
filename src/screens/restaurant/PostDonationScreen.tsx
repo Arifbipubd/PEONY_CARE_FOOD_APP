@@ -51,6 +51,17 @@ const SCHEDULES: { key: ScheduleType; label: string }[] = [
   { key: 'custom-days', label: 'Custom days' },
 ];
 
+/** Weekday chips for Custom days — indices match API Mon=0 … Sun=6 */
+const WEEKDAYS: { key: number; label: string }[] = [
+  { key: 0, label: 'Mon' },
+  { key: 1, label: 'Tue' },
+  { key: 2, label: 'Wed' },
+  { key: 3, label: 'Thu' },
+  { key: 4, label: 'Fri' },
+  { key: 5, label: 'Sat' },
+  { key: 6, label: 'Sun' },
+];
+
 // 30-min slots 00:00 → 23:30
 const TIME_SLOTS: string[] = Array.from({ length: 48 }, (_, i) => {
   const h = Math.floor(i / 2);
@@ -91,6 +102,8 @@ export default function PostDonationScreen({ navigation, route }: Props) {
   const [pickupUntil,  setPickupUntil]  = useState('');
   const [pickupUntilError, setPickupUntilError] = useState('');
   const [schedule,     setSchedule]     = useState<ScheduleType>('one-time');
+  const [customDays,   setCustomDays]   = useState<number[]>([]);
+  const [scheduleError, setScheduleError] = useState('');
   const [notes,        setNotes]        = useState('');
   const [photoUri,     setPhotoUri]     = useState<string | null>(null);
   const [submitting,   setSubmitting]   = useState(false);
@@ -124,7 +137,17 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         setUnitIndex(unitIdx >= 0 ? unitIdx : 0);
         setPickupFrom(isoToHHMM(d.pickupStart));
         setPickupUntil(isoToHHMM(d.pickupEnd));
-        setSchedule(d.isRepeating ? 'every-day' : 'one-time');
+        const rt = d.recurrenceType;
+        if (rt === 'DAILY') {
+          setSchedule('every-day');
+          setCustomDays([]);
+        } else if (rt === 'CUSTOM' || rt === 'WEEKLY') {
+          setSchedule('custom-days');
+          setCustomDays(d.recurrenceDays ?? []);
+        } else {
+          setSchedule('one-time');
+          setCustomDays([]);
+        }
         setNotes(d.description ?? '');
         setPhotoUri(d.photoUrl || null);
       })
@@ -166,6 +189,22 @@ export default function PostDonationScreen({ navigation, route }: Props) {
     setShowUnitModal(false);
   }, []);
 
+  const handleScheduleChange = useCallback((key: ScheduleType) => {
+    setSchedule(key);
+    setScheduleError('');
+    if (key !== 'custom-days') setCustomDays([]);
+  }, []);
+
+  const toggleCustomDay = useCallback((day: number) => {
+    setCustomDays((prev) => {
+      const next = prev.includes(day)
+        ? prev.filter((d) => d !== day)
+        : [...prev, day].sort((a, b) => a - b);
+      return next;
+    });
+    setScheduleError('');
+  }, []);
+
   const handlePickPhoto = useCallback(async () => {
     const result = await launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -197,19 +236,36 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         : '';
     const nextPickupFromError = !pickupFrom ? 'Pickup from is required' : '';
     const nextPickupUntilError = !pickupUntil ? 'Until time is required' : '';
+    const nextScheduleError =
+      schedule === 'custom-days' && customDays.length === 0
+        ? 'Select at least one day'
+        : '';
 
     setNameError(nextNameError);
     setQuantityError(nextQuantityError);
     setPickupFromError(nextPickupFromError);
     setPickupUntilError(nextPickupUntilError);
+    setScheduleError(nextScheduleError);
 
-    if (nextNameError || nextQuantityError || nextPickupFromError || nextPickupUntilError) {
+    if (
+      nextNameError ||
+      nextQuantityError ||
+      nextPickupFromError ||
+      nextPickupUntilError ||
+      nextScheduleError
+    ) {
       return;
     }
 
     setSubmitting(true);
     try {
       const { start, end } = buildPickupIso(pickupFrom, pickupUntil);
+      const recurrenceType =
+        schedule === 'every-day'
+          ? 'DAILY' as const
+          : schedule === 'custom-days'
+            ? 'CUSTOM' as const
+            : 'NONE' as const;
       const payload = {
         name:             name.trim(),
         description:      notes.trim(),
@@ -218,7 +274,8 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         quantityOriginal: Number(quantity),
         pickupStart:      start,
         pickupEnd:        end,
-        isRepeating:      schedule === 'every-day',
+        recurrenceType,
+        recurrenceDays:   schedule === 'custom-days' ? customDays : undefined,
         localPhotoUri:    photoChanged ? photoUri : undefined,
       };
       if (isEditMode && donationId) {
@@ -241,7 +298,7 @@ export default function PostDonationScreen({ navigation, route }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [name, notes, category, unit, quantity, pickupFrom, pickupUntil, schedule, photoUri, photoChanged, isEditMode, donationId, navigation]);
+  }, [name, notes, category, unit, quantity, pickupFrom, pickupUntil, schedule, customDays, photoUri, photoChanged, isEditMode, donationId, navigation]);
 
   if (initializing) {
     return (
@@ -415,7 +472,7 @@ export default function PostDonationScreen({ navigation, route }: Props) {
             <TouchableOpacity
               key={key}
               style={[styles.schedBtn, schedule === key && styles.schedBtnActive]}
-              onPress={() => setSchedule(key)}
+              onPress={() => handleScheduleChange(key)}
               activeOpacity={0.8}
             >
               <Text style={[styles.schedText, schedule === key && styles.schedTextActive]}>
@@ -424,6 +481,26 @@ export default function PostDonationScreen({ navigation, route }: Props) {
             </TouchableOpacity>
           ))}
         </View>
+        {schedule === 'custom-days' ? (
+          <View style={styles.dayRow}>
+            {WEEKDAYS.map(({ key, label }) => {
+              const selected = customDays.includes(key);
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.dayBtn, selected && styles.dayBtnActive]}
+                  onPress={() => toggleCustomDay(key)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.dayText, selected && styles.dayTextActive]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : null}
+        {scheduleError ? <Text style={styles.fieldError}>{scheduleError}</Text> : null}
 
         {/* NOTES (OPTIONAL) */}
         <Text style={[styles.fieldLabel, styles.sectionTop]}>NOTES (OPTIONAL)</Text>
@@ -763,6 +840,33 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   schedTextActive: {
+    color: colors.accentPrimary,
+  },
+  dayRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  dayBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: radius.input,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dayBtnActive: {
+    backgroundColor: colors.avatarBg,
+    borderColor: colors.accentPrimary,
+  },
+  dayText: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    color: colors.textPrimary,
+  },
+  dayTextActive: {
     color: colors.accentPrimary,
   },
   photoBox: {
