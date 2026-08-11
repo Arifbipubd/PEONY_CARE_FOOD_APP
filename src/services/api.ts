@@ -21,6 +21,19 @@ export class ApiError extends Error {
   }
 }
 
+/** First string message for a field key in Django-style API error details. */
+export function firstDetailMessage(
+  details: Record<string, unknown> | undefined,
+  key: string,
+): string {
+  const value = details?.[key];
+  if (Array.isArray(value)) {
+    const first = value.find((item) => typeof item === 'string');
+    return typeof first === 'string' ? first : '';
+  }
+  return typeof value === 'string' ? value : '';
+}
+
 /** Dev-only: log structured API failures from screen catch blocks. */
 export function logApiCatch(context: string, err: unknown): void {
   if (!__DEV__) return;

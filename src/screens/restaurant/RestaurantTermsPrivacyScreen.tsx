@@ -33,9 +33,9 @@ type SectionData = {
 };
 
 const HERO_SUBTITLE: Record<Tab, string> = {
-  terms:   'How UDUFood works for restaurant partners.',
+  terms:   'How Udufood works for restaurant partners.',
   privacy: 'What we collect and how we use it.',
-  cookies: 'How UDUFood handles your data and what you agree to.',
+  cookies: 'How Udufood handles your data and what you agree to.',
 };
 
 const TERMS_SECTIONS: SectionData[] = [
@@ -55,11 +55,11 @@ const TERMS_SECTIONS: SectionData[] = [
   },
   {
     heading: '3. Sponsored donations',
-    body: "Where sponsored or donor-supported listings are available, you may receive a notification with the dish list and quantity. Prepare them as described in the app — receivers claim them through UDUFood. We do not process card payments in the app today.",
+    body: "Where sponsored or donor-supported listings are available, you may receive a notification with the dish list and quantity. Prepare them as described in the app — receivers claim them through Udufood. We do not process card payments in the app today.",
   },
   {
     heading: '4. No-show claims',
-    body: "After a pickup window closes, mark any receiver who didn't collect as No-show in the app. The portion returns to the pool so others can claim it. UDUFood tracks no-show patterns to improve platform reliability.",
+    body: "After a pickup window closes, mark any receiver who didn't collect as No-show in the app. The portion returns to the pool so others can claim it. Udufood tracks no-show patterns to improve platform reliability.",
   },
   {
     heading: '5. Account termination',
@@ -83,7 +83,7 @@ const PRIVACY_SECTIONS: SectionData[] = [
   {
     heading: 'PDPA compliance',
     bodyParts: [
-      { text: "UDUFood complies with Singapore's Personal Data Protection Act (PDPA). You can request to view, correct, or delete your business profile at any time by emailing " },
+      { text: "Udufood complies with Singapore's Personal Data Protection Act (PDPA). You can request to view, correct, or delete your business profile at any time by emailing " },
       { text: 'support@udufood.com', accent: true },
       { text: '.' },
     ],

@@ -202,7 +202,7 @@ const EmptyDashboard = React.memo(({ restaurantName, hasMenuPhotos, hasDonations
       </View>
 
       {/* Welcome title + subtitle */}
-      <Text style={es.title}>{'Welcome to UDUFood,\n' + restaurantName}</Text>
+      <Text style={es.title}>{'Welcome to Udufood,\n' + restaurantName}</Text>
       <Text style={es.subtitle}>
         {"You're all set up. Complete one quick step to start receiving donations."}
       </Text>

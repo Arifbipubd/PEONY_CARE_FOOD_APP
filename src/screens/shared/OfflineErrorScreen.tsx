@@ -25,7 +25,7 @@ function OfflineErrorScreen({ onRetry, onContinueOffline }: Props) {
         </View>
         <Text style={styles.title}>No connection</Text>
         <Text style={styles.desc}>
-          We can't reach UDUFood servers right now. Check your Wi-Fi or mobile data and try again.
+          We can't reach Udufood servers right now. Check your Wi-Fi or mobile data and try again.
         </Text>
       </View>
 

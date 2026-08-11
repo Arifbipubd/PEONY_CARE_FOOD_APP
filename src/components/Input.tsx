@@ -15,6 +15,7 @@ interface InputProps {
   onChangeText: (text: string) => void;
   placeholder?: string;
   error?: string;
+  required?: boolean;
   keyboardType?: KeyboardTypeOptions;
   secureTextEntry?: boolean;
   editable?: boolean;
@@ -30,6 +31,7 @@ function Input({
   onChangeText,
   placeholder,
   error,
+  required = false,
   keyboardType = 'default',
   secureTextEntry = false,
   editable = true,
@@ -44,7 +46,12 @@ function Input({
 
   return (
     <View style={[styles.wrapper, style]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? (
+        <Text style={styles.label}>
+          {label}
+          {required ? <Text style={styles.requiredMark}> *</Text> : null}
+        </Text>
+      ) : null}
       <View style={[styles.focusRing, focused && !error && styles.focusRingActive]}>
         <View
           style={[
@@ -91,6 +98,9 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['12'],
     color: colors.textMuted,
+  },
+  requiredMark: {
+    color: colors.errorRed,
   },
   focusRing: {
     borderRadius: radius.input + 3,

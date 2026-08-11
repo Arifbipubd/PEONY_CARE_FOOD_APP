@@ -33,15 +33,15 @@ type SectionData = {
 };
 
 const HERO_SUBTITLE: Record<Tab, string> = {
-  terms:   'How UDUFood works for receivers.',
+  terms:   'How Udufood works for receivers.',
   privacy: 'What we collect and how we use it.',
-  cookies: 'How UDUFood handles your data and what you agree to.',
+  cookies: 'How Udufood handles your data and what you agree to.',
 };
 
 const TERMS_SECTIONS: SectionData[] = [
   {
     heading: '1. Eligibility',
-    body: 'UDUFood is for Singapore residents who need food assistance. You register with your mobile number — no NRIC, income document, or other verification required.',
+    body: 'Udufood is for Singapore residents who need food assistance. You register with your mobile number — no NRIC, income document, or other verification required.',
   },
   {
     heading: '2. One claim per day',
@@ -60,7 +60,7 @@ const TERMS_SECTIONS: SectionData[] = [
   },
   {
     heading: '4. Food safety',
-    body: "Restaurants and individual donors are responsible for the quality and safety of the food they post. UDUFood is a platform — we don't prepare, store, or transport food. If you ever receive food that looks unsafe, refuse it and report it through the app.",
+    body: "Restaurants and individual donors are responsible for the quality and safety of the food they post. Udufood is a platform — we don't prepare, store, or transport food. If you ever receive food that looks unsafe, refuse it and report it through the app.",
   },
   {
     heading: '5. Account termination',
@@ -84,7 +84,7 @@ const PRIVACY_SECTIONS: SectionData[] = [
   {
     heading: 'PDPA compliance',
     bodyParts: [
-      { text: "UDUFood complies with Singapore's Personal Data Protection Act (PDPA). You can request to view, correct, or delete your data at any time by emailing " },
+      { text: "Udufood complies with Singapore's Personal Data Protection Act (PDPA). You can request to view, correct, or delete your data at any time by emailing " },
       { text: 'support@udufood.com', accent: true },
       { text: '.' },
     ],

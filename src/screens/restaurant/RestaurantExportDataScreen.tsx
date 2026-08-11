@@ -61,7 +61,7 @@ export default function RestaurantExportDataScreen({ navigation }: Props) {
         <Text style={styles.title}>Download my data</Text>
 
         <Text style={styles.desc}>
-          Get a copy of everything UDUFood holds about your business, as required by Singapore's PDPA.
+          Get a copy of everything Udufood holds about your business, as required by Singapore's PDPA.
         </Text>
 
         <View style={styles.exportSection}>

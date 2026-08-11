@@ -63,18 +63,40 @@ export const registerReceiver = async (
   const storedName = await AsyncStorage.getItem('udufood_pending_name');
   const display_name = storedName ?? displayName;
 
-  const res = await api.post(
-    '/auth/register/receiver/',
-    { display_name, latitude: latitude ?? 0, longitude: longitude ?? 0 },
-    { headers: { 'Registration-Token': registrationToken } },
-  );
-  await AsyncStorage.removeItem('udufood_pending_name');
-  const data = res.data.data;
-  return {
-    accessToken: data.access,
-    refreshToken: data.refresh,
-    user: { id: data.user.id, role: data.user.role as UserRole, phone: data.user.phone },
-  };
+  if (__DEV__) {
+    console.log('[AUTH] registerReceiver', {
+      display_name,
+      latitude: latitude ?? 0,
+      longitude: longitude ?? 0,
+      hasRegistrationToken: Boolean(registrationToken),
+      usedStoredName: Boolean(storedName),
+    });
+  }
+
+  try {
+    const res = await api.post(
+      '/auth/register/receiver/',
+      { display_name, latitude: latitude ?? 0, longitude: longitude ?? 0 },
+      { headers: { 'Registration-Token': registrationToken } },
+    );
+    await AsyncStorage.removeItem('udufood_pending_name');
+    const data = res.data.data;
+    if (__DEV__) {
+      console.log('[AUTH] registerReceiver:success', {
+        userId: data.user.id,
+        role: data.user.role,
+        phone: data.user.phone,
+      });
+    }
+    return {
+      accessToken: data.access,
+      refreshToken: data.refresh,
+      user: { id: data.user.id, role: data.user.role as UserRole, phone: data.user.phone },
+    };
+  } catch (err) {
+    logApiCatch('registerReceiver', err);
+    throw err;
+  }
 };
 
 export const registerDonor = async (
@@ -101,6 +123,13 @@ export const registerDonor = async (
       { headers: { 'Registration-Token': registrationToken } },
     );
     const data = res.data.data;
+    if (__DEV__) {
+      console.log('[AUTH] registerDonor:success', {
+        userId: data.user.id,
+        role: data.user.role,
+        phone: data.user.phone,
+      });
+    }
     return {
       accessToken: data.access,
       refreshToken: data.refresh,
@@ -132,6 +161,7 @@ export const registerRestaurant = async (
   if (__DEV__) {
     console.log('[AUTH] registerRestaurant', {
       ...restaurantData,
+      uenLength: restaurantData.uen.length,
       hasRegistrationToken: Boolean(registrationToken),
     });
   }
@@ -143,6 +173,13 @@ export const registerRestaurant = async (
       { headers: { 'Registration-Token': registrationToken } },
     );
     const data = res.data.data;
+    if (__DEV__) {
+      console.log('[AUTH] registerRestaurant:success', {
+        userId: data.user.id,
+        role: data.user.role,
+        phone: data.user.phone,
+      });
+    }
     return {
       accessToken: data.access,
       refreshToken: data.refresh,
