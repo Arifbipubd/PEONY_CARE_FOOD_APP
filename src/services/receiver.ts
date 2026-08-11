@@ -79,7 +79,8 @@ function mapApiClaimHistoryItem(d: ApiClaimHistoryItem): ClaimHistoryItem {
     status: (d.status === 'CLAIMED' || d.status === 'COLLECTED') ? 'CLAIMED' : 'EXPIRED',
     claimedAt: d.claimed_at,
     pickupWindow: d.pickup_window,
-    rating: d.rating ?? undefined,
+    hasReview: d.has_review ?? false,
+    canReview: d.can_review ?? false,
   };
 }
 

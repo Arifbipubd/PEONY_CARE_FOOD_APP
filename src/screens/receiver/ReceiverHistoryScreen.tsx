@@ -147,7 +147,7 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
   const pendingReview = useMemo<ClaimHistoryItem | null>(() => {
     for (const section of sections) {
       for (const item of section.data) {
-        if (item.status === 'CLAIMED' && item.rating == null) return item;
+        if (item.canReview && !item.hasReview) return item;
       }
     }
     return null;
@@ -165,13 +165,10 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
           <Text style={styles.foodName} numberOfLines={1}>{item.foodName}</Text>
           <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
         </View>
-        {item.rating != null ? (
-          <TouchableOpacity onPress={() => goToReview(item)} activeOpacity={0.7} style={styles.ratingCol}>
-            <View style={styles.ratingRow}>
-              <Ionicons name="star" size={13} color={colors.warningYellow} />
-              <Text style={styles.ratingScore}>{item.rating.toFixed(1)}</Text>
-            </View>
-            <Text style={styles.editReview}>Edit review</Text>
+        {item.hasReview ? (
+          <TouchableOpacity onPress={() => goToReview(item)} activeOpacity={0.7} style={styles.ratingBadge}>
+            <Ionicons name="star" size={13} color={colors.warningYellow} />
+            <Text style={styles.ratingScore}>Rated</Text>
           </TouchableOpacity>
         ) : (
           <Text style={[styles.status, collected ? styles.collected : styles.expired]}>
@@ -500,17 +497,10 @@ const styles = StyleSheet.create({
     color: colors.warningYellow,
   },
 
-  ratingCol: { alignItems: 'flex-end' },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  ratingBadge: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   ratingScore: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['14'],
     color: colors.warningYellow,
-  },
-  editReview: {
-    fontFamily: fontFamilies.bold,
-    fontSize: fontSizes['12'],
-    color: colors.accentPrimary,
-    marginTop: 2,
   },
 });
