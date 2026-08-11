@@ -12,9 +12,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useAuthStore } from '../../store/authStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import {
   getNotifications,
+  getUnreadCount,
   markRead as apiMarkRead,
   markAllRead as apiMarkAllRead,
 } from '../../services/notifications';
@@ -24,7 +26,9 @@ import {
 } from '../../constants/theme';
 
 type Props = {
-  navigation: BottomTabNavigationProp<Record<string, undefined>>;
+  // Shared across role tab navigators — destinations differ by role.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  navigation: BottomTabNavigationProp<any>;
 };
 
 type IconConfig = {
@@ -34,11 +38,64 @@ type IconConfig = {
   library?: 'mci';
 };
 
+function payloadString(payload: Record<string, unknown>, key: string): string | null {
+  const value = payload[key];
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+/** Open the screen linked to this notification (food detail, restaurant, claims, …). */
+function navigateFromNotification(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  navigation: BottomTabNavigationProp<any>,
+  item: AppNotification,
+  role: string | undefined,
+) {
+  const foodId = payloadString(item.payload, 'food_id');
+  const restaurantId = payloadString(item.payload, 'restaurant_id');
+
+  if (role === 'RECEIVER') {
+    if (
+      foodId &&
+      (item.type === 'NEW_FOOD_NEARBY' ||
+        item.type === 'FOOD_EXPIRING' ||
+        item.type === 'CLAIM_CONFIRMED')
+    ) {
+      navigation.navigate('Home', {
+        screen: 'FoodDetail',
+        params: { foodId },
+      });
+      return;
+    }
+    if (restaurantId && (item.type === 'RESTAURANT_UPDATE' || item.type === 'NEW_FOOD_NEARBY')) {
+      navigation.navigate('Home', {
+        screen: 'RestaurantPage',
+        params: { restaurantId },
+      });
+      return;
+    }
+    // Fallback: any payload with food_id opens food detail.
+    if (foodId) {
+      navigation.navigate('Home', {
+        screen: 'FoodDetail',
+        params: { foodId },
+      });
+    }
+    return;
+  }
+
+  if (role === 'RESTAURANT') {
+    if (item.type === 'FOOD_CLAIMED' || foodId) {
+      navigation.navigate('Profile', { screen: 'TodaysClaims' });
+    }
+  }
+}
+
 function getIconConfig(type: string): IconConfig {
   switch (type) {
     case 'CLAIM_CONFIRMED':
       return { name: 'checkmark-circle',   color: colors.successGreen,  bg: colors.successGreenLight };
     case 'NEW_FOOD_NEARBY':
+    case 'FOOD_CLAIMED':
       return { name: 'silverware-fork-knife', color: colors.accentPrimary, bg: colors.avatarBg, library: 'mci' as const };
     case 'FOOD_EXPIRING':
       return { name: 'time',               color: colors.goldDark,      bg: colors.goldLight };
@@ -94,7 +151,7 @@ const NotifRow = memo(function NotifRow({
   onPress,
 }: {
   item: AppNotification;
-  onPress: (id: string) => void;
+  onPress: (item: AppNotification) => void;
 }) {
   const icon   = getIconConfig(item.type);
   const isRead = item.readAt !== null;
@@ -102,7 +159,7 @@ const NotifRow = memo(function NotifRow({
     <TouchableOpacity
       style={styles.row}
       activeOpacity={0.75}
-      onPress={() => onPress(item.id)}
+      onPress={() => onPress(item)}
     >
       <View style={[styles.iconCircle, { backgroundColor: icon.bg }]}>
         {icon.library === 'mci'
@@ -128,16 +185,22 @@ const NotifRow = memo(function NotifRow({
 });
 
 export default function NotificationsScreen({ navigation }: Props) {
+  const role = useAuthStore((s) => s.user?.role);
   const {
-    notifications, setNotifications,
+    notifications, unreadCount, setInbox, setUnreadCount,
     markRead: storeMarkRead, markAllRead: storeMarkAllRead,
   } = useNotificationStore();
   const [loading, setLoading]       = useState(notifications.length === 0);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(
-    () => getNotifications().then((items) => setNotifications(items)).catch(() => {}),
-    [setNotifications],
+    () =>
+      getNotifications()
+        .then(({ items, unreadCount: count }) => {
+          setInbox(items, count);
+        })
+        .catch(() => {}),
+    [setInbox],
   );
 
   useFocusEffect(
@@ -152,15 +215,20 @@ export default function NotificationsScreen({ navigation }: Props) {
     loadData().finally(() => setRefreshing(false));
   }, [loadData]);
 
-  const handleTap = useCallback((id: string) => {
-    storeMarkRead(id);
-    apiMarkRead(id);
-  }, [storeMarkRead]);
+  const handleTap = useCallback((item: AppNotification) => {
+    // 1) Mark as read (optimistic + API)
+    if (item.readAt === null) {
+      storeMarkRead(item.id);
+      apiMarkRead(item.id).then(() => getUnreadCount().then(setUnreadCount));
+    }
+    // 2) Deep-link to the related screen (e.g. food detail)
+    navigateFromNotification(navigation, item, role);
+  }, [storeMarkRead, setUnreadCount, navigation, role]);
 
   const handleMarkAll = useCallback(() => {
     storeMarkAllRead();
-    apiMarkAllRead();
-  }, [storeMarkAllRead]);
+    apiMarkAllRead().then(() => setUnreadCount(0));
+  }, [storeMarkAllRead, setUnreadCount]);
 
   const sections = useMemo(() => buildSections(notifications), [notifications]);
 
@@ -181,8 +249,9 @@ export default function NotificationsScreen({ navigation }: Props) {
     );
   }
 
-  // ── Empty state ──────────────────────────────────────────────────────────────
+  // ── Empty / mismatch state ───────────────────────────────────────────────────
   if (notifications.length === 0) {
+    const listFailed = unreadCount > 0;
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
         <View style={styles.filterRow}>
@@ -196,18 +265,33 @@ export default function NotificationsScreen({ navigation }: Props) {
         <Text style={styles.pageTitle}>Notifications</Text>
         <View style={styles.emptyBody}>
           <View style={styles.emptyIconCircle}>
-            <Ionicons name="notifications" size={48} color={colors.textMuted} />
+            <Ionicons
+              name={listFailed ? 'refresh' : 'notifications'}
+              size={48}
+              color={colors.textMuted}
+            />
           </View>
-          <Text style={styles.emptyTitle}>All caught up</Text>
+          <Text style={styles.emptyTitle}>
+            {listFailed ? 'Couldn’t load notifications' : 'All caught up'}
+          </Text>
           <Text style={styles.emptyDesc}>
-            When new food appears nearby or someone claims your donation, you'll see it here.
+            {listFailed
+              ? 'You have unread alerts, but the list failed to load. Pull to refresh or try again.'
+              : 'When new food appears nearby or someone claims your donation, you\'ll see it here.'}
           </Text>
           <TouchableOpacity
             style={styles.emptyCta}
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('Home' as never)}
+            onPress={() => {
+              if (listFailed) {
+                setLoading(true);
+                loadData().finally(() => setLoading(false));
+                return;
+              }
+              navigation.navigate('Home' as never);
+            }}
           >
-            <Text style={styles.emptyCtaText}>Browse food</Text>
+            <Text style={styles.emptyCtaText}>{listFailed ? 'Try again' : 'Browse food'}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

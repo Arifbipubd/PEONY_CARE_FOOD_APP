@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +27,8 @@ import TermsPrivacyScreen        from '../screens/receiver/TermsPrivacyScreen';
 import DeleteAccountScreen       from '../screens/receiver/DeleteAccountScreen';
 import ExportDataScreen          from '../screens/receiver/ExportDataScreen';
 import EditProfileScreen         from '../screens/receiver/EditProfileScreen';
+import { getUnreadCount } from '../services/notifications';
+import { useNotificationStore } from '../store/notificationStore';
 import { colors, fontSizes }  from '../constants/theme';
 
 export type HomeStackParamList = {
@@ -112,6 +115,13 @@ const TAB_ICONS = {
 };
 
 export default function ReceiverTabs() {
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const setUnreadCount = useNotificationStore((s) => s.setUnreadCount);
+
+  useEffect(() => {
+    getUnreadCount().then(setUnreadCount);
+  }, [setUnreadCount]);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -141,7 +151,14 @@ export default function ReceiverTabs() {
         })}
       />
       <Tab.Screen name="History" component={HistoryNavigator} />
-      <Tab.Screen name="Alerts"  component={NotificationsScreen} />
+      <Tab.Screen
+        name="Alerts"
+        component={NotificationsScreen}
+        options={{
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.accentPrimary, fontSize: fontSizes.xs },
+        }}
+      />
       <Tab.Screen
         name="Profile"
         component={ProfileNavigator}

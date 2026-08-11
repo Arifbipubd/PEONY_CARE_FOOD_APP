@@ -25,7 +25,7 @@ import FilterSheet, { FilterState, DEFAULT_FILTERS } from '../../components/Filt
 import { browseFood, getDailyLimit, getReceiverProfile, searchFood, updateReceiverLocation } from '../../services/receiver';
 import { useLocation } from '../../hooks/useLocation';
 import { getNearbyRestaurants } from '../../services/restaurant';
-import { getNotifications } from '../../services/notifications';
+import { getUnreadCount } from '../../services/notifications';
 import { FoodItem, FoodCategory, DailyLimitStatus, PublicRestaurant } from '../../types';
 import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, lineHeights, layout } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
@@ -232,7 +232,7 @@ const skelStyles = StyleSheet.create({
 
 export default function ReceiverHomeScreen({ navigation }: Props) {
   const { displayName, setProfile } = useProfileStore();
-  const { unreadCount, setNotifications } = useNotificationStore();
+  const { unreadCount, setUnreadCount } = useNotificationStore();
   const name = displayName || 'Sarah';
   const firstName = name.split(' ')[0];
   const { lat, lng, loading: locLoading } = useLocation();
@@ -260,8 +260,8 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
       getDailyLimit(),
       getNearbyRestaurants(useLat, useLng),
       getReceiverProfile(),
-      getNotifications(),
-    ]).then(([items, limit, rests, profile, notifications]) => {
+      getUnreadCount(),
+    ]).then(([items, limit, rests, profile, unread]) => {
       if (items.status === 'fulfilled')         setFoods(items.value);
       if (limit.status === 'fulfilled')         setDailyLimit(limit.value);
       if (rests.status === 'fulfilled')         setRestaurants(rests.value);
@@ -271,10 +271,10 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
           setFilters((f) => ({ ...f, maxDistanceKm: profile.value.browseRadiusKm! }));
         }
       }
-      if (notifications.status === 'fulfilled') setNotifications(notifications.value);
+      if (unread.status === 'fulfilled') setUnreadCount(unread.value);
       setLoading(false);
     });
-  }, [lat, lng, setProfile, setNotifications]);
+  }, [lat, lng, setProfile, setUnreadCount]);
 
   useEffect(() => {
     if (locLoading || lat === null || lng === null || locationPatched.current) return;

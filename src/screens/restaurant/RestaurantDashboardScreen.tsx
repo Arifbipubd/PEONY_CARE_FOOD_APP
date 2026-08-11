@@ -13,6 +13,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import { getDashboard, getMenuPhotos, menuPhotosExist, donationsExist } from '../../services/restaurant';
+import { getUnreadCount } from '../../services/notifications';
 import { useLocation } from '../../hooks/useLocation';
 import { RestaurantDashboard, RestaurantDonation } from '../../types';
 import { useNotificationStore } from '../../store/notificationStore';
@@ -513,20 +514,21 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
   const [loading, setLoading]             = useState(true);
   const [hasMenuPhotos, setHasMenuPhotos] = useState(() => menuPhotosExist());
   const [hasDonations, setHasDonations]   = useState(() => donationsExist());
-  const { unreadCount } = useNotificationStore();
+  const { unreadCount, setUnreadCount } = useNotificationStore();
   const { lat, lng } = useLocation();
 
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(
-    () => Promise.all([getDashboard(), getMenuPhotos()])
-      .then(([d]) => {
+    () => Promise.all([getDashboard(), getMenuPhotos(), getUnreadCount()])
+      .then(([d, , count]) => {
         setData(d);
         setHasMenuPhotos(menuPhotosExist());
         setHasDonations(donationsExist());
+        setUnreadCount(count);
       })
       .catch(() => {}),
-    [lat, lng],
+    [lat, lng, setUnreadCount],
   );
 
   useFocusEffect(

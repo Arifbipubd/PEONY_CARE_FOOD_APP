@@ -327,13 +327,19 @@ export interface ApiNotification {
   title: string;
   body: string;
   payload: Record<string, unknown>;
+  is_read?: boolean;
   read_at: string | null;
   created_at: string;
 }
 
+/** GET /notifications/ → data payload */
 export interface ApiNotificationList {
-  count: number;
-  results: ApiNotification[];
+  items: ApiNotification[];
+  unread_count: number;
+}
+
+export interface ApiNotificationUnreadCount {
+  unread_count: number;
 }
 
 export interface ApiOtpSendResponse {

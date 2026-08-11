@@ -9,6 +9,9 @@ interface NotificationStore {
   unreadCount: number;
 
   setNotifications: (items: AppNotification[]) => void;
+  setUnreadCount: (count: number) => void;
+  /** Set inbox + badge together so list/badge cannot drift after a fetch. */
+  setInbox: (items: AppNotification[], unreadCount: number) => void;
   markRead: (id: string) => void;
   markAllRead: () => void;
   clearNotifications: () => void;
@@ -22,6 +25,14 @@ export const useNotificationStore = create<NotificationStore>((set) => ({
     set({
       notifications: items,
       unreadCount: items.filter((n) => n.readAt === null).length,
+    }),
+
+  setUnreadCount: (count) => set({ unreadCount: Math.max(0, count) }),
+
+  setInbox: (items, unreadCount) =>
+    set({
+      notifications: items,
+      unreadCount: Math.max(0, unreadCount),
     }),
 
   markRead: (id) =>

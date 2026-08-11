@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { getUnreadCount } from '../services/notifications';
 
 import RestaurantDashboardScreen from '../screens/restaurant/RestaurantDashboardScreen';
 import DonationListScreen        from '../screens/restaurant/DonationListScreen';
@@ -100,7 +102,12 @@ const TAB_ICONS = {
 };
 
 export default function RestaurantTabs() {
-  const { unreadCount } = useNotificationStore();
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const setUnreadCount = useNotificationStore((s) => s.setUnreadCount);
+
+  useEffect(() => {
+    getUnreadCount().then(setUnreadCount);
+  }, [setUnreadCount]);
 
   return (
     <Tab.Navigator
