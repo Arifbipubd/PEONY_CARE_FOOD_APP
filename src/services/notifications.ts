@@ -1,21 +1,28 @@
-// Notifications service — inbox list, unread filter, mark read, unread badge count.
-// Backend shape: { data: { items: Notification[], unread_count: number } }
+// Notifications service — grouped inbox, pagination, mark read, unread badge.
 
-import { AppNotification } from '../types';
-import { ApiNotification, ApiNotificationList } from '../types/api';
+import {
+  AppNotification,
+  NotificationGroup,
+  NotificationInbox,
+  NotificationPagination,
+} from '../types';
+import {
+  ApiNotification,
+  ApiNotificationGroup,
+  ApiNotificationList,
+  ApiNotificationPagination,
+} from '../types/api';
 import { api, logApiCatch } from './api';
 
 export type GetNotificationsParams = {
   unreadOnly?: boolean;
+  page?: number;
+  pageSize?: number;
 };
 
-export type NotificationInbox = {
-  items: AppNotification[];
-  unreadCount: number;
-};
+const DEFAULT_PAGE_SIZE = 20;
 
 function mapApiNotification(d: ApiNotification): AppNotification {
-  // Prefer read_at; fall back to is_read from the backend serializer.
   let readAt: string | null = d.read_at ?? null;
   if (readAt == null && d.is_read === true) {
     readAt = new Date().toISOString();
@@ -34,60 +41,82 @@ function mapApiNotification(d: ApiNotification): AppNotification {
   };
 }
 
-/** Backend uses `items`; keep fallbacks for older shapes. */
-function extractRawItems(payload: unknown): ApiNotification[] {
-  if (Array.isArray(payload)) {
-    return payload as ApiNotification[];
-  }
-  if (!payload || typeof payload !== 'object') {
-    return [];
-  }
-  const obj = payload as Record<string, unknown>;
-  if (Array.isArray(obj.items)) {
-    return obj.items as ApiNotification[];
-  }
-  if (Array.isArray(obj.results)) {
-    return obj.results as ApiNotification[];
-  }
-  if (Array.isArray(obj.notifications)) {
-    return obj.notifications as ApiNotification[];
-  }
-  if (obj.data !== undefined) {
-    return extractRawItems(obj.data);
-  }
-  return [];
+function mapPagination(p: ApiNotificationPagination): NotificationPagination {
+  return {
+    page: p.page,
+    pageSize: p.page_size,
+    totalCount: p.total_count,
+    totalPages: p.total_pages,
+    hasNext: p.has_next,
+    hasPrevious: p.has_previous,
+  };
 }
 
-function unreadFromPayload(payload: unknown, items: AppNotification[]): number {
-  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
-    const count = (payload as { unread_count?: unknown }).unread_count;
-    if (typeof count === 'number') return count;
-    if (typeof count === 'string' && count.trim() !== '') {
-      const n = Number(count);
-      if (!Number.isNaN(n)) return n;
-    }
-  }
-  return items.filter((n) => n.readAt === null).length;
+function mapGroup(g: ApiNotificationGroup): NotificationGroup {
+  const items = (g.items ?? []).map(mapApiNotification);
+  return {
+    key: g.key,
+    label: g.label,
+    date: g.date,
+    count: typeof g.count === 'number' ? g.count : items.length,
+    items,
+  };
 }
 
-/** GET /notifications/ — full inbox, or ?unread_only=true */
+function emptyInbox(): NotificationInbox {
+  return {
+    groups: [],
+    unreadCount: 0,
+    pagination: {
+      page: 1,
+      pageSize: DEFAULT_PAGE_SIZE,
+      totalCount: 0,
+      totalPages: 0,
+      hasNext: false,
+      hasPrevious: false,
+    },
+  };
+}
+
+/** GET /notifications/?page=&page_size=&unread_only= */
 export const getNotifications = async (
   params?: GetNotificationsParams,
 ): Promise<NotificationInbox> => {
   try {
     const res = await api.get('/notifications/', {
-      params: params?.unreadOnly ? { unread_only: true } : undefined,
+      params: {
+        page: params?.page ?? 1,
+        page_size: params?.pageSize ?? DEFAULT_PAGE_SIZE,
+        ...(params?.unreadOnly ? { unread_only: true } : {}),
+      },
     });
-    const data = (res.data?.data ?? res.data) as ApiNotificationList | ApiNotification[] | unknown;
-    const items = extractRawItems(data).map(mapApiNotification);
+    const data = (res.data?.data ?? res.data) as ApiNotificationList;
+    const groups = Array.isArray(data?.groups) ? data.groups.map(mapGroup) : [];
+    const unreadCount =
+      typeof data?.unread_count === 'number'
+        ? data.unread_count
+        : groups.reduce(
+            (sum, g) => sum + g.items.filter((n) => n.readAt === null).length,
+            0,
+          );
+
     return {
-      items,
-      unreadCount: unreadFromPayload(data, items),
+      groups,
+      unreadCount,
+      pagination: data?.pagination
+        ? mapPagination(data.pagination)
+        : {
+            page: params?.page ?? 1,
+            pageSize: params?.pageSize ?? DEFAULT_PAGE_SIZE,
+            totalCount: groups.reduce((sum, g) => sum + g.items.length, 0),
+            totalPages: 1,
+            hasNext: false,
+            hasPrevious: false,
+          },
     };
   } catch (err) {
     logApiCatch('getNotifications', err);
-    // Fail soft so Alerts screen still opens.
-    return { items: [], unreadCount: 0 };
+    return emptyInbox();
   }
 };
 

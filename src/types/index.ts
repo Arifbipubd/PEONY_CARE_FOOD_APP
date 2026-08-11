@@ -442,3 +442,26 @@ export interface AppNotification {
   readAt: string | null;
   createdAt: string;
 }
+
+export interface NotificationGroup {
+  key: string;
+  label: string;
+  date: string;
+  count: number;
+  items: AppNotification[];
+}
+
+export interface NotificationPagination {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export interface NotificationInbox {
+  groups: NotificationGroup[];
+  unreadCount: number;
+  pagination: NotificationPagination;
+}

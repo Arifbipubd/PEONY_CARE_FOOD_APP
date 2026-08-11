@@ -332,10 +332,28 @@ export interface ApiNotification {
   created_at: string;
 }
 
-/** GET /notifications/ → data payload */
-export interface ApiNotificationList {
+export interface ApiNotificationGroup {
+  key: string;
+  label: string;
+  date: string;
+  count: number;
   items: ApiNotification[];
+}
+
+export interface ApiNotificationPagination {
+  page: number;
+  page_size: number;
+  total_count: number;
+  total_pages: number;
+  has_next: boolean;
+  has_previous: boolean;
+}
+
+/** GET /notifications/ → data payload (grouped + paginated) */
+export interface ApiNotificationList {
+  groups: ApiNotificationGroup[];
   unread_count: number;
+  pagination: ApiNotificationPagination;
 }
 
 export interface ApiNotificationUnreadCount {
