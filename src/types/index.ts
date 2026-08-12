@@ -208,6 +208,27 @@ export interface LocationSettings {
   recentPlaces: RecentPlace[];
 }
 
+export interface ReceiverNotificationSettings {
+  pushEnabled: boolean;
+  alertNewFoodNearby: boolean;
+  alertClaimConfirmations: boolean;
+  alertDailyLimitReset: boolean;
+}
+
+export interface RestaurantNotificationSettings {
+  pushEnabled: boolean;
+  emailEnabled: boolean;
+  alertNewClaim: boolean;
+  alertSponsored: boolean;
+  alertAllClaimed: boolean;
+  alertWindowExpiring: boolean;
+  alertNoShow: boolean;
+  /** API-only — no UI row yet; preserve on save */
+  alertDonationClaimed: boolean;
+  /** API-only — no UI row yet; preserve on save */
+  alertReceipts: boolean;
+}
+
 // ─── Public Restaurant Page ───────────────────────────────────────────────────
 
 export interface PublicRestaurant {

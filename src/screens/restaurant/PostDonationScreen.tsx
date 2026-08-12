@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -92,17 +92,38 @@ function toLocalOffsetIso(d: Date): string {
   return `${y}-${m}-${day}T${h}:${min}:${s}.${ms}${sign}${oh}:${om}`;
 }
 
-function buildPickupIso(fromStr: string, untilStr: string): { start: string; end: string } {
-  const parseHM = (t: string): [number, number] => {
-    const parts = t.split(':');
-    return [parseInt(parts[0] ?? '0', 10), parseInt(parts[1] ?? '0', 10)];
-  };
+function parseHM(t: string): [number, number] {
+  const parts = t.split(':');
+  return [parseInt(parts[0] ?? '0', 10), parseInt(parts[1] ?? '0', 10)];
+}
+
+/** Current local HH:mm (24h) for comparing against time-slot strings. */
+function currentHHMM(now = new Date()): string {
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
+/**
+ * Build pickup_start / pickup_end with device-local offset.
+ * One-time = today only (past starts are filtered in the picker).
+ * Everyday / custom = keep today if the window is still open (until > now);
+ * only roll to tomorrow once the entire window has ended.
+ */
+function buildPickupIso(
+  fromStr: string,
+  untilStr: string,
+  schedule: ScheduleType,
+): { start: string; end: string } {
   const now = new Date();
   const [fh, fm] = parseHM(fromStr);
-  const startDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), fh, fm, 0);
-  if (startDt <= now) startDt.setDate(startDt.getDate() + 1);
   const [uh, um] = parseHM(untilStr);
-  const endDt = new Date(startDt.getFullYear(), startDt.getMonth(), startDt.getDate(), uh, um, 0);
+  const startDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), fh, fm, 0);
+  const endDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), uh, um, 0);
+
+  if (schedule !== 'one-time' && endDt <= now) {
+    startDt.setDate(startDt.getDate() + 1);
+    endDt.setDate(endDt.getDate() + 1);
+  }
+
   return { start: toLocalOffsetIso(startDt), end: toLocalOffsetIso(endDt) };
 }
 
@@ -144,6 +165,14 @@ export default function PostDonationScreen({ navigation, route }: Props) {
   const unit = UNITS[unitIndex]!;
   const flatListRef = useRef<FlatList<string>>(null);
 
+  // One-time = today only → hide past slots. Recurring → full day.
+  // Recompute when the time modal opens so the cutoff stays current.
+  const visibleTimeSlots = useMemo(() => {
+    if (schedule !== 'one-time') return TIME_SLOTS;
+    const nowHM = currentHHMM();
+    return TIME_SLOTS.filter((slot) => slot > nowHM);
+  }, [schedule, showTimeModal]);
+
   useEffect(() => {
     if (!donationId) return;
     getDonationDetail(donationId)
@@ -180,14 +209,14 @@ export default function PostDonationScreen({ navigation, route }: Props) {
     setTimeTarget(target);
     setShowTimeModal(true);
     if (target === 'until' && pickupFrom) {
-      const idx = TIME_SLOTS.findIndex((s) => s > pickupFrom);
+      const idx = visibleTimeSlots.findIndex((s) => s > pickupFrom);
       if (idx > 0) {
         setTimeout(() => {
           flatListRef.current?.scrollToIndex({ index: idx, animated: false });
         }, 150);
       }
     }
-  }, [pickupFrom]);
+  }, [pickupFrom, visibleTimeSlots]);
 
   const selectTime = useCallback((time: string) => {
     if (timeTarget === 'from') {
@@ -211,7 +240,21 @@ export default function PostDonationScreen({ navigation, route }: Props) {
     setSchedule(key);
     setScheduleError('');
     if (key !== 'custom-days') setCustomDays([]);
-  }, []);
+    // One-time = today only — drop any already-past times from a prior recurring selection.
+    if (key === 'one-time') {
+      const nowHM = currentHHMM();
+      const fromGone = !!pickupFrom && pickupFrom <= nowHM;
+      if (fromGone) {
+        setPickupFrom('');
+        setPickupUntil('');
+        setPickupFromError('');
+        setPickupUntilError('');
+      } else if (pickupUntil && pickupUntil <= nowHM) {
+        setPickupUntil('');
+        setPickupUntilError('');
+      }
+    }
+  }, [pickupFrom, pickupUntil]);
 
   const toggleCustomDay = useCallback((day: number) => {
     setCustomDays((prev) => {
@@ -277,7 +320,7 @@ export default function PostDonationScreen({ navigation, route }: Props) {
 
     setSubmitting(true);
     try {
-      const { start, end } = buildPickupIso(pickupFrom, pickupUntil);
+      const { start, end } = buildPickupIso(pickupFrom, pickupUntil, schedule);
       const recurrenceType =
         schedule === 'every-day'
           ? 'DAILY' as const
@@ -432,6 +475,46 @@ export default function PostDonationScreen({ navigation, route }: Props) {
           </View>
         </View>
 
+        {/* SCHEDULE — before pickup so one-time vs recurring can shape the time list */}
+        <Text style={[styles.fieldLabel, styles.sectionTop]}>
+          SCHEDULE
+          <Text style={styles.requiredMark}> *</Text>
+        </Text>
+        <View style={styles.schedRow}>
+          {SCHEDULES.map(({ key, label }) => (
+            <TouchableOpacity
+              key={key}
+              style={[styles.schedBtn, schedule === key && styles.schedBtnActive]}
+              onPress={() => handleScheduleChange(key)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.schedText, schedule === key && styles.schedTextActive]}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {schedule === 'custom-days' ? (
+          <View style={styles.dayRow}>
+            {WEEKDAYS.map(({ key, label }) => {
+              const selected = customDays.includes(key);
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.dayBtn, selected && styles.dayBtnActive]}
+                  onPress={() => toggleCustomDay(key)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.dayText, selected && styles.dayTextActive]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : null}
+        {scheduleError ? <Text style={styles.fieldError}>{scheduleError}</Text> : null}
+
         {/* PICKUP FROM + UNTIL */}
         <View style={[styles.row, styles.sectionTop]}>
           <View style={styles.half}>
@@ -479,46 +562,6 @@ export default function PostDonationScreen({ navigation, route }: Props) {
             {pickupUntilError ? <Text style={styles.fieldError}>{pickupUntilError}</Text> : null}
           </View>
         </View>
-
-        {/* SCHEDULE */}
-        <Text style={[styles.fieldLabel, styles.sectionTop]}>
-          SCHEDULE
-          <Text style={styles.requiredMark}> *</Text>
-        </Text>
-        <View style={styles.schedRow}>
-          {SCHEDULES.map(({ key, label }) => (
-            <TouchableOpacity
-              key={key}
-              style={[styles.schedBtn, schedule === key && styles.schedBtnActive]}
-              onPress={() => handleScheduleChange(key)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.schedText, schedule === key && styles.schedTextActive]}>
-                {label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        {schedule === 'custom-days' ? (
-          <View style={styles.dayRow}>
-            {WEEKDAYS.map(({ key, label }) => {
-              const selected = customDays.includes(key);
-              return (
-                <TouchableOpacity
-                  key={key}
-                  style={[styles.dayBtn, selected && styles.dayBtnActive]}
-                  onPress={() => toggleCustomDay(key)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.dayText, selected && styles.dayTextActive]}>
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        ) : null}
-        {scheduleError ? <Text style={styles.fieldError}>{scheduleError}</Text> : null}
 
         {/* NOTES (OPTIONAL) */}
         <Text style={[styles.fieldLabel, styles.sectionTop]}>NOTES (OPTIONAL)</Text>
@@ -661,14 +704,19 @@ export default function PostDonationScreen({ navigation, route }: Props) {
             </Text>
             <FlatList
               ref={flatListRef}
-              data={TIME_SLOTS}
+              data={visibleTimeSlots}
               keyExtractor={(item) => item}
               style={styles.timeList}
               showsVerticalScrollIndicator={false}
               removeClippedSubviews
               maxToRenderPerBatch={24}
               windowSize={10}
-              extraData={{ pickupFrom, pickupUntil, timeTarget }}
+              ListEmptyComponent={
+                <Text style={styles.sheetEmpty}>
+                  No remaining times today. Choose Every day or Custom days for a future window.
+                </Text>
+              }
+              extraData={{ pickupFrom, pickupUntil, timeTarget, schedule }}
               onScrollToIndexFailed={({ index }) => {
                 flatListRef.current?.scrollToOffset({ offset: index * 50, animated: false });
               }}
@@ -973,6 +1021,13 @@ const styles = StyleSheet.create({
     fontSize: fontSizes['16'],
     color: colors.textPrimary,
     marginBottom: spacing.md,
+  },
+  sheetEmpty: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes.md,
+    color: colors.textMuted,
+    paddingVertical: spacing['2xl'],
+    textAlign: 'center',
   },
   sheetOption: {
     flexDirection: 'row',

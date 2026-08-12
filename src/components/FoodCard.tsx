@@ -11,7 +11,7 @@ interface FoodCardProps {
 }
 
 function formatCategory(cat: FoodCategory): string {
-  return cat.charAt(0) + cat.slice(1).toLowerCase();
+  return cat.charAt(0) + cat.slice(1).toLowerCase();``
 }
 
 function formatPickupWindow(start: string, end: string): string {

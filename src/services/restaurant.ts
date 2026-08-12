@@ -4,6 +4,7 @@ import {
   RestaurantDashboard, RestaurantDonation, RestaurantProfile, PublicRestaurant, FoodItem,
   DonationSummary, CreateDonationPayload, RestaurantAnalytics, RestaurantClaim,
   ClaimReportContext, LocationResult, LocationSearchResponse,
+  RestaurantNotificationSettings,
 } from '../types';
 import type { ClaimStatus } from '../types';
 import {
@@ -11,6 +12,7 @@ import {
   ApiRestaurantDetail, ApiRestaurantMealSummary,
   ApiRestaurantProfile, ApiRestaurantClaim, ApiClaimReportContext,
   ApiLocationResult, ApiLocationSearchResponse,
+  ApiRestaurantNotificationSettings,
 } from '../types/api';
 import { api, logApiCatch } from './api';
 
@@ -262,17 +264,27 @@ export const getDashboard = async (): Promise<RestaurantDashboard> => {
     }
 
     if (flatItems.length > 0) {
+      // Dashboard already shows Today / Yesterday / pastGroups from BE labels.
+      // Skip those IDs so pickup-date regrouping cannot duplicate the same listing
+      // (e.g. BE "Today" + FE "13 Aug" for an Aug-13 pickup_start).
+      const shownIds = new Set([
+        ...mapped.todayListings.map((i) => i.id),
+        ...mapped.yesterdayListings.map((i) => i.id),
+        ...mapped.pastGroups.flatMap((g) => g.listings.map((i) => i.id)),
+      ]);
       const todayIso = new Date().toISOString().slice(0, 10);
       const byDate = new Map<string, ApiRestaurantDonation[]>();
       for (const item of flatItems) {
+        if (shownIds.has(item.id)) continue;
         const date = (item.pickup_start ?? '').slice(0, 10);
-        if (date === todayIso) continue;
+        if (!date || date === todayIso) continue;
         const arr = byDate.get(date) ?? [];
         arr.push(item);
         byDate.set(date, arr);
       }
       const existingLabels = new Set(mapped.pastGroups.map((g) => g.label));
       for (const [date, items] of byDate.entries()) {
+        if (items.length === 0) continue;
         const label = formatDateLabel(date);
         if (existingLabels.has(label)) continue;
         mapped.pastGroups.push({
@@ -811,6 +823,46 @@ export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
     rating: p.rating ?? 0,
     reviewCount: p.review_count ?? 0,
   };
+};
+
+function mapApiNotificationSettings(
+  s: ApiRestaurantNotificationSettings,
+): RestaurantNotificationSettings {
+  return {
+    pushEnabled: s.push_enabled,
+    emailEnabled: s.email_enabled,
+    alertNewClaim: s.alert_new_claim,
+    alertSponsored: s.alert_sponsored,
+    alertAllClaimed: s.alert_all_claimed,
+    alertWindowExpiring: s.alert_window_expiring,
+    alertNoShow: s.alert_no_show,
+    alertDonationClaimed: s.alert_donation_claimed,
+    alertReceipts: s.alert_receipts,
+  };
+}
+
+/** GET /restaurant/notifications/settings/ */
+export const getNotificationSettings = async (): Promise<RestaurantNotificationSettings> => {
+  const res = await api.get('/restaurant/notifications/settings/');
+  return mapApiNotificationSettings(res.data.data as ApiRestaurantNotificationSettings);
+};
+
+/** PATCH /restaurant/notifications/settings/ */
+export const updateNotificationSettings = async (
+  settings: RestaurantNotificationSettings,
+): Promise<RestaurantNotificationSettings> => {
+  const res = await api.patch('/restaurant/notifications/settings/', {
+    push_enabled: settings.pushEnabled,
+    email_enabled: settings.emailEnabled,
+    alert_new_claim: settings.alertNewClaim,
+    alert_sponsored: settings.alertSponsored,
+    alert_all_claimed: settings.alertAllClaimed,
+    alert_window_expiring: settings.alertWindowExpiring,
+    alert_no_show: settings.alertNoShow,
+    alert_donation_claimed: settings.alertDonationClaimed,
+    alert_receipts: settings.alertReceipts,
+  });
+  return mapApiNotificationSettings(res.data.data as ApiRestaurantNotificationSettings);
 };
 
 export const getNearbyRestaurants = async (

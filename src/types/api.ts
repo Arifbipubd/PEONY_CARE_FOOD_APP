@@ -128,6 +128,25 @@ export interface ApiLocationSettings {
   recent_places: ApiRecentPlace[];
 }
 
+export interface ApiReceiverNotificationSettings {
+  push_enabled: boolean;
+  alert_new_food_nearby: boolean;
+  alert_claim_confirmations: boolean;
+  alert_daily_limit_reset: boolean;
+}
+
+export interface ApiRestaurantNotificationSettings {
+  push_enabled: boolean;
+  email_enabled: boolean;
+  alert_new_claim: boolean;
+  alert_sponsored: boolean;
+  alert_all_claimed: boolean;
+  alert_window_expiring: boolean;
+  alert_no_show: boolean;
+  alert_donation_claimed: boolean;
+  alert_receipts: boolean;
+}
+
 export interface ApiPublicRestaurant {
   id: string;
   name: string;

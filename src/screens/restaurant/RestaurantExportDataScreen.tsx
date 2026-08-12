@@ -11,7 +11,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { ProfileStackParamList } from '../../navigation/RestaurantTabs';
-import { api } from '../../services/api';
+import { ApiError } from '../../services/api';
+import {
+  requestRestaurantDataExport,
+  downloadAndShareDataExport,
+} from '../../services/dataExport';
 import {
   colors, spacing, fontSizes, fontFamilies, radius,
 } from '../../constants/theme';
@@ -30,22 +34,31 @@ const EXPORT_ITEMS = [
 
 export default function RestaurantExportDataScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
   const [error, setError] = useState('');
 
-  const handleRequest = useCallback(async () => {
-    if (loading || submitted) return;
+  const handleDownload = useCallback(async () => {
+    if (loading) return;
     setLoading(true);
     setError('');
     try {
-      await api.post('/restaurant/account/data-export/');
-      setSubmitted(true);
+      const exportResult = await requestRestaurantDataExport();
+      if (!exportResult.downloadUrl) {
+        throw new ApiError('EXPORT_NOT_READY', 'Export is not ready yet. Please try again.');
+      }
+      await downloadAndShareDataExport(exportResult.downloadUrl, exportResult.format);
+      setDownloaded(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Could not submit request. Try again.');
+      const message = err instanceof ApiError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : 'Could not download your data. Try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
-  }, [loading, submitted]);
+  }, [loading]);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -61,7 +74,7 @@ export default function RestaurantExportDataScreen({ navigation }: Props) {
         <Text style={styles.title}>Download my data</Text>
 
         <Text style={styles.desc}>
-          Get a copy of everything Udufood holds about your business, as required by Singapore's PDPA.
+          Get a copy of everything UDUFood holds about your business, as required by Singapore's PDPA.
         </Text>
 
         <View style={styles.exportSection}>
@@ -77,11 +90,11 @@ export default function RestaurantExportDataScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.deliverRow}>
-          <Ionicons name="mail" size={22} color={colors.accentPrimary} />
+          <Ionicons name="phone-portrait-outline" size={22} color={colors.accentPrimary} />
           <View style={styles.deliverText}>
-            <Text style={styles.deliverTitle}>Sent to your business email</Text>
+            <Text style={styles.deliverTitle}>Download on this device</Text>
             <Text style={styles.deliverSub}>
-              We'll send a secure download link within 48 hours.
+              Your PDF is ready right away — no email needed.
             </Text>
           </View>
         </View>
@@ -90,37 +103,39 @@ export default function RestaurantExportDataScreen({ navigation }: Props) {
           <Text style={styles.errorText}>{error}</Text>
         )}
 
-        {submitted ? (
+        {downloaded ? (
           <View style={styles.successBox}>
             <Ionicons name="checkmark-circle" size={20} color={colors.successGreen} />
             <Text style={styles.successText}>
-              Request submitted — you'll receive a download link within 48 hours.
+              Your data PDF is ready. Use the share sheet to save or send it.
             </Text>
           </View>
-        ) : (
-          <TouchableOpacity
-            style={[styles.requestBtn, loading && styles.requestBtnDisabled]}
-            activeOpacity={0.85}
-            onPress={handleRequest}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.textInverse} />
-            ) : (
-              <>
-                <Ionicons name="download-outline" size={16} color={colors.textInverse} />
-                <Text style={styles.requestBtnLabel}>Request my data</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
+        ) : null}
+
+        <TouchableOpacity
+          style={[styles.requestBtn, loading && styles.requestBtnDisabled]}
+          activeOpacity={0.85}
+          onPress={handleDownload}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color={colors.textInverse} />
+          ) : (
+            <>
+              <Ionicons name="download-outline" size={16} color={colors.textInverse} />
+              <Text style={styles.requestBtnLabel}>
+                {downloaded ? 'Download again' : 'Download my data'}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.cancelBtn}
           activeOpacity={0.7}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.cancelBtnLabel}>{submitted ? 'Done' : 'Cancel'}</Text>
+          <Text style={styles.cancelBtnLabel}>{downloaded ? 'Done' : 'Cancel'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

@@ -21,15 +21,16 @@ import {
   fontFamilies,
   letterSpacings,
 } from '../../constants/theme';
-import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
+import { ProfileStackParamList } from '../../navigation/RestaurantTabs';
 import {
   getNotificationSettings,
   updateNotificationSettings,
-} from '../../services/receiver';
+  getRestaurantProfile,
+} from '../../services/restaurant';
 import { logApiCatch } from '../../services/api';
 
 type Props = {
-  navigation: NativeStackNavigationProp<ProfileStackParamList, 'NotificationSettings'>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'RestaurantNotificationSettings'>;
 };
 
 type SettingRowProps = {
@@ -69,60 +70,86 @@ const SettingRow = memo(function SettingRow({
           disabled={disabled}
         />
       </View>
-      {showDivider && <View style={styles.divider} />}
+      {showDivider ? <View style={styles.divider} /> : null}
     </>
   );
 });
 
-export default function NotificationSettingsScreen({ navigation }: Props) {
+export default function RestaurantNotificationSettingsScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [contactEmail, setContactEmail] = useState('');
 
   const [pushEnabled, setPushEnabled] = useState(true);
-  const [newFoodEnabled, setNewFoodEnabled] = useState(true);
-  const [claimEnabled, setClaimEnabled] = useState(true);
-  const [dailyLimitEnabled, setDailyLimitEnabled] = useState(true);
+  const [emailEnabled, setEmailEnabled] = useState(true);
+  const [alertNewClaim, setAlertNewClaim] = useState(true);
+  const [alertSponsored, setAlertSponsored] = useState(true);
+  const [alertAllClaimed, setAlertAllClaimed] = useState(true);
+  const [alertWindowExpiring, setAlertWindowExpiring] = useState(true);
+  const [alertNoShow, setAlertNoShow] = useState(false);
+  // API-only fields — loaded and sent back, no UI
+  const [alertDonationClaimed, setAlertDonationClaimed] = useState(true);
+  const [alertReceipts, setAlertReceipts] = useState(true);
 
   useEffect(() => {
-    getNotificationSettings()
-      .then((s) => {
+    Promise.all([getNotificationSettings(), getRestaurantProfile()])
+      .then(([s, profile]) => {
         setPushEnabled(s.pushEnabled);
-        setNewFoodEnabled(s.alertNewFoodNearby);
-        setClaimEnabled(s.alertClaimConfirmations);
-        setDailyLimitEnabled(s.alertDailyLimitReset);
+        setEmailEnabled(s.emailEnabled);
+        setAlertNewClaim(s.alertNewClaim);
+        setAlertSponsored(s.alertSponsored);
+        setAlertAllClaimed(s.alertAllClaimed);
+        setAlertWindowExpiring(s.alertWindowExpiring);
+        setAlertNoShow(s.alertNoShow);
+        setAlertDonationClaimed(s.alertDonationClaimed);
+        setAlertReceipts(s.alertReceipts);
+        setContactEmail(profile.contactEmail);
       })
       .catch((err) => {
-        logApiCatch('getNotificationSettings', err);
+        logApiCatch('getRestaurantNotificationSettings', err);
       })
       .finally(() => setLoading(false));
   }, []);
 
   const togglePush = useCallback((v: boolean) => setPushEnabled(v), []);
-  const toggleNewFood = useCallback((v: boolean) => setNewFoodEnabled(v), []);
-  const toggleClaim = useCallback((v: boolean) => setClaimEnabled(v), []);
-  const toggleDailyLimit = useCallback((v: boolean) => setDailyLimitEnabled(v), []);
+  const toggleEmail = useCallback((v: boolean) => setEmailEnabled(v), []);
+  const toggleNewClaim = useCallback((v: boolean) => setAlertNewClaim(v), []);
+  const toggleSponsored = useCallback((v: boolean) => setAlertSponsored(v), []);
+  const toggleAllClaimed = useCallback((v: boolean) => setAlertAllClaimed(v), []);
+  const toggleWindowExpiring = useCallback((v: boolean) => setAlertWindowExpiring(v), []);
+  const toggleNoShow = useCallback((v: boolean) => setAlertNoShow(v), []);
 
   const handleSave = useCallback(() => {
     if (saving) return;
     setSaving(true);
     updateNotificationSettings({
       pushEnabled,
-      alertNewFoodNearby: newFoodEnabled,
-      alertClaimConfirmations: claimEnabled,
-      alertDailyLimitReset: dailyLimitEnabled,
+      emailEnabled,
+      alertNewClaim,
+      alertSponsored,
+      alertAllClaimed,
+      alertWindowExpiring,
+      alertNoShow,
+      alertDonationClaimed,
+      alertReceipts,
     })
       .then(() => navigation.goBack())
       .catch((err) => {
-        logApiCatch('updateNotificationSettings', err);
+        logApiCatch('updateRestaurantNotificationSettings', err);
         Alert.alert('Couldn’t save', 'Please check your connection and try again.');
         setSaving(false);
       });
   }, [
     saving,
     pushEnabled,
-    newFoodEnabled,
-    claimEnabled,
-    dailyLimitEnabled,
+    emailEnabled,
+    alertNewClaim,
+    alertSponsored,
+    alertAllClaimed,
+    alertWindowExpiring,
+    alertNoShow,
+    alertDonationClaimed,
+    alertReceipts,
     navigation,
   ]);
 
@@ -165,36 +192,67 @@ export default function NotificationSettingsScreen({ navigation }: Props) {
           onValueChange={togglePush}
         />
 
-        <Text style={[styles.sectionLabel, styles.sectionLabelGap]}>Food alerts</Text>
+        <Text style={[styles.sectionLabel, styles.sectionLabelGap]}>Listing alerts</Text>
 
         <SettingRow
-          icon={<MaterialCommunityIcons name="silverware-fork-knife" size={18} color={colors.textPrimary} />}
-          iconBg={colors.surfaceSecondary}
-          title="New food nearby"
-          subtitle="Donations within your radius"
-          value={newFoodEnabled}
-          onValueChange={toggleNewFood}
+          icon={<Ionicons name="person" size={18} color={colors.accentPrimary} />}
+          iconBg={colors.avatarBg}
+          title="New claim on your listing"
+          subtitle="When a receiver claims food you posted"
+          value={alertNewClaim}
+          onValueChange={toggleNewClaim}
           showDivider
           disabled={!pushEnabled}
         />
         <SettingRow
-          icon={<Ionicons name="checkmark-circle" size={18} color={colors.textPrimary} />}
-          iconBg={colors.surfaceSecondary}
-          title="Claim confirmations"
-          subtitle="Pickup details and reminders"
-          value={claimEnabled}
-          onValueChange={toggleClaim}
-          showDivider
-          disabled={!pushEnabled}
-        />
-        <SettingRow
-          icon={<Ionicons name="refresh" size={18} color={colors.goldDark} />}
+          icon={<MaterialCommunityIcons name="hand-heart" size={18} color={colors.goldDark} />}
           iconBg={colors.goldLight}
-          title="Daily limit reset"
-          subtitle="When your claim limit resets"
-          value={dailyLimitEnabled}
-          onValueChange={toggleDailyLimit}
+          title="Sponsored donation received"
+          subtitle="A donor paid for a meal — prep needed"
+          value={alertSponsored}
+          onValueChange={toggleSponsored}
+          showDivider
           disabled={!pushEnabled}
+        />
+        <SettingRow
+          icon={<Ionicons name="checkmark" size={18} color={colors.textPrimary} />}
+          iconBg={colors.surfaceSecondary}
+          title="All portions claimed"
+          subtitle="When a listing is fully claimed"
+          value={alertAllClaimed}
+          onValueChange={toggleAllClaimed}
+          showDivider
+          disabled={!pushEnabled}
+        />
+        <SettingRow
+          icon={<Ionicons name="time-outline" size={18} color={colors.textPrimary} />}
+          iconBg={colors.surfaceSecondary}
+          title="Pickup window expiring"
+          subtitle="30 minutes before window closes"
+          value={alertWindowExpiring}
+          onValueChange={toggleWindowExpiring}
+          showDivider
+          disabled={!pushEnabled}
+        />
+        <SettingRow
+          icon={<Ionicons name="hourglass-outline" size={18} color={colors.textMuted} />}
+          iconBg={colors.surfaceSecondary}
+          title="No-show after window"
+          subtitle="When a receiver doesn't collect in time"
+          value={alertNoShow}
+          onValueChange={toggleNoShow}
+          disabled={!pushEnabled}
+        />
+
+        <Text style={[styles.sectionLabel, styles.sectionLabelGap]}>Delivery channels</Text>
+
+        <SettingRow
+          icon={<Ionicons name="mail" size={18} color={colors.sliderBlue} />}
+          iconBg={colors.surfaceSecondary}
+          title="Email"
+          subtitle={contactEmail || 'No email on file'}
+          value={emailEnabled}
+          onValueChange={toggleEmail}
         />
       </ScrollView>
 

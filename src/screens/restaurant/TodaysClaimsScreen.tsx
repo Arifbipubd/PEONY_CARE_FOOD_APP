@@ -33,7 +33,7 @@ interface ReportState {
   submitting:        boolean;
 }
 
-const FILTER_ORDER: FilterKey[] = ['all', /* 'pending', */ 'collected', /* 'noShow' */];
+const FILTER_ORDER: FilterKey[] = ['collected'];
 const FILTER_LABELS: Record<FilterKey, string> = {
   all: 'All', pending: 'Pending', collected: 'Collected', noShow: 'No-show',
 };
@@ -61,7 +61,7 @@ export default function TodaysClaimsScreen({ navigation }: { navigation: Nav }) 
   const [data,       setData]       = useState<TodaysClaimsData | null>(null);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter,     setFilter]     = useState<FilterKey>('all');
+  const [filter,     setFilter]     = useState<FilterKey>('collected');
   const [actionId,   setActionId]   = useState<string | null>(null);
   const [report,     setReport]     = useState<ReportState | null>(null);
 

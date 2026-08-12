@@ -163,7 +163,7 @@ const FoodRow = memo(function FoodRow({
         </View>
         <Text style={styles.foodLeft}>{item.quantityAvailable} left</Text>
       </View>
-      {!isLast ? <View style={styles.divider} /> : null}
+      {!isLast ? <View style={styles.foodDivider} /> : null}
     </>
   );
 });
@@ -464,6 +464,11 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.borderDefault,
   },
+  foodDivider: {
+    height: 1,
+    backgroundColor: colors.borderDefault,
+    marginHorizontal: spacing['2xl'],
+  },
 
   // ── Available now header ─────────────────────────────────────────────────────
   availableHeader: {
@@ -481,6 +486,7 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     color: colors.textMuted,
     marginTop: spacing.md,
+    paddingHorizontal: spacing['2xl'],
   },
 
   // ── Food rows ────────────────────────────────────────────────────────────────
@@ -489,6 +495,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     paddingVertical: 14,
+    paddingHorizontal: spacing['2xl'],
   },
   foodThumb: {
     width: 60,

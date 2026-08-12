@@ -22,6 +22,7 @@ import EditRestaurantDetailsScreen          from '../screens/restaurant/EditRest
 import RestaurantLocationScreen             from '../screens/restaurant/RestaurantLocationScreen';
 import MenuPhotosScreen                     from '../screens/restaurant/MenuPhotosScreen';
 import RestaurantAnalyticsScreen            from '../screens/restaurant/RestaurantAnalyticsScreen';
+import RestaurantNotificationSettingsScreen from '../screens/restaurant/RestaurantNotificationSettingsScreen';
 import { colors, fontSizes }     from '../constants/theme';
 import { useNotificationStore }  from '../store/notificationStore';
 
@@ -37,6 +38,7 @@ export type ProfileStackParamList = {
   MenuPhotos:                 undefined;
   RestaurantAnalytics:        undefined;
   TodaysClaims:               undefined;
+  RestaurantNotificationSettings: undefined;
 };
 
 export type RestaurantTabParamList = {
@@ -79,6 +81,7 @@ function ProfileNavigator() {
       <ProfileStack.Screen name="MenuPhotos"              component={MenuPhotosScreen} />
       <ProfileStack.Screen name="RestaurantAnalytics"     component={RestaurantAnalyticsScreen} />
       <ProfileStack.Screen name="TodaysClaims"            component={TodaysClaimsScreen} />
+      <ProfileStack.Screen name="RestaurantNotificationSettings" component={RestaurantNotificationSettingsScreen} />
     </ProfileStack.Navigator>
   );
 }

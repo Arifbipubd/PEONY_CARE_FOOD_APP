@@ -167,7 +167,13 @@ const SectionBlock = memo(function SectionBlock({
         <Text style={styles.sectionBody}>
           {section.bodyParts.map((part, i) =>
             part.accent ? (
-              <Text key={i} style={styles.accentInline}>{part.text}</Text>
+              <Text
+                key={i}
+                style={styles.accentInline}
+                onPress={() => Linking.openURL(`mailto:${LEGAL_URLS.supportEmail}`)}
+              >
+                {part.text}
+              </Text>
             ) : (
               <Text key={i}>{part.text}</Text>
             )

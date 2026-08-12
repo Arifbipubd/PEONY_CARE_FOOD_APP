@@ -7,13 +7,15 @@ import {
   StyleSheet,
   Animated,
   Easing,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
-  colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings,
+  colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
 } from '../../constants/theme';
+import { LEGAL_URLS } from '../../constants/legal';
 import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
@@ -123,6 +125,10 @@ export default function HelpFaqScreen({ navigation }: Props) {
     });
   }, []);
 
+  const handleEmail = useCallback(() => {
+    Linking.openURL(`mailto:${LEGAL_URLS.supportEmail}`);
+  }, []);
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
 
@@ -141,16 +147,16 @@ export default function HelpFaqScreen({ navigation }: Props) {
 
         {/* Contact us */}
         <Text style={styles.sectionLabel}>Contact us</Text>
-        <View style={styles.contactCard}>
+        <TouchableOpacity style={styles.contactCard} onPress={handleEmail} activeOpacity={0.7}>
           <View style={styles.contactIconCircle}>
             <Ionicons name="mail" size={18} color={colors.accentPrimary} />
           </View>
           <View style={styles.contactText}>
             <Text style={styles.contactTitle}>Email us</Text>
-            <Text style={styles.contactSub}>support@udufood.com</Text>
+            <Text style={styles.contactSub}>{LEGAL_URLS.supportEmail}</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </View>
+        </TouchableOpacity>
 
         {/* Frequently asked */}
         <Text style={[styles.sectionLabel, styles.sectionLabelGap]}>Frequently asked</Text>
@@ -170,7 +176,9 @@ export default function HelpFaqScreen({ navigation }: Props) {
         <View style={styles.footerCard}>
           <Text style={styles.footerNote}>
             {'Still need help? Email '}
-            <Text style={styles.footerEmail}>support@udufood.com</Text>
+            <Text style={styles.footerEmail} onPress={handleEmail}>
+              {LEGAL_URLS.supportEmail}
+            </Text>
             {' — we usually reply within 4 hours.'}
           </Text>
         </View>

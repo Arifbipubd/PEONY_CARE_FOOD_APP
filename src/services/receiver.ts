@@ -5,11 +5,12 @@
 import {
   FoodItem, DailyLimitStatus, Claim, ClaimHistory, ClaimHistoryItem,
   ReceiverProfile, LocationSettings, RecentPlace, ReviewPayload,
-  ReviewForm, Review, ReviewTag, ReportReason,
+  ReviewForm, Review, ReviewTag, ReportReason, ReceiverNotificationSettings,
 } from '../types';
 import {
   ApiFoodItem, ApiFoodDetail, ApiDailyLimit, ApiClaimHistoryItem, ApiRecentPlace,
   ApiReviewForm, ApiReview, ApiReviewTag, ApiReportReason,
+  ApiReceiverNotificationSettings,
 } from '../types/api';
 import { api } from './api';
 
@@ -335,4 +336,34 @@ export const getReceiverProfile = async (): Promise<ReceiverProfile> => {
     lifetimeMeals: p.stats.lifetime_meals,
     restaurantsCount: p.stats.restaurants_count,
   };
+};
+
+function mapApiNotificationSettings(
+  s: ApiReceiverNotificationSettings,
+): ReceiverNotificationSettings {
+  return {
+    pushEnabled: s.push_enabled,
+    alertNewFoodNearby: s.alert_new_food_nearby,
+    alertClaimConfirmations: s.alert_claim_confirmations,
+    alertDailyLimitReset: s.alert_daily_limit_reset,
+  };
+}
+
+/** GET /receiver/notifications/settings/ */
+export const getNotificationSettings = async (): Promise<ReceiverNotificationSettings> => {
+  const res = await api.get('/receiver/notifications/settings/');
+  return mapApiNotificationSettings(res.data.data as ApiReceiverNotificationSettings);
+};
+
+/** PATCH /receiver/notifications/settings/ */
+export const updateNotificationSettings = async (
+  settings: ReceiverNotificationSettings,
+): Promise<ReceiverNotificationSettings> => {
+  const res = await api.patch('/receiver/notifications/settings/', {
+    push_enabled: settings.pushEnabled,
+    alert_new_food_nearby: settings.alertNewFoodNearby,
+    alert_claim_confirmations: settings.alertClaimConfirmations,
+    alert_daily_limit_reset: settings.alertDailyLimitReset,
+  });
+  return mapApiNotificationSettings(res.data.data as ApiReceiverNotificationSettings);
 };

@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
 } from '../../constants/theme';
+import { LEGAL_URLS } from '../../constants/legal';
 import { ProfileStackParamList } from '../../navigation/RestaurantTabs';
 
 type Props = {
@@ -127,7 +128,7 @@ export default function RestaurantHelpFaqScreen({ navigation }: Props) {
   }, []);
 
   const handleEmail = useCallback(() => {
-    Linking.openURL('mailto:support@udufood.com');
+    Linking.openURL(`mailto:${LEGAL_URLS.supportEmail}`);
   }, []);
 
   return (
@@ -152,7 +153,7 @@ export default function RestaurantHelpFaqScreen({ navigation }: Props) {
           </View>
           <View style={styles.contactText}>
             <Text style={styles.contactTitle}>Email us</Text>
-            <Text style={styles.contactSub}>support@udufood.com</Text>
+            <Text style={styles.contactSub}>{LEGAL_URLS.supportEmail}</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TouchableOpacity>
@@ -174,7 +175,7 @@ export default function RestaurantHelpFaqScreen({ navigation }: Props) {
           <Text style={styles.footerNote}>
             {'Still need help? Email '}
             <Text style={styles.footerEmail} onPress={handleEmail}>
-              support@udufood.com
+              {LEGAL_URLS.supportEmail}
             </Text>
             {' — we usually reply within 4 hours.'}
           </Text>

@@ -44,9 +44,30 @@ type Section = {
   data: AppNotification[];
 };
 
-function payloadString(payload: Record<string, unknown>, key: string): string | null {
-  const value = payload[key];
-  return typeof value === 'string' && value.length > 0 ? value : null;
+/** Read an ID from payload — accepts string or number, tries several key aliases. */
+function payloadId(
+  payload: Record<string, unknown>,
+  ...keys: string[]
+): string | null {
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === 'string' && value.length > 0) return value;
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return null;
+}
+
+function isClaimConfirmationType(type: string): boolean {
+  return (
+    type === 'CLAIM_CONFIRMED' ||
+    type === 'MEAL_CLAIMED' ||
+    type === 'CLAIM_COLLECTED' ||
+    type === 'CLAIM_SUCCESS'
+  );
+}
+
+function isNewFoodType(type: string): boolean {
+  return type === 'NEW_FOOD_NEARBY' || type === 'FOOD_EXPIRING';
 }
 
 /** Open the screen linked to this notification (food detail, restaurant, claims, …). */
@@ -56,29 +77,44 @@ function navigateFromNotification(
   item: AppNotification,
   role: string | undefined,
 ) {
-  const foodId = payloadString(item.payload, 'food_id');
-  const restaurantId = payloadString(item.payload, 'restaurant_id');
+  const foodId = payloadId(
+    item.payload,
+    'food_id',
+    'foodId',
+    'donation_id',
+    'donationId',
+  );
+  const restaurantId = payloadId(
+    item.payload,
+    'restaurant_id',
+    'restaurantId',
+  );
 
   if (role === 'RECEIVER') {
-    if (
-      foodId &&
-      (item.type === 'NEW_FOOD_NEARBY' ||
-        item.type === 'FOOD_EXPIRING' ||
-        item.type === 'CLAIM_CONFIRMED')
-    ) {
+    // Meal / claim confirmation → claim history
+    if (isClaimConfirmationType(item.type)) {
+      navigation.navigate('History');
+      return;
+    }
+
+    // New food nearby / expiring → food detail
+    if (foodId && isNewFoodType(item.type)) {
       navigation.navigate('Home', {
         screen: 'FoodDetail',
         params: { foodId },
       });
       return;
     }
-    if (restaurantId && (item.type === 'RESTAURANT_UPDATE' || item.type === 'NEW_FOOD_NEARBY')) {
+
+    if (restaurantId && item.type === 'RESTAURANT_UPDATE') {
       navigation.navigate('Home', {
         screen: 'RestaurantPage',
         params: { restaurantId },
       });
       return;
     }
+
+    // Fallback: any notification that carries a food id opens food detail
     if (foodId) {
       navigation.navigate('Home', {
         screen: 'FoodDetail',
@@ -89,7 +125,11 @@ function navigateFromNotification(
   }
 
   if (role === 'RESTAURANT') {
-    if (item.type === 'FOOD_CLAIMED' || foodId) {
+    if (
+      item.type === 'FOOD_CLAIMED' ||
+      isClaimConfirmationType(item.type) ||
+      foodId
+    ) {
       navigation.navigate('Profile', { screen: 'TodaysClaims' });
     }
   }
@@ -98,6 +138,9 @@ function navigateFromNotification(
 function getIconConfig(type: string): IconConfig {
   switch (type) {
     case 'CLAIM_CONFIRMED':
+    case 'MEAL_CLAIMED':
+    case 'CLAIM_COLLECTED':
+    case 'CLAIM_SUCCESS':
       return { name: 'checkmark-circle',   color: colors.successGreen,  bg: colors.successGreenLight };
     case 'NEW_FOOD_NEARBY':
     case 'FOOD_CLAIMED':
