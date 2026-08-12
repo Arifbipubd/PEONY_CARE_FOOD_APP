@@ -81,6 +81,7 @@ function mapApiClaimHistoryItem(d: ApiClaimHistoryItem): ClaimHistoryItem {
     pickupWindow: d.pickup_window,
     hasReview: d.has_review ?? false,
     canReview: d.can_review ?? false,
+    rating: d.rating ?? null,
   };
 }
 

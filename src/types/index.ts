@@ -159,6 +159,7 @@ export interface ClaimHistoryItem {
   pickupWindow: string;
   hasReview: boolean;
   canReview: boolean;
+  rating?: number | null;
 }
 
 export interface ClaimHistory {

@@ -168,7 +168,9 @@ export default function ReceiverHistoryScreen({ navigation }: Props) {
         {item.hasReview ? (
           <TouchableOpacity onPress={() => goToReview(item)} activeOpacity={0.7} style={styles.ratingBadge}>
             <Ionicons name="star" size={13} color={colors.warningYellow} />
-            <Text style={styles.ratingScore}>Rated</Text>
+            <Text style={styles.ratingScore}>
+              {item.rating != null ? item.rating.toFixed(1) : 'Rated'}
+            </Text>
           </TouchableOpacity>
         ) : (
           <Text style={[styles.status, collected ? styles.collected : styles.expired]}>
