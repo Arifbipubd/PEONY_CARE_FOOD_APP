@@ -3,11 +3,11 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Slider from '@react-native-community/slider';
 import BottomSheet from './BottomSheet';
 import { FoodItem, FoodCategory } from '../types';
+import { FOOD_CATEGORIES } from '../constants/categories';
 import { colors, spacing, radius, fontSizes, fontFamilies } from '../constants/theme';
 
 export type ShowOnlyFilters = {
   sponsored: boolean;
-  pickupUnder1h: boolean;
   halal: boolean;
   vegetarian: boolean;
 };
@@ -21,21 +21,16 @@ export type FilterState = {
 export const DEFAULT_FILTERS: FilterState = {
   category: null,
   maxDistanceKm: 5,
-  showOnly: { sponsored: false, pickupUnder1h: false, halal: false, vegetarian: false },
+  showOnly: { sponsored: false, halal: false, vegetarian: false },
 };
 
 const CATEGORY_OPTIONS: { label: string; value: FoodCategory | null }[] = [
   { label: 'All', value: null },
-  { label: 'Rice', value: 'RICE' },
-  { label: 'Noodles', value: 'NOODLES' },
-  { label: 'Bread', value: 'BREAD' },
-  { label: 'Snacks', value: 'SNACKS' },
-  { label: 'Drinks', value: 'DRINKS' },
+  ...FOOD_CATEGORIES.map(({ value, label }) => ({ label, value })),
 ];
 
 const SHOW_ONLY_OPTIONS: { label: string; key: keyof ShowOnlyFilters }[] = [
   { label: 'Sponsored', key: 'sponsored' },
-  { label: 'Pickup < 1h', key: 'pickupUnder1h' },
   { label: 'Halal', key: 'halal' },
   { label: 'Vegetarian', key: 'vegetarian' },
 ];
@@ -46,10 +41,6 @@ export function matchesFilters(food: FoodItem, f: FilterState): boolean {
   if (f.showOnly.sponsored && food.sponsorshipType === 'DIRECT') return false;
   if (f.showOnly.halal && !food.isHalal) return false;
   if (f.showOnly.vegetarian && !food.isVegetarian) return false;
-  if (f.showOnly.pickupUnder1h) {
-    const msLeft = new Date(food.pickupEnd).getTime() - Date.now();
-    if (!(msLeft > 0 && msLeft <= 60 * 60 * 1000)) return false;
-  }
   return true;
 }
 

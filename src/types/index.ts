@@ -5,7 +5,19 @@ export type UserRole = 'RECEIVER' | 'RESTAURANT' | 'DONOR';
 
 export type CreditPreference = 'SHOW_NAME' | 'INITIALS' | 'ANONYMOUS';
 
-export type FoodCategory = 'RICE' | 'NOODLES' | 'BREAD' | 'SNACKS' | 'DRINKS' | 'OTHER';
+export type FoodCategory =
+  | 'COOKED_MEAL'
+  | 'RICE'
+  | 'NOODLES'
+  | 'BREAD_BAKERY'
+  | 'VEGETABLES'
+  | 'FRUITS'
+  | 'PROTEIN'
+  | 'SOUP'
+  | 'DESSERT'
+  | 'DRINKS'
+  | 'PACKAGED'
+  | 'OTHER';
 
 export type FoodStatus = 'AVAILABLE' | 'PARTIALLY_CLAIMED' | 'FULLY_CLAIMED' | 'EXPIRED';
 

@@ -227,8 +227,8 @@ export default function RestaurantNotificationSettingsScreen({ navigation }: Pro
         <SettingRow
           icon={<Ionicons name="time-outline" size={18} color={colors.textPrimary} />}
           iconBg={colors.surfaceSecondary}
-          title="Pickup window expiring"
-          subtitle="30 minutes before window closes"
+          title="Listing expiring today"
+          subtitle="Before the listing expires at midnight"
           value={alertWindowExpiring}
           onValueChange={toggleWindowExpiring}
           showDivider

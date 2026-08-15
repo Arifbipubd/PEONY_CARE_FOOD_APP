@@ -15,6 +15,7 @@ import {
 import { launchImageLibraryAsync, MediaTypeOptions } from 'expo-image-picker';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { getMenuPhotos, uploadMenuPhotos, deleteMenuPhoto, MenuPhoto } from '../../services/restaurant';
+import { getUserFacingErrorMessage } from '../../services/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -229,8 +230,11 @@ export default function MenuPhotosScreen({ navigation }: Props) {
     try {
       const updated = await deleteMenuPhoto(photoId);
       setPhotos(updated);
-    } catch {
-      Alert.alert('Error', 'Could not delete photo. Please try again.');
+    } catch (err) {
+      Alert.alert(
+        "Couldn't delete",
+        getUserFacingErrorMessage(err, 'Could not delete photo. Please try again.'),
+      );
     }
   }, []);
 
@@ -254,8 +258,11 @@ export default function MenuPhotosScreen({ navigation }: Props) {
           })),
         );
         setPhotos(updated);
-      } catch {
-        Alert.alert('Upload failed', 'Could not upload photos. Please try again.');
+      } catch (err) {
+        Alert.alert(
+          "Couldn't upload",
+          getUserFacingErrorMessage(err, 'Could not upload photos. Please try again.'),
+        );
       } finally {
         setUploading(false);
       }

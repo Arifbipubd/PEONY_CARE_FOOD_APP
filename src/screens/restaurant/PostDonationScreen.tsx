@@ -1,12 +1,10 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  Pressable,
   ScrollView,
-  FlatList,
   Modal,
   StyleSheet,
   ActivityIndicator,
@@ -20,12 +18,14 @@ import { launchImageLibraryAsync } from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { createDonation, updateDonation, getDonationDetail } from '../../services/restaurant';
-import { ApiError } from '../../services/api';
+import { getUserFacingErrorMessage } from '../../services/api';
 import { FoodCategory } from '../../types';
+import { FOOD_CATEGORIES } from '../../constants/categories';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, layout,
 } from '../../constants/theme';
 import { DonationsStackParamList } from '../../navigation/RestaurantTabs';
+import { buildTodayPickupRange, formatAvailabilityLabel } from '../../utils/availability';
 
 type Props = {
   navigation: NativeStackNavigationProp<DonationsStackParamList, 'PostDonation'>;
@@ -34,14 +34,7 @@ type Props = {
 
 type ScheduleType = 'one-time' | 'every-day' | 'custom-days';
 
-const CATEGORIES: { key: FoodCategory; label: string }[] = [
-  { key: 'RICE',    label: 'Rice' },
-  { key: 'NOODLES', label: 'Noodles' },
-  { key: 'BREAD',   label: 'Bread' },
-  { key: 'SNACKS',  label: 'Snacks' },
-  { key: 'DRINKS',  label: 'Drinks' },
-  { key: 'OTHER',   label: 'Other' },
-];
+const CATEGORIES = FOOD_CATEGORIES.map(({ value, label }) => ({ key: value, label }));
 
 const UNITS = ['packs', 'portions', 'boxes', 'bags', 'items'] as const;
 
@@ -62,71 +55,6 @@ const WEEKDAYS: { key: number; label: string }[] = [
   { key: 6, label: 'Sun' },
 ];
 
-// 30-min slots 00:00 → 23:30
-const TIME_SLOTS: string[] = Array.from({ length: 48 }, (_, i) => {
-  const h = Math.floor(i / 2);
-  const m = i % 2 === 0 ? '00' : '30';
-  return `${String(h).padStart(2, '0')}:${m}`;
-});
-
-function isoToHHMM(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
-
-/** Local wall-clock ISO with device offset, e.g. 2026-08-11T19:08:00.000+06:00 — never UTC "Z". */
-function toLocalOffsetIso(d: Date): string {
-  const pad = (n: number, len = 2) => String(Math.abs(n)).padStart(len, '0');
-  const y = d.getFullYear();
-  const m = pad(d.getMonth() + 1);
-  const day = pad(d.getDate());
-  const h = pad(d.getHours());
-  const min = pad(d.getMinutes());
-  const s = pad(d.getSeconds());
-  const ms = pad(d.getMilliseconds(), 3);
-  // getTimezoneOffset(): minutes behind UTC (Dhaka +06 → -360). Negate for ±HH:mm.
-  const offsetMin = -d.getTimezoneOffset();
-  const sign = offsetMin >= 0 ? '+' : '-';
-  const oh = pad(Math.floor(Math.abs(offsetMin) / 60));
-  const om = pad(Math.abs(offsetMin) % 60);
-  return `${y}-${m}-${day}T${h}:${min}:${s}.${ms}${sign}${oh}:${om}`;
-}
-
-function parseHM(t: string): [number, number] {
-  const parts = t.split(':');
-  return [parseInt(parts[0] ?? '0', 10), parseInt(parts[1] ?? '0', 10)];
-}
-
-/** Current local HH:mm (24h) for comparing against time-slot strings. */
-function currentHHMM(now = new Date()): string {
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-}
-
-/**
- * Build pickup_start / pickup_end with device-local offset.
- * One-time = today only (past starts are filtered in the picker).
- * Everyday / custom = keep today if the window is still open (until > now);
- * only roll to tomorrow once the entire window has ended.
- */
-function buildPickupIso(
-  fromStr: string,
-  untilStr: string,
-  schedule: ScheduleType,
-): { start: string; end: string } {
-  const now = new Date();
-  const [fh, fm] = parseHM(fromStr);
-  const [uh, um] = parseHM(untilStr);
-  const startDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), fh, fm, 0);
-  const endDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), uh, um, 0);
-
-  if (schedule !== 'one-time' && endDt <= now) {
-    startDt.setDate(startDt.getDate() + 1);
-    endDt.setDate(endDt.getDate() + 1);
-  }
-
-  return { start: toLocalOffsetIso(startDt), end: toLocalOffsetIso(endDt) };
-}
-
 export default function PostDonationScreen({ navigation, route }: Props) {
   const donationId = route.params?.donationId;
   const isEditMode = !!donationId;
@@ -136,10 +64,6 @@ export default function PostDonationScreen({ navigation, route }: Props) {
   const [quantity,     setQuantity]     = useState('');
   const [quantityError, setQuantityError] = useState('');
   const [unitIndex,    setUnitIndex]    = useState(0);
-  const [pickupFrom,   setPickupFrom]   = useState('');
-  const [pickupFromError, setPickupFromError] = useState('');
-  const [pickupUntil,  setPickupUntil]  = useState('');
-  const [pickupUntilError, setPickupUntilError] = useState('');
   const [schedule,     setSchedule]     = useState<ScheduleType>('one-time');
   const [customDays,   setCustomDays]   = useState<number[]>([]);
   const [scheduleError, setScheduleError] = useState('');
@@ -152,8 +76,6 @@ export default function PostDonationScreen({ navigation, route }: Props) {
   const [initializing,  setInitializing]  = useState(isEditMode);
 
   const [showUnitModal, setShowUnitModal] = useState(false);
-  const [showTimeModal, setShowTimeModal] = useState(false);
-  const [timeTarget,    setTimeTarget]    = useState<'from' | 'until'>('from');
 
   const [showQrModal,       setShowQrModal]       = useState(false);
   const [qrData,            setQrData]            = useState('');
@@ -163,15 +85,6 @@ export default function PostDonationScreen({ navigation, route }: Props) {
   const [postedReachLabel,  setPostedReachLabel]  = useState('');
 
   const unit = UNITS[unitIndex]!;
-  const flatListRef = useRef<FlatList<string>>(null);
-
-  // One-time = today only → hide past slots. Recurring → full day.
-  // Recompute when the time modal opens so the cutoff stays current.
-  const visibleTimeSlots = useMemo(() => {
-    if (schedule !== 'one-time') return TIME_SLOTS;
-    const nowHM = currentHHMM();
-    return TIME_SLOTS.filter((slot) => slot > nowHM);
-  }, [schedule, showTimeModal]);
 
   useEffect(() => {
     if (!donationId) return;
@@ -182,8 +95,6 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         setQuantity(String(d.quantityOriginal));
         const unitIdx = (UNITS as readonly string[]).indexOf(d.unit);
         setUnitIndex(unitIdx >= 0 ? unitIdx : 0);
-        setPickupFrom(isoToHHMM(d.pickupStart));
-        setPickupUntil(isoToHHMM(d.pickupEnd));
         const rt = d.recurrenceType;
         if (rt === 'DAILY') {
           setSchedule('every-day');
@@ -205,32 +116,6 @@ export default function PostDonationScreen({ navigation, route }: Props) {
   const bc = (field: string) =>
     focusedField === field ? colors.accentPrimary : colors.borderDefault;
 
-  const openTimePicker = useCallback((target: 'from' | 'until') => {
-    setTimeTarget(target);
-    setShowTimeModal(true);
-    if (target === 'until' && pickupFrom) {
-      const idx = visibleTimeSlots.findIndex((s) => s > pickupFrom);
-      if (idx > 0) {
-        setTimeout(() => {
-          flatListRef.current?.scrollToIndex({ index: idx, animated: false });
-        }, 150);
-      }
-    }
-  }, [pickupFrom, visibleTimeSlots]);
-
-  const selectTime = useCallback((time: string) => {
-    if (timeTarget === 'from') {
-      setPickupFrom(time);
-      setPickupFromError('');
-      setPickupUntil((prev) => (prev && prev > time ? prev : ''));
-      setPickupUntilError('');
-    } else {
-      setPickupUntil(time);
-      setPickupUntilError('');
-    }
-    setShowTimeModal(false);
-  }, [timeTarget]);
-
   const selectUnit = useCallback((index: number) => {
     setUnitIndex(index);
     setShowUnitModal(false);
@@ -240,21 +125,7 @@ export default function PostDonationScreen({ navigation, route }: Props) {
     setSchedule(key);
     setScheduleError('');
     if (key !== 'custom-days') setCustomDays([]);
-    // One-time = today only — drop any already-past times from a prior recurring selection.
-    if (key === 'one-time') {
-      const nowHM = currentHHMM();
-      const fromGone = !!pickupFrom && pickupFrom <= nowHM;
-      if (fromGone) {
-        setPickupFrom('');
-        setPickupUntil('');
-        setPickupFromError('');
-        setPickupUntilError('');
-      } else if (pickupUntil && pickupUntil <= nowHM) {
-        setPickupUntil('');
-        setPickupUntilError('');
-      }
-    }
-  }, [pickupFrom, pickupUntil]);
+  }, []);
 
   const toggleCustomDay = useCallback((day: number) => {
     setCustomDays((prev) => {
@@ -295,8 +166,6 @@ export default function PostDonationScreen({ navigation, route }: Props) {
       !quantity.trim() || isNaN(Number(quantity)) || Number(quantity) <= 0
         ? 'Enter a valid quantity'
         : '';
-    const nextPickupFromError = !pickupFrom ? 'Pickup from is required' : '';
-    const nextPickupUntilError = !pickupUntil ? 'Until time is required' : '';
     const nextScheduleError =
       schedule === 'custom-days' && customDays.length === 0
         ? 'Select at least one day'
@@ -304,15 +173,11 @@ export default function PostDonationScreen({ navigation, route }: Props) {
 
     setNameError(nextNameError);
     setQuantityError(nextQuantityError);
-    setPickupFromError(nextPickupFromError);
-    setPickupUntilError(nextPickupUntilError);
     setScheduleError(nextScheduleError);
 
     if (
       nextNameError ||
       nextQuantityError ||
-      nextPickupFromError ||
-      nextPickupUntilError ||
       nextScheduleError
     ) {
       return;
@@ -320,7 +185,7 @@ export default function PostDonationScreen({ navigation, route }: Props) {
 
     setSubmitting(true);
     try {
-      const { start, end } = buildPickupIso(pickupFrom, pickupUntil, schedule);
+      const { start, end } = buildTodayPickupRange();
       const recurrenceType =
         schedule === 'every-day'
           ? 'DAILY' as const
@@ -347,19 +212,22 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         setQrData(result.foodQrData);
         setPostedName(result.name);
         setPostedId(result.id);
-        setPostedPickupWindow(result.pickupWindow);
+        setPostedPickupWindow(formatAvailabilityLabel(
+          recurrenceType,
+          schedule === 'custom-days' ? customDays : undefined,
+        ));
         setPostedReachLabel(result.estimatedReachLabel ?? '');
         setShowQrModal(true);
       }
     } catch (err) {
-      const msg = err instanceof ApiError
-        ? `${err.code}: ${err.message}\n${JSON.stringify(err.details ?? {})}`
-        : String(err);
-      Alert.alert('Error', msg);
+      Alert.alert(
+        isEditMode ? "Couldn't save" : "Couldn't post",
+        getUserFacingErrorMessage(err, 'Could not save this listing. Please try again.'),
+      );
     } finally {
       setSubmitting(false);
     }
-  }, [name, notes, category, unit, quantity, pickupFrom, pickupUntil, schedule, customDays, photoUri, photoChanged, isEditMode, donationId, navigation]);
+  }, [name, notes, category, unit, quantity, schedule, customDays, photoUri, photoChanged, isEditMode, donationId, navigation]);
 
   if (initializing) {
     return (
@@ -475,7 +343,7 @@ export default function PostDonationScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        {/* SCHEDULE — before pickup so one-time vs recurring can shape the time list */}
+        {/* SCHEDULE */}
         <Text style={[styles.fieldLabel, styles.sectionTop]}>
           SCHEDULE
           <Text style={styles.requiredMark}> *</Text>
@@ -514,54 +382,6 @@ export default function PostDonationScreen({ navigation, route }: Props) {
           </View>
         ) : null}
         {scheduleError ? <Text style={styles.fieldError}>{scheduleError}</Text> : null}
-
-        {/* PICKUP FROM + UNTIL */}
-        <View style={[styles.row, styles.sectionTop]}>
-          <View style={styles.half}>
-            <Text style={styles.fieldLabel}>
-              PICKUP FROM
-              <Text style={styles.requiredMark}> *</Text>
-            </Text>
-            <TouchableOpacity
-              style={[
-                styles.inputWrap,
-                styles.inlineRow,
-                !!pickupFromError && styles.inputError,
-              ]}
-              onPress={() => openTimePicker('from')}
-              activeOpacity={0.8}
-            >
-              <Text style={pickupFrom ? styles.pickerValue : styles.pickerPlaceholder}>
-                {pickupFrom || '18:00'}
-              </Text>
-              <Ionicons name="time" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
-            {pickupFromError ? <Text style={styles.fieldError}>{pickupFromError}</Text> : null}
-          </View>
-          <View style={styles.half}>
-            <Text style={styles.fieldLabel}>
-              UNTIL
-              <Text style={styles.requiredMark}> *</Text>
-            </Text>
-            <TouchableOpacity
-              style={[
-                styles.inputWrap,
-                styles.inlineRow,
-                !pickupFrom && styles.inputDisabled,
-                !!pickupUntilError && styles.inputError,
-              ]}
-              onPress={() => openTimePicker('until')}
-              disabled={!pickupFrom}
-              activeOpacity={0.8}
-            >
-              <Text style={pickupUntil ? styles.pickerValue : styles.pickerPlaceholder}>
-                {pickupUntil || '—'}
-              </Text>
-              <Ionicons name="time" size={18} color={!pickupFrom ? colors.borderDefault : colors.textMuted} />
-            </TouchableOpacity>
-            {pickupUntilError ? <Text style={styles.fieldError}>{pickupUntilError}</Text> : null}
-          </View>
-        </View>
 
         {/* NOTES (OPTIONAL) */}
         <Text style={[styles.fieldLabel, styles.sectionTop]}>NOTES (OPTIONAL)</Text>
@@ -686,67 +506,6 @@ export default function PostDonationScreen({ navigation, route }: Props) {
           </View>
         </TouchableOpacity>
       </Modal>
-
-      {/* ── Time picker modal ─────────────────────────────────────────────── */}
-      <Modal
-        visible={showTimeModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowTimeModal(false)}
-      >
-        <View style={styles.overlay}>
-          {/* Backdrop — tap outside sheet to dismiss */}
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowTimeModal(false)} />
-          {/* Sheet sits above backdrop so FlatList scroll is never intercepted */}
-          <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>
-              {timeTarget === 'from' ? 'Pickup from' : 'Until'}
-            </Text>
-            <FlatList
-              ref={flatListRef}
-              data={visibleTimeSlots}
-              keyExtractor={(item) => item}
-              style={styles.timeList}
-              showsVerticalScrollIndicator={false}
-              removeClippedSubviews
-              maxToRenderPerBatch={24}
-              windowSize={10}
-              ListEmptyComponent={
-                <Text style={styles.sheetEmpty}>
-                  No remaining times today. Choose Every day or Custom days for a future window.
-                </Text>
-              }
-              extraData={{ pickupFrom, pickupUntil, timeTarget, schedule }}
-              onScrollToIndexFailed={({ index }) => {
-                flatListRef.current?.scrollToOffset({ offset: index * 50, animated: false });
-              }}
-              renderItem={({ item }) => {
-                const selected = timeTarget === 'from' ? pickupFrom === item : pickupUntil === item;
-                const disabled = timeTarget === 'until' && item <= pickupFrom;
-                return (
-                  <TouchableOpacity
-                    style={styles.sheetOption}
-                    onPress={() => selectTime(item)}
-                    disabled={disabled}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[
-                      styles.sheetOptionText,
-                      selected && styles.sheetOptionActive,
-                      disabled && styles.sheetOptionDisabled,
-                    ]}>
-                      {item}
-                    </Text>
-                    {selected && (
-                      <Ionicons name="checkmark" size={20} color={colors.accentPrimary} />
-                    )}
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -845,12 +604,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
-  },
-  pickerPlaceholder: {
-    flex: 1,
-    fontFamily: fontFamilies.regular,
-    fontSize: fontSizes.md,
-    color: colors.textMuted,
   },
   chipRow: {
     flexDirection: 'row',
@@ -1022,13 +775,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: spacing.md,
   },
-  sheetEmpty: {
-    fontFamily: fontFamilies.regular,
-    fontSize: fontSizes.md,
-    color: colors.textMuted,
-    paddingVertical: spacing['2xl'],
-    textAlign: 'center',
-  },
   sheetOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1045,16 +791,6 @@ const styles = StyleSheet.create({
   sheetOptionActive: {
     fontFamily: fontFamilies.semiBold,
     color: colors.accentPrimary,
-  },
-  sheetOptionDisabled: {
-    color: colors.borderDefault,
-  },
-  inputDisabled: {
-    backgroundColor: colors.surfaceSecondary,
-    opacity: 0.6,
-  },
-  timeList: {
-    maxHeight: 300,
   },
   qrSheet: {
     backgroundColor: colors.surface,

@@ -232,7 +232,7 @@ export interface ApiRestaurantDonation {
   // Recurrence — backend uses recurrence_type, not is_repeating
   recurrence_type?: string;          // "NONE" | "DAILY" | "WEEKLY" | "CUSTOM"
   recurrence_label?: string | null;
-  recurrence_days?: number[];
+  recurrence_days?: number[] | string[] | string;
   recurrence_schedule_summary?: string | null;
   recurrence_badge?: string | null;
   // Donation source — backend wraps in a source object

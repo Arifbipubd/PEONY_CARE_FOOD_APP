@@ -15,6 +15,13 @@ import {
   ApiRestaurantNotificationSettings,
 } from '../types/api';
 import { api, logApiCatch } from './api';
+import { compressImageForUpload } from '../utils/compressImage';
+import { parseRecurrenceDays, serializeRecurrenceDays } from '../utils/availability';
+
+async function photoFormValue(localUri: string): Promise<Blob> {
+  const photo = await compressImageForUpload(localUri);
+  return { uri: photo.uri, name: photo.name, type: photo.mimeType } as unknown as Blob;
+}
 
 function logRestaurant(step: string, info?: unknown): void {
   if (__DEV__) console.log(`[RESTAURANT] ${step}`, info ?? '');
@@ -81,7 +88,7 @@ function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
       ? d.recurrence_type !== 'NONE'
       : d.is_repeating,
     recurrenceType: d.recurrence_type ?? null,
-    recurrenceDays: d.recurrence_days ?? [],
+    recurrenceDays: parseRecurrenceDays(d.recurrence_days),
     repeatTimeLabel: d.recurrence_label ?? d.recurrence_schedule_summary ?? d.repeat_time_label,
     nextPostLabel: d.next_post_label,
     donationSourceNote: d.source?.detail || d.source_note || d.donation_source_note,
@@ -508,9 +515,6 @@ export const updateDonation = async (foodId: string, payload: CreateDonationPayl
   const recurrence = resolveRecurrenceFields(payload);
   let res;
   if (payload.localPhotoUri) {
-    const filename = payload.localPhotoUri.split('/').pop() ?? 'photo.jpg';
-    const ext      = filename.split('.').pop()?.toLowerCase() ?? 'jpeg';
-    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
     const formData = new FormData();
     formData.append('name',         payload.name);
     formData.append('description',  payload.description ?? '');
@@ -522,10 +526,10 @@ export const updateDonation = async (foodId: string, payload: CreateDonationPayl
     if (recurrence) {
       formData.append('recurrence_type', recurrence.recurrence_type);
       if (recurrence.recurrence_days) {
-        formData.append('recurrence_days', JSON.stringify(recurrence.recurrence_days));
+        formData.append('recurrence_days', serializeRecurrenceDays(recurrence.recurrence_days));
       }
     }
-    formData.append('photo', { uri: payload.localPhotoUri, name: filename, type: mimeType } as unknown as Blob);
+    formData.append('photo', await photoFormValue(payload.localPhotoUri));
     res = await api.patch(`/restaurant/donations/${foodId}/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -548,9 +552,6 @@ export const createDonation = async (payload: CreateDonationPayload): Promise<Re
   const recurrence = resolveRecurrenceFields(payload);
   let res;
   if (payload.localPhotoUri) {
-    const filename = payload.localPhotoUri.split('/').pop() ?? 'photo.jpg';
-    const ext      = filename.split('.').pop()?.toLowerCase() ?? 'jpeg';
-    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
     const formData = new FormData();
     formData.append('name',         payload.name);
     formData.append('description',  payload.description ?? '');
@@ -562,10 +563,10 @@ export const createDonation = async (payload: CreateDonationPayload): Promise<Re
     if (recurrence) {
       formData.append('recurrence_type', recurrence.recurrence_type);
       if (recurrence.recurrence_days) {
-        formData.append('recurrence_days', JSON.stringify(recurrence.recurrence_days));
+        formData.append('recurrence_days', serializeRecurrenceDays(recurrence.recurrence_days));
       }
     }
-    formData.append('photo', { uri: payload.localPhotoUri, name: filename, type: mimeType } as unknown as Blob);
+    formData.append('photo', await photoFormValue(payload.localPhotoUri));
     res = await api.post('/restaurant/donations/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -679,12 +680,8 @@ export interface UpdateRestaurantProfilePayload {
 }
 
 export const uploadRestaurantProfilePhoto = async (localUri: string): Promise<string> => {
-  const filename = localUri.split('/').pop() ?? 'photo.jpg';
-  const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpeg';
-  const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
-
   const formData = new FormData();
-  formData.append('photo', { uri: localUri, name: filename, type: mimeType } as unknown as Blob);
+  formData.append('photo', await photoFormValue(localUri));
 
   const res = await api.patch('/restaurant/profile/', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -764,11 +761,12 @@ export const uploadMenuPhotos = async (
   assets: Array<{ uri: string; type?: string; name?: string }>,
 ): Promise<MenuPhoto[]> => {
   const formData = new FormData();
-  assets.forEach((asset) => {
+  const compressed = await Promise.all(assets.map((asset) => compressImageForUpload(asset.uri)));
+  compressed.forEach((photo) => {
     formData.append('photos', {
-      uri:  asset.uri,
-      type: asset.type ?? 'image/jpeg',
-      name: asset.name ?? 'photo.jpg',
+      uri:  photo.uri,
+      type: photo.mimeType,
+      name: photo.name,
     } as unknown as Blob);
   });
   const res = await api.post('/restaurant/menu-photos/', formData, {

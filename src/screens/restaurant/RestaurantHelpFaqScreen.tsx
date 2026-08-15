@@ -27,7 +27,7 @@ type FaqEntry = { q: string; a: string };
 const FAQ_ITEMS: FaqEntry[] = [
   {
     q: 'How do I post a donation?',
-    a: 'From the home screen, tap the Post button. Fill in dish details, quantity, and the pickup window — that\'s it.',
+    a: 'From the home screen, tap the Post button. Fill in dish details and quantity — the listing is available today. Choose Every day if you want it posted again tomorrow.',
   },
   {
     q: 'How do I close an active donation?',
@@ -39,7 +39,7 @@ const FAQ_ITEMS: FaqEntry[] = [
   },
   {
     q: 'What if a receiver doesn\'t show up?',
-    a: 'After the pickup window ends, tap No-show on the claim. The portion returns to the pool so others can claim it.',
+    a: 'At the end of the day, tap No-show on the claim. The portion returns to the pool so others can claim it.',
   },
   {
     q: 'Is there a fee to use Udufood?',

@@ -214,7 +214,7 @@ export default function TodaysClaimsScreen({ navigation }: { navigation: Nav }) 
             <Text style={styles.receiverName} numberOfLines={1}>{item.receiverName}</Text>
             <Text style={styles.pickupLine} numberOfLines={1}>
               {pending
-                ? `Pickup ${item.pickupWindowShort ?? item.pickupWindow}`
+                ? 'Available today'
                 : item.collectedAtLabel ?? (collected ? 'Collected' : 'No-show')}
             </Text>
             {!!item.itemsLabel && (

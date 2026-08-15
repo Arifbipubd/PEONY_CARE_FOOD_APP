@@ -14,6 +14,7 @@ import { RouteProp } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { getFoodDetail, getDailyLimit } from '../../services/receiver';
 import { FoodItem, DailyLimitStatus } from '../../types';
+import { foodCategoryLabel } from '../../constants/categories';
 import { colors, spacing, radius, fontSizes, fontFamilies, layout } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
@@ -21,22 +22,6 @@ type Props = {
   navigation: NativeStackNavigationProp<HomeStackParamList, 'FoodDetail'>;
   route: RouteProp<HomeStackParamList, 'FoodDetail'>;
 };
-
-const CATEGORY_LABELS: Record<string, string> = {
-  RICE: 'Rice', NOODLES: 'Noodles', BREAD: 'Bread',
-  SNACKS: 'Snacks', DRINKS: 'Drinks', OTHER: 'Other',
-};
-
-function formatPickupFull(start: string, end: string): string {
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleTimeString('en-SG', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  return `Today, ${fmt(start)} — ${fmt(end)}`;
-}
-
 
 const DetailSkeleton = memo(function DetailSkeleton() {
   const opacity = usePulse();
@@ -157,7 +142,7 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
           {/* Category chip */}
           <View style={styles.categoryChip}>
             <Text style={styles.categoryText}>
-              {CATEGORY_LABELS[food.category] ?? food.category}
+              {foodCategoryLabel(food.category)}
             </Text>
           </View>
 
@@ -196,12 +181,9 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
 
           <View style={styles.divider} />
 
-          {/* Pickup window */}
           <View style={styles.infoRow}>
             <Ionicons name="time" size={16} color={colors.pickupOrange} />
-            <Text style={styles.pickupTime}>
-              {formatPickupFull(food.pickupStart, food.pickupEnd)}
-            </Text>
+            <Text style={styles.pickupTime}>Available today</Text>
           </View>
 
           <View style={styles.divider} />

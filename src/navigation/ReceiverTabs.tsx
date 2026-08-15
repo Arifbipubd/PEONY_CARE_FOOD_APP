@@ -39,7 +39,11 @@ export type HomeStackParamList = {
   ClaimSuccess:    { claim: Claim };
   FoodUnavailable: { nearbyCount?: number };
   DailyLimit:      { resetsAt: string };
-  ScanError:       { expectedFoodId: string };
+  ScanError:       {
+    expectedFoodId: string;
+    reason?: 'TOO_FAR' | 'UNREADABLE' | 'NO_LOCATION';
+    distanceM?: number;
+  };
   OfflineError:    undefined;
   ServerError:     { errorRef?: string };
   ReportListing:   { restaurantName: string; foodId: string };

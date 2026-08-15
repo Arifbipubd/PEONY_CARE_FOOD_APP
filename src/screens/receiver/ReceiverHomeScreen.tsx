@@ -28,6 +28,7 @@ import { getNearbyRestaurants } from '../../services/restaurant';
 import { getUnreadCount } from '../../services/notifications';
 import { FoodItem, FoodCategory, DailyLimitStatus, PublicRestaurant } from '../../types';
 import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, lineHeights, layout } from '../../constants/theme';
+import { FOOD_CATEGORIES } from '../../constants/categories';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
@@ -37,11 +38,8 @@ type Props = {
 type Tab = 'meals' | 'restaurants';
 
 const CHIPS: { label: string; value: FoodCategory | null }[] = [
-  { label: 'All',     value: null },
-  { label: 'Rice',    value: 'RICE' },
-  { label: 'Noodles', value: 'NOODLES' },
-  { label: 'Bread',   value: 'BREAD' },
-  { label: 'Snacks',  value: 'SNACKS' },
+  { label: 'All', value: null },
+  ...FOOD_CATEGORIES.map(({ value, label }) => ({ label, value })),
 ];
 
 
@@ -348,10 +346,6 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
       if (showOnly.sponsored && f.sponsorshipType === 'DIRECT') return false;
       if (showOnly.halal && !f.isHalal) return false;
       if (showOnly.vegetarian && !f.isVegetarian) return false;
-      if (showOnly.pickupUnder1h) {
-        const msLeft = new Date(f.pickupEnd).getTime() - Date.now();
-        if (!(msLeft > 0 && msLeft <= 60 * 60 * 1000)) return false;
-      }
       return true;
     });
   }, [searchResults, foods, filters]);

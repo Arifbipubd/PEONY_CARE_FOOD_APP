@@ -17,6 +17,7 @@ import DeleteDonationSheet from '../../components/DeleteDonationSheet';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, layout,
 } from '../../constants/theme';
+import { displayAvailability } from '../../utils/availability';
 
 type Props = {
   navigation: NativeStackNavigationProp<DonationsStackParamList, 'DonationDetail'>;
@@ -39,11 +40,11 @@ function formatTime(iso: string): string {
 
 function timeRemaining(pickupEnd: string): string {
   const diff = new Date(pickupEnd).getTime() - Date.now();
-  if (diff <= 0) return 'Window closed';
+  if (diff <= 0) return 'Expired';
   const h = Math.floor(diff / 3_600_000);
   const m = Math.floor((diff % 3_600_000) / 60_000);
-  if (h > 0) return `${h}h ${m}m until window closes`;
-  return `${m}m until window closes`;
+  if (h > 0) return `${h}h ${m}m until listing expires`;
+  return `${m}m until listing expires`;
 }
 
 export default function DonationDetailScreen({ navigation, route }: Props) {
@@ -308,7 +309,7 @@ export default function DonationDetailScreen({ navigation, route }: Props) {
           {/* Title + meta */}
           <Text style={styles.title}>{donation.name}</Text>
           <Text style={styles.meta}>
-            {donation.category} · {donation.quantityOriginal} {donation.unit} · pickup {donation.pickupWindow}
+            {donation.category} · {donation.quantityOriginal} {donation.unit} · {displayAvailability(donation)}
           </Text>
 
           {/* Progress section */}

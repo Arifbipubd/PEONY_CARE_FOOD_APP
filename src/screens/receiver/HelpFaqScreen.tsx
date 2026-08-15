@@ -31,10 +31,10 @@ const FAQ_ITEMS: FaqEntry[] = [
   },
   {
     q: 'How do I claim a meal?',
-    a: 'Browse meals nearby on the Home tab, tap Claim, then show the QR code at the restaurant within the pickup window.',
+    a: 'Browse meals nearby on the Home tab, tap Claim, then show the QR code at the restaurant today.',
   },
   {
-    q: 'What if I miss the pickup window?',
+    q: 'What if I miss collecting today?',
     a: 'The meal returns to the pool for others to claim. Your daily limit still resets the next day so you can try again.',
   },
   {

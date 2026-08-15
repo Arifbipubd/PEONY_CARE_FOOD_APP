@@ -65,13 +65,18 @@ export default function QrScannerScreen({ navigation, route }: Props) {
     const foodId       = parts[0] ?? '';
     const restaurantId = parts[1] ?? '';
 
-    if (!foodId || lat === null || lng === null) {
-      navigation.navigate('ScanError', { expectedFoodId });
+    if (!foodId) {
+      navigation.navigate('ScanError', { expectedFoodId, reason: 'UNREADABLE' });
+      return;
+    }
+
+    if (lat === null || lng === null) {
+      navigation.navigate('ScanError', { expectedFoodId, reason: 'NO_LOCATION' });
       return;
     }
 
     if (foodId !== expectedFoodId) {
-      navigation.navigate('ScanError', { expectedFoodId });
+      navigation.navigate('ScanError', { expectedFoodId, reason: 'UNREADABLE' });
       return;
     }
 
@@ -86,8 +91,20 @@ export default function QrScannerScreen({ navigation, route }: Props) {
           navigation.navigate('DailyLimit', { resetsAt });
         } else if (err.code === 'FOOD_UNAVAILABLE' || err.code === 'RACE_CONDITION') {
           navigation.navigate('FoodUnavailable', {});
+        } else if (err.code === 'TOO_FAR_FROM_RESTAURANT') {
+          const raw = err.details?.distance_m;
+          const distanceM = typeof raw === 'number' ? raw : Number(raw);
+          navigation.navigate('ScanError', {
+            expectedFoodId,
+            reason: 'TOO_FAR',
+            distanceM: Number.isFinite(distanceM) ? distanceM : undefined,
+          });
+        } else if (err.code === 'NETWORK_ERROR') {
+          navigation.navigate('OfflineError');
+        } else if (err.code === 'SERVER_ERROR') {
+          navigation.navigate('ServerError', {});
         } else {
-          navigation.navigate('ScanError', { expectedFoodId });
+          navigation.navigate('ScanError', { expectedFoodId, reason: 'UNREADABLE' });
         }
       } else {
         setScanned(false);

@@ -47,8 +47,8 @@ const TERMS_SECTIONS: SectionData[] = [
     heading: '2. Posting donations',
     body: 'Food you post must be safe for consumption and accurately described.',
     bullets: [
-      'Set realistic pickup windows — receivers plan around them.',
-      'Close listings you can no longer fulfil before the window opens.',
+      'Post only food that is ready to collect today.',
+      'Close listings you can no longer fulfil.',
       "Don't post food that's past its safe use-by date.",
       'Photos must show the actual dish, not stock images.',
     ],
@@ -59,7 +59,7 @@ const TERMS_SECTIONS: SectionData[] = [
   },
   {
     heading: '4. No-show claims',
-    body: "After a pickup window closes, mark any receiver who didn't collect as No-show in the app. The portion returns to the pool so others can claim it. Udufood tracks no-show patterns to improve platform reliability.",
+    body: "At the end of the day, mark any receiver who didn't collect as No-show in the app. The portion returns to the pool so others can claim it. Udufood tracks no-show patterns to improve platform reliability.",
   },
   {
     heading: '5. Account termination',

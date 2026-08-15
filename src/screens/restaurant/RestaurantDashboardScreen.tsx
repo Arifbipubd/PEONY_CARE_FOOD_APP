@@ -16,6 +16,7 @@ import { getDashboard, getMenuPhotos, menuPhotosExist, donationsExist } from '..
 import { getUnreadCount } from '../../services/notifications';
 import { useLocation } from '../../hooks/useLocation';
 import { RestaurantDashboard, RestaurantDonation } from '../../types';
+import { displayAvailability } from '../../utils/availability';
 import { useNotificationStore } from '../../store/notificationStore';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import PostFAB from '../../components/PostFAB';
@@ -105,7 +106,7 @@ const DonationRow = React.memo(({ item, onPress }: { item: RestaurantDonation; o
 
   const subtitle = isSponsored
     ? `${item.quantityClaimed} of ${item.quantityOriginal} claimed · by ${item.sponsorDisplayName}`
-    : `${item.quantityClaimed} of ${item.quantityOriginal} claimed · ${item.pickupWindow}`;
+    : `${item.quantityClaimed} of ${item.quantityOriginal} claimed · ${displayAvailability(item)}`;
 
   const nameLabel = isSponsored ? `${item.name} · Sponsored` : item.name;
 

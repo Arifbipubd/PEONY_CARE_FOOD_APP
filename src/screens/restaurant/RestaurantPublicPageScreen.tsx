@@ -18,6 +18,7 @@ import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, layout,
 } from '../../constants/theme';
 import { ProfileStackParamList } from '../../navigation/RestaurantTabs';
+import { displayAvailability } from '../../utils/availability';
 
 type Props = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'RestaurantPublicPage'>;
@@ -139,7 +140,7 @@ const FoodRow = memo(function FoodRow({
 
   const subText = isSponsored
     ? `${item.quantityAvailable} ${item.unit} · by ${item.sponsorDisplayName}`
-    : `${item.quantityAvailable} ${item.unit} · pickup ${item.pickupWindow}`;
+    : `${item.quantityAvailable} ${item.unit} · ${displayAvailability(item)}`;
 
   return (
     <>

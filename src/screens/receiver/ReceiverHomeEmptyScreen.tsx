@@ -27,7 +27,7 @@ const STEPS = [
   {
     n: 2,
     title: 'Claim one',
-    desc: 'Reserve a portion. You have until the pickup window ends to collect it.',
+    desc: 'Reserve a portion. Collect it today before the listing expires.',
   },
   {
     n: 3,

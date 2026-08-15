@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import ImageWithSkeleton from './ImageWithSkeleton';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { FoodItem, FoodCategory } from '../types';
+import { foodCategoryLabel } from '../constants/categories';
 import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, layout } from '../constants/theme';
 
 interface FoodCardProps {
@@ -11,17 +12,7 @@ interface FoodCardProps {
 }
 
 function formatCategory(cat: FoodCategory): string {
-  return cat.charAt(0) + cat.slice(1).toLowerCase();``
-}
-
-function formatPickupWindow(start: string, end: string): string {
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleTimeString('en-SG', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  return `Pickup ${fmt(start)} – ${fmt(end)}`;
+  return foodCategoryLabel(cat);
 }
 
 function sponsorLabel(item: FoodItem): string {
@@ -64,9 +55,7 @@ const FoodCard = React.memo(function FoodCard({ item, onPress }: FoodCardProps) 
           </View>
           <View style={styles.metaItem}>
             <Ionicons name="time" size={12} color={colors.pickupOrange} />
-            <Text style={styles.pickupText}>
-              {formatPickupWindow(item.pickupStart, item.pickupEnd)}
-            </Text>
+            <Text style={styles.pickupText}>Today</Text>
           </View>
         </View>
 

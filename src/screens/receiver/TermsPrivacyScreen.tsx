@@ -49,7 +49,7 @@ const TERMS_SECTIONS: SectionData[] = [
   },
   {
     heading: '3. Pickup & etiquette',
-    body: 'If you claim food, please collect it within the stated pickup window.',
+    body: 'If you claim food, please collect it today.',
     bullets: [
       'Show your QR code at pickup.',
       'Be respectful to restaurant staff.',

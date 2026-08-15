@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { colors, spacing, radius, fontSizes, fontWeights } from '../../constants/theme';
+import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
@@ -20,7 +21,7 @@ const REASONS = [
   {
     n: 1,
     label: 'Code expired',
-    detail: 'Pickup windows close at the listed time.',
+    detail: 'This listing is no longer available today.',
   },
   {
     n: 2,
@@ -34,8 +35,43 @@ const REASONS = [
   },
 ];
 
+function formatDistanceM(metres: number): string {
+  if (metres >= 1000) return `${(metres / 1000).toFixed(1)} km`;
+  return `${Math.round(metres)} m`;
+}
+
 export default function ScanErrorScreen({ navigation, route }: Props) {
-  const { expectedFoodId } = route.params;
+  const { expectedFoodId, reason = 'UNREADABLE', distanceM } = route.params;
+  const isTooFar = reason === 'TOO_FAR';
+  const needsLocation = reason === 'NO_LOCATION';
+
+  const heading = isTooFar
+    ? "You're too far away"
+    : needsLocation
+      ? 'Location needed'
+      : "Can't read this QR";
+
+  const body = isTooFar
+    ? 'You must be within 500 m of the restaurant to claim.'
+    : needsLocation
+      ? 'We need your location to confirm you are at the restaurant.'
+      : "The code didn't match an active claim. A few things to check:";
+
+  const distanceLabel = useMemo(() => {
+    if (!isTooFar || distanceM == null || Number.isNaN(distanceM)) return '';
+    return `You're about ${formatDistanceM(distanceM)} away right now.`;
+  }, [isTooFar, distanceM]);
+
+  const handleTryAgain = useCallback(
+    () => navigation.navigate('QrScanner', { expectedFoodId }),
+    [navigation, expectedFoodId],
+  );
+
+  const handleBackToListing = useCallback(
+    () => navigation.navigate('FoodDetail', { foodId: expectedFoodId }),
+    [navigation, expectedFoodId],
+  );
+
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
 
@@ -46,42 +82,60 @@ export default function ScanErrorScreen({ navigation, route }: Props) {
       </View>
 
       <View style={styles.content}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="qr-code-outline" size={48} color={colors.accentPrimary} />
+        <View style={[styles.iconCircle, (isTooFar || needsLocation) && styles.iconCircleWarn]}>
+          <Ionicons
+            name={isTooFar ? 'navigate' : needsLocation ? 'location-outline' : 'qr-code-outline'}
+            size={48}
+            color={isTooFar || needsLocation ? colors.pickupOrange : colors.accentPrimary}
+          />
         </View>
-        <Text style={styles.heading}>Can't read this QR</Text>
-        <Text style={styles.body}>
-          The code didn't match an active claim. A few things to check:
-        </Text>
+        <Text style={styles.heading}>{heading}</Text>
+        <Text style={styles.body}>{body}</Text>
+        {distanceLabel ? (
+          <View style={styles.distanceChip}>
+            <Ionicons name="walk-outline" size={14} color={colors.pickupOrange} />
+            <Text style={styles.distanceText}>{distanceLabel}</Text>
+          </View>
+        ) : null}
 
-        <View style={styles.reasonsList}>
-          {REASONS.map((r, i) => (
-            <View key={r.n}>
-              <View style={styles.reasonRow}>
-                <View style={styles.reasonBadge}>
-                  <Text style={styles.reasonBadgeText}>{r.n}</Text>
+        {reason === 'UNREADABLE' ? (
+          <View style={styles.reasonsList}>
+            {REASONS.map((r, i) => (
+              <View key={r.n}>
+                <View style={styles.reasonRow}>
+                  <View style={styles.reasonBadge}>
+                    <Text style={styles.reasonBadgeText}>{r.n}</Text>
+                  </View>
+                  <View style={styles.reasonText}>
+                    <Text style={styles.reasonLabel}>{r.label}</Text>
+                    <Text style={styles.reasonDetail}>{r.detail}</Text>
+                  </View>
                 </View>
-                <View style={styles.reasonText}>
-                  <Text style={styles.reasonLabel}>{r.label}</Text>
-                  <Text style={styles.reasonDetail}>{r.detail}</Text>
-                </View>
+                {i < REASONS.length - 1 && <View style={styles.divider} />}
               </View>
-              {i < REASONS.length - 1 && <View style={styles.divider} />}
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.primaryBtn}
           activeOpacity={0.85}
-          onPress={() => navigation.navigate('QrScanner', { expectedFoodId })}
+          onPress={isTooFar || needsLocation ? handleBackToListing : handleTryAgain}
         >
-          <Text style={styles.primaryBtnText}>Try again</Text>
+          <Text style={styles.primaryBtnText}>
+            {isTooFar || needsLocation ? 'Back to listing' : 'Try again'}
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.7}>
-          <Text style={styles.secondaryBtnText}>Contact support</Text>
+        <TouchableOpacity
+          style={styles.secondaryBtn}
+          activeOpacity={0.7}
+          onPress={isTooFar || needsLocation ? handleTryAgain : handleBackToListing}
+        >
+          <Text style={styles.secondaryBtnText}>
+            {isTooFar || needsLocation ? 'Try again' : 'Back to listing'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -116,18 +170,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.md,
   },
+  iconCircleWarn: {
+    backgroundColor: colors.goldLight,
+  },
 
   heading: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
     color: colors.textPrimary,
     textAlign: 'center',
   },
   body: {
+    fontFamily: fontFamilies.regular,
     fontSize: fontSizes.sm,
     color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 22,
+  },
+
+  distanceChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.warningYellowLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  distanceText: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes.sm,
+    color: colors.pickupOrange,
   },
 
   reasonsList: {
@@ -183,6 +257,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryBtnText: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes.md,
     fontWeight: fontWeights.bold,
     color: colors.textInverse,
@@ -195,6 +270,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   secondaryBtnText: {
+    fontFamily: fontFamilies.bold,
     fontSize: fontSizes.md,
     fontWeight: fontWeights.bold,
     color: colors.textPrimary,

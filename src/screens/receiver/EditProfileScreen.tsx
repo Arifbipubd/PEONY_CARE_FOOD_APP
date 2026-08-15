@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { requestCameraPermissionsAsync, launchCameraAsync, requestMediaLibraryPermissionsAsync, launchImageLibraryAsync } from 'expo-image-picker';
 import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
 import { useProfileStore } from '../../store/profileStore';
-import { api } from '../../services/api';
+import { api, getUserFacingErrorMessage } from '../../services/api';
 import {
   colors, spacing, fontSizes, fontFamilies, radius,
 } from '../../constants/theme';
@@ -93,7 +93,7 @@ export default function EditProfileScreen({ navigation }: Props) {
       // No change (same remote URL) — skip API call
       navigation.goBack();
     } catch (err: unknown) {
-      setSaveError(err instanceof Error ? err.message : 'Could not save photo. Try again.');
+      setSaveError(getUserFacingErrorMessage(err, 'Could not save photo. Try again.'));
       setSaving(false);
     }
   }, [saving, pendingUri, setProfile, navigation]);
