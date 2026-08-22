@@ -11,6 +11,7 @@ import {
   ApiNotificationGroup,
   ApiNotificationList,
   ApiNotificationPagination,
+  ApiNotificationReadAll,
 } from '../types/api';
 import { api, logApiCatch } from './api';
 
@@ -129,12 +130,23 @@ export const markRead = async (id: string): Promise<void> => {
   }
 };
 
+export type MarkAllReadResult = {
+  markedRead: number;
+  unreadCount: number;
+};
+
 /** POST /notifications/read-all/ */
-export const markAllRead = async (): Promise<void> => {
+export const markAllRead = async (): Promise<MarkAllReadResult> => {
   try {
-    await api.post('/notifications/read-all/');
+    const res = await api.post('/notifications/read-all/');
+    const data = (res.data?.data ?? res.data) as ApiNotificationReadAll;
+    return {
+      markedRead: typeof data?.marked_read === 'number' ? data.marked_read : 0,
+      unreadCount: typeof data?.unread_count === 'number' ? data.unread_count : 0,
+    };
   } catch (err) {
     logApiCatch('markAllRead', err);
+    throw err;
   }
 };
 

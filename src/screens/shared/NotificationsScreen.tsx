@@ -168,6 +168,58 @@ function relTime(isoString: string): string {
   return new Date(isoString).toLocaleDateString('en-SG', { month: 'short', day: 'numeric' });
 }
 
+const MarkAllReadButton = memo(function MarkAllReadButton({
+  visible,
+  disabled,
+  onPress,
+}: {
+  visible: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  if (!visible) return null;
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={disabled}
+      hitSlop={8}
+      activeOpacity={0.7}
+    >
+      <Text style={[styles.markAllText, disabled && styles.markAllTextDisabled]}>
+        Mark all read
+      </Text>
+    </TouchableOpacity>
+  );
+});
+
+const NotificationsHeader = memo(function NotificationsHeader({
+  onBack,
+  showMarkAll,
+  markAllDisabled,
+  onMarkAll,
+}: {
+  onBack: () => void;
+  showMarkAll: boolean;
+  markAllDisabled: boolean;
+  onMarkAll: () => void;
+}) {
+  return (
+    <>
+      <View style={styles.filterRow}>
+        <TouchableOpacity onPress={onBack} hitSlop={8}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <MarkAllReadButton
+          visible={showMarkAll}
+          disabled={markAllDisabled}
+          onPress={onMarkAll}
+        />
+      </View>
+      <Text style={styles.pageTitle}>Notifications</Text>
+    </>
+  );
+});
+
 const NotifRow = memo(function NotifRow({
   item,
   onPress,
@@ -222,7 +274,9 @@ export default function NotificationsScreen({ navigation }: Props) {
   const [loading, setLoading]         = useState(itemCount === 0);
   const [refreshing, setRefreshing]   = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [markingAll, setMarkingAll]   = useState(false);
   const loadingMoreRef = useRef(false);
+  const hasUnread = unreadCount > 0;
 
   const loadPage = useCallback(
     (pageNum: number, mode: 'replace' | 'append') => {
@@ -267,9 +321,18 @@ export default function NotificationsScreen({ navigation }: Props) {
   }, [storeMarkRead, setUnreadCount, navigation, role]);
 
   const handleMarkAll = useCallback(() => {
+    if (unreadCount === 0 || markingAll) return;
+    setMarkingAll(true);
     storeMarkAllRead();
-    apiMarkAllRead().then(() => setUnreadCount(0));
-  }, [storeMarkAllRead, setUnreadCount]);
+    apiMarkAllRead()
+      .then((result) => setUnreadCount(result.unreadCount))
+      .catch(() => loadPage(1, 'replace'))
+      .finally(() => setMarkingAll(false));
+  }, [unreadCount, markingAll, storeMarkAllRead, setUnreadCount, loadPage]);
+
+  const goHome = useCallback(() => {
+    navigation.navigate('Home' as never);
+  }, [navigation]);
 
   const sections = useMemo<Section[]>(
     () =>
@@ -284,16 +347,13 @@ export default function NotificationsScreen({ navigation }: Props) {
   if (loading) {
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
-        <View style={styles.filterRow}>
-          <TouchableOpacity onPress={() => navigation.navigate('Home' as never)} hitSlop={8}>
-            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleMarkAll} hitSlop={8}>
-            <Ionicons name="options" size={22} color={colors.textMuted} />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.pageTitle}>Notifications</Text>
-        <ActivityIndicator style={{ flex: 1 }} color={colors.accentPrimary} />
+        <NotificationsHeader
+          onBack={goHome}
+          showMarkAll={hasUnread}
+          markAllDisabled={markingAll}
+          onMarkAll={handleMarkAll}
+        />
+        <ActivityIndicator style={styles.loader} color={colors.accentPrimary} />
       </SafeAreaView>
     );
   }
@@ -302,15 +362,12 @@ export default function NotificationsScreen({ navigation }: Props) {
     const listFailed = unreadCount > 0;
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
-        <View style={styles.filterRow}>
-          <TouchableOpacity onPress={() => navigation.navigate('Home' as never)} hitSlop={8}>
-            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleMarkAll} hitSlop={8}>
-            <Ionicons name="options" size={22} color={colors.textMuted} />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.pageTitle}>Notifications</Text>
+        <NotificationsHeader
+          onBack={goHome}
+          showMarkAll={hasUnread}
+          markAllDisabled={markingAll}
+          onMarkAll={handleMarkAll}
+        />
         <View style={styles.emptyBody}>
           <View style={styles.emptyIconCircle}>
             <Ionicons
@@ -348,16 +405,12 @@ export default function NotificationsScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-
-      <View style={styles.filterRow}>
-        <TouchableOpacity onPress={() => navigation.navigate('Home' as never)} hitSlop={8}>
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleMarkAll} hitSlop={8}>
-          <Ionicons name="options" size={22} color={colors.textMuted} />
-        </TouchableOpacity>
-      </View>
-      <Text style={styles.pageTitle}>Notifications</Text>
+      <NotificationsHeader
+        onBack={goHome}
+        showMarkAll={hasUnread}
+        markAllDisabled={markingAll}
+        onMarkAll={handleMarkAll}
+      />
 
       <SectionList
         sections={sections}
@@ -411,6 +464,17 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingHorizontal: spacing['2xl'],
     paddingBottom: 16,
+  },
+  markAllText: {
+    fontSize: fontSizes['12'],
+    fontFamily: fontFamilies.medium,
+    color: colors.accentPrimary,
+  },
+  markAllTextDisabled: {
+    color: colors.textMuted,
+  },
+  loader: {
+    flex: 1,
   },
 
   sectionHeader: {

@@ -9,7 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { DailyLimitStatus } from '../../types';
+import { DailyLimitStatus, NetworkTodaySummary } from '../../types';
 import {
   colors,
   spacing,
@@ -17,6 +17,7 @@ import {
   fontSizes,
   fontFamilies,
 } from '../../constants/theme';
+import TodayNetworkCard from '../../components/TodayNetworkCard';
 
 const STEPS = [
   {
@@ -40,6 +41,7 @@ type Props = {
   firstName: string;
   unreadCount: number;
   dailyLimit: DailyLimitStatus | null;
+  networkToday: NetworkTodaySummary | null;
   onNotificationsPress: () => void;
   onEnableLocation: () => void;
   onBrowseWithout: () => void;
@@ -49,6 +51,7 @@ function ReceiverHomeEmptyScreen({
   firstName,
   unreadCount,
   dailyLimit,
+  networkToday,
   onNotificationsPress,
   onEnableLocation,
   onBrowseWithout,
@@ -79,6 +82,12 @@ function ReceiverHomeEmptyScreen({
             <Text style={styles.claimsText}>
               Claims: {dailyLimit.used}/{dailyLimit.limit} today
             </Text>
+          </View>
+        )}
+
+        {networkToday && (
+          <View style={styles.networkWrap}>
+            <TodayNetworkCard summary={networkToday} />
           </View>
         )}
 
@@ -195,6 +204,9 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['12'],
     color: colors.successGreen,
+  },
+  networkWrap: {
+    marginTop: spacing.md,
   },
 
   emptySection: {

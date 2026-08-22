@@ -6,11 +6,12 @@ import {
   FoodItem, DailyLimitStatus, Claim, ClaimHistory, ClaimHistoryItem,
   ReceiverProfile, LocationSettings, RecentPlace, ReviewPayload,
   ReviewForm, Review, ReviewTag, ReportReason, ReceiverNotificationSettings,
+  NetworkTodaySummary,
 } from '../types';
 import {
   ApiFoodItem, ApiFoodDetail, ApiDailyLimit, ApiClaimHistoryItem, ApiRecentPlace,
   ApiReviewForm, ApiReview, ApiReviewTag, ApiReportReason,
-  ApiReceiverNotificationSettings,
+  ApiReceiverNotificationSettings, ApiNetworkToday,
 } from '../types/api';
 import { api } from './api';
 
@@ -136,6 +137,31 @@ export const getFoodDetail = async (
 export const getDailyLimit = async (): Promise<DailyLimitStatus> => {
   const res = await api.get('/receiver/claims/today/');
   return mapApiDailyLimit(res.data.data);
+};
+
+function mapApiNetworkToday(d: ApiNetworkToday): NetworkTodaySummary {
+  const restaurants = d.restaurants;
+  const foods = d.foods_today;
+  const restaurantsTotal = restaurants?.total ?? 0;
+  const restaurantsGivingToday = restaurants?.giving_today ?? 0;
+  const foodsTodayCount = foods?.count ?? 0;
+  return {
+    restaurantsTotal,
+    restaurantsGivingToday,
+    restaurantsLabel:
+      restaurants?.label
+      || `${restaurantsGivingToday} restaurants giving food out of ${restaurantsTotal}`,
+    foodsTodayCount,
+    foodsTodayPortions: foods?.portions ?? 0,
+    foodsTodayPortionsAvailable: foods?.portions_available ?? 0,
+    foodsTodayLabel: foods?.label || `${foodsTodayCount} foods given today`,
+  };
+}
+
+/** GET /receiver/dashboard/ — platform-wide restaurant + food counts for today. */
+export const getNetworkToday = async (): Promise<NetworkTodaySummary> => {
+  const res = await api.get('/receiver/dashboard/');
+  return mapApiNetworkToday(res.data.data as ApiNetworkToday);
 };
 
 export const claimFood = async (

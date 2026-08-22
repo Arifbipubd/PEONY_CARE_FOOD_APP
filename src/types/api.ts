@@ -53,6 +53,21 @@ export interface ApiDailyLimit {
   resets_at: string;
 }
 
+export interface ApiNetworkToday {
+  restaurants: {
+    total: number;
+    giving_today: number;
+    label: string;
+  };
+  foods_today: {
+    count: number;
+    portions: number;
+    portions_available: number;
+    label: string;
+  };
+  radius_km?: number;
+}
+
 export interface ApiClaimResponse {
   claim_id: string;
   status: string;
@@ -376,6 +391,12 @@ export interface ApiNotificationList {
 }
 
 export interface ApiNotificationUnreadCount {
+  unread_count: number;
+}
+
+/** POST /notifications/read-all/ → data payload */
+export interface ApiNotificationReadAll {
+  marked_read: number;
   unread_count: number;
 }
 

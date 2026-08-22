@@ -94,6 +94,17 @@ export interface DailyLimitStatus {
   resetsAt: string;
 }
 
+/** Platform-wide snapshot for Receiver Home (`GET /receiver/dashboard/`). */
+export interface NetworkTodaySummary {
+  restaurantsTotal: number;
+  restaurantsGivingToday: number;
+  restaurantsLabel: string;
+  foodsTodayCount: number;
+  foodsTodayPortions: number;
+  foodsTodayPortionsAvailable: number;
+  foodsTodayLabel: string;
+}
+
 export interface Claim {
   claimId: string;
   status: ClaimStatus;

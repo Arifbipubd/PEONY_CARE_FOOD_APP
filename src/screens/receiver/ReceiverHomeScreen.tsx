@@ -22,11 +22,12 @@ import { useNotificationStore } from '../../store/notificationStore';
 import FoodCard from '../../components/FoodCard';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import FilterSheet, { FilterState, DEFAULT_FILTERS } from '../../components/FilterSheet';
-import { browseFood, getDailyLimit, getReceiverProfile, searchFood, updateReceiverLocation } from '../../services/receiver';
+import { browseFood, getDailyLimit, getNetworkToday, getReceiverProfile, searchFood, updateReceiverLocation } from '../../services/receiver';
 import { useLocation } from '../../hooks/useLocation';
 import { getNearbyRestaurants } from '../../services/restaurant';
 import { getUnreadCount } from '../../services/notifications';
-import { FoodItem, FoodCategory, DailyLimitStatus, PublicRestaurant } from '../../types';
+import { FoodItem, FoodCategory, DailyLimitStatus, NetworkTodaySummary, PublicRestaurant } from '../../types';
+import TodayNetworkCard from '../../components/TodayNetworkCard';
 import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, lineHeights, layout } from '../../constants/theme';
 import { FOOD_CATEGORIES } from '../../constants/categories';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
@@ -137,6 +138,7 @@ const HomeSkeleton = memo(function HomeSkeleton() {
           <SkeletonBox opacity={opacity} width={40} height={40} borderRadius={100} />
         </View>
         <SkeletonBox opacity={opacity} width={140} height={26} borderRadius={100} />
+        <SkeletonBox opacity={opacity} height={84} borderRadius={18} />
         <View style={skelStyles.searchRow}>
           <SkeletonBox opacity={opacity} height={48} borderRadius={14} style={skelStyles.searchFlex} />
           <SkeletonBox opacity={opacity} width={48} height={48} borderRadius={14} />
@@ -245,6 +247,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const [searchResults, setSearchResults] = useState<FoodItem[] | null>(null);
   const [restaurants, setRestaurants]   = useState<PublicRestaurant[]>([]);
   const [dailyLimit, setDailyLimit]     = useState<DailyLimitStatus | null>(null);
+  const [networkToday, setNetworkToday] = useState<NetworkTodaySummary | null>(null);
   const [loading, setLoading]           = useState(true);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -259,7 +262,8 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
       getNearbyRestaurants(useLat, useLng),
       getReceiverProfile(),
       getUnreadCount(),
-    ]).then(([items, limit, rests, profile, unread]) => {
+      getNetworkToday(),
+    ]).then(([items, limit, rests, profile, unread, network]) => {
       if (items.status === 'fulfilled')         setFoods(items.value);
       if (limit.status === 'fulfilled')         setDailyLimit(limit.value);
       if (rests.status === 'fulfilled')         setRestaurants(rests.value);
@@ -270,6 +274,11 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
         }
       }
       if (unread.status === 'fulfilled') setUnreadCount(unread.value);
+      if (network.status === 'fulfilled' && network.value.restaurantsTotal > 0) {
+        setNetworkToday(network.value);
+      } else if (network.status === 'fulfilled') {
+        setNetworkToday(null);
+      }
       setLoading(false);
     });
   }, [lat, lng, setProfile, setUnreadCount]);
@@ -434,6 +443,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
         firstName={firstName}
         unreadCount={unreadCount}
         dailyLimit={dailyLimit}
+        networkToday={networkToday}
         onNotificationsPress={handleNotifications}
         onEnableLocation={handleEnableLocation}
         onBrowseWithout={handleBrowseWithout}
@@ -469,6 +479,8 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
             </Text>
           </View>
         )}
+
+        {networkToday && <TodayNetworkCard summary={networkToday} />}
 
         {/* Search bar + filter button */}
         <View style={styles.searchRow}>
