@@ -62,9 +62,18 @@ function ReceiverHomeEmptyScreen({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
       >
-        {/* Header */}
         <View style={styles.headerRow}>
-          <Text style={styles.greeting}>Hi, {firstName} 👋</Text>
+          <View style={styles.headerText}>
+            <Text style={styles.greeting}>Hi, {firstName} 👋</Text>
+            {dailyLimit && (
+              <View style={styles.claimsBadge}>
+                <Ionicons name="checkmark-circle" size={14} color={colors.successGreen} />
+                <Text style={styles.claimsText}>
+                  Claims: {dailyLimit.used}/{dailyLimit.limit} today
+                </Text>
+              </View>
+            )}
+          </View>
           <TouchableOpacity
             style={styles.bellButton}
             hitSlop={8}
@@ -74,16 +83,6 @@ function ReceiverHomeEmptyScreen({
             {unreadCount > 0 && <View style={styles.bellDot} />}
           </TouchableOpacity>
         </View>
-
-        {/* Claims badge */}
-        {dailyLimit && (
-          <View style={styles.claimsBadge}>
-            <Ionicons name="checkmark-circle" size={14} color={colors.successGreen} />
-            <Text style={styles.claimsText}>
-              Claims: {dailyLimit.used}/{dailyLimit.limit} today
-            </Text>
-          </View>
-        )}
 
         {networkToday && (
           <View style={styles.networkWrap}>
@@ -163,6 +162,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: spacing.lg,
   },
+  headerText: {
+    flex: 1,
+    gap: spacing.xs,
+  },
   greeting: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xl,
@@ -198,7 +201,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     gap: 4,
-    marginTop: spacing.md,
   },
   claimsText: {
     fontFamily: fontFamilies.semiBold,

@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NetworkTodaySummary } from '../types';
@@ -15,15 +15,6 @@ type Props = {
 };
 
 function TodayNetworkCard({ summary }: Props) {
-  const fillWidth = useMemo((): `${number}%` => {
-    if (summary.restaurantsTotal <= 0) return '0%';
-    const pct = Math.min(
-      100,
-      Math.round((summary.restaurantsGivingToday / summary.restaurantsTotal) * 100),
-    );
-    return `${pct}%` as `${number}%`;
-  }, [summary.restaurantsGivingToday, summary.restaurantsTotal]);
-
   return (
     <View style={styles.card} accessibilityRole="summary">
       <Text style={styles.kicker}>Today across UDUFood</Text>
@@ -33,10 +24,6 @@ function TodayNetworkCard({ summary }: Props) {
         <Text style={styles.body} numberOfLines={2}>
           {summary.restaurantsLabel}
         </Text>
-      </View>
-
-      <View style={styles.track}>
-        <View style={[styles.fill, { width: fillWidth }]} />
       </View>
 
       <View style={styles.row}>
@@ -78,17 +65,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes.sm,
     color: colors.textPrimary,
-  },
-  track: {
-    height: 6,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: 6,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentPrimary,
   },
   meals: {
     flex: 1,

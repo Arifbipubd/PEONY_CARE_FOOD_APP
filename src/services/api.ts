@@ -168,6 +168,22 @@ api.interceptors.response.use(
     if (__DEV__) {
       console.log(`[API] <-- ${res.status} ${res.config.url}`, res.data);
     }
+    // Some endpoints return HTTP 200 with { status: "error", error: { code, message } }.
+    const body = res.data as {
+      status?: string;
+      error?: { code?: string; message?: string; details?: Record<string, unknown> };
+    } | null;
+    if (
+      body &&
+      typeof body === 'object' &&
+      body.status === 'error' &&
+      body.error?.code &&
+      body.error?.message
+    ) {
+      return Promise.reject(
+        new ApiError(body.error.code, body.error.message, body.error.details),
+      );
+    }
     return res;
   },
   async (error: AxiosError<{ error?: { code: string; message: string; details?: Record<string, unknown> } }>) => {

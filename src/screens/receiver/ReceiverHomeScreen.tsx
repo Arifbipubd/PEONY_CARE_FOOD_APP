@@ -134,10 +134,12 @@ const HomeSkeleton = memo(function HomeSkeleton() {
     <SafeAreaView style={styles.screen}>
       <View style={skelStyles.top}>
         <View style={skelStyles.headerRow}>
-          <SkeletonBox opacity={opacity} width={130} height={26} />
+          <View style={skelStyles.headerText}>
+            <SkeletonBox opacity={opacity} width={130} height={26} />
+            <SkeletonBox opacity={opacity} width={140} height={22} borderRadius={100} />
+          </View>
           <SkeletonBox opacity={opacity} width={40} height={40} borderRadius={100} />
         </View>
-        <SkeletonBox opacity={opacity} width={140} height={26} borderRadius={100} />
         <SkeletonBox opacity={opacity} height={84} borderRadius={18} />
         <View style={skelStyles.searchRow}>
           <SkeletonBox opacity={opacity} height={48} borderRadius={14} style={skelStyles.searchFlex} />
@@ -189,6 +191,10 @@ const skelStyles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  headerText: {
+    flex: 1,
+    gap: spacing.xs,
   },
   searchRow: {
     flexDirection: 'row',
@@ -457,9 +463,18 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
       {/* ── Fixed top section ── */}
       <View style={styles.top}>
 
-        {/* Greeting + Bell */}
         <View style={styles.headerRow}>
-          <Text style={styles.greeting}>Hi, {firstName} 👋</Text>
+          <View style={styles.headerText}>
+            <Text style={styles.greeting}>Hi, {firstName} 👋</Text>
+            {dailyLimit && (
+              <View style={styles.claimsBadge}>
+                <Ionicons name="checkmark-circle" size={14} color={colors.successGreen} />
+                <Text style={styles.claimsText}>
+                  Claims: {dailyLimit.used}/{dailyLimit.limit} today
+                </Text>
+              </View>
+            )}
+          </View>
           <TouchableOpacity
             style={styles.bellButton}
             hitSlop={8}
@@ -469,16 +484,6 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
             {unreadCount > 0 && <View style={styles.bellDot} />}
           </TouchableOpacity>
         </View>
-
-        {/* Claims badge */}
-        {dailyLimit && (
-          <View style={styles.claimsBadge}>
-            <Ionicons name="checkmark-circle" size={14} color={colors.successGreen} />
-            <Text style={styles.claimsText}>
-              Claims: {dailyLimit.used}/{dailyLimit.limit} today
-            </Text>
-          </View>
-        )}
 
         {networkToday && <TodayNetworkCard summary={networkToday} />}
 
@@ -606,6 +611,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerText: {
+    flex: 1,
+    gap: spacing.xs,
+  },
   greeting: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xl,
@@ -691,8 +700,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     paddingTop: spacing.md,
-    paddingBottom: 12,   // component-specific, not in spacing scale
-    paddingHorizontal: 4, // component-specific, not in spacing scale
+    paddingBottom: 12,
+    paddingHorizontal: 4,
     gap: spacing.xs,
     marginBottom: -1,
   },

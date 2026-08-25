@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserRole } from '../types';
 import { isStoreReviewPhone } from '../constants/storeReview';
-import { api, logApiCatch } from './api';
+import { api, logApiCatch, ApiError } from './api';
 
 export const sendOtp = async (phone: string, purpose: 'LOGIN' | 'REGISTER'): Promise<void> => {
   if (__DEV__) console.log('[AUTH] sendOtp', { phone, purpose });
@@ -32,7 +32,25 @@ export const verifyOtp = async (
   if (__DEV__) console.log('[AUTH] verifyOtp', { phone, codeLength: code.length });
   try {
     const res = await api.post('/auth/otp/verify/', { phone, code });
-    const data = res.data.data;
+    if (__DEV__) {
+      console.log('[AUTH] verifyOtp raw response', {
+        httpStatus: res.status,
+        envelopeStatus: res.data?.status,
+        hasData: res.data?.data != null,
+        error: res.data?.error ?? null,
+        dataKeys: res.data?.data && typeof res.data.data === 'object'
+          ? Object.keys(res.data.data)
+          : null,
+      });
+    }
+    const data = res.data?.data;
+    if (!data || typeof data !== 'object') {
+      const apiErr = res.data?.error;
+      if (apiErr?.code && apiErr?.message) {
+        throw new ApiError(apiErr.code, apiErr.message, apiErr.details);
+      }
+      throw new ApiError('SERVER_ERROR', 'Unexpected response. Please try again.');
+    }
     if (data.registration_token) {
       if (__DEV__) console.log('[AUTH] verifyOtp → new user (registration token received)');
       return { isNewUser: true, registrationToken: data.registration_token };

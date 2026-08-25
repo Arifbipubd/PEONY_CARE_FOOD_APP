@@ -194,9 +194,14 @@ export default function OtpScreen({ navigation, route }: Props) {
         console.log('[SIGNUP] otp:verify:result', {
           isNewUser: result.isNewUser,
           hasAccessToken: Boolean(result.accessToken),
+          hasRefreshToken: Boolean(result.refreshToken),
           hasRegistrationToken: Boolean(result.registrationToken),
+          hasUser: Boolean(result.user),
           userId: result.user?.id,
           role: result.user?.role,
+          hasPendingRegistration: Boolean(pendingRegistration),
+          purpose,
+          fullResult: result,
         });
       }
 
@@ -241,21 +246,44 @@ export default function OtpScreen({ navigation, route }: Props) {
         }
       }
 
+      // LOGIN with no account: backend may return a registration token instead of USER_NOT_FOUND.
+      if (purpose === 'LOGIN' && result.isNewUser) {
+        if (__DEV__) {
+          console.log('[SIGNUP] otp:verify:noAccount', {
+            hasRegistrationToken: Boolean(result.registrationToken),
+            hasPendingRegistration: Boolean(pendingRegistration),
+          });
+        }
+        setError('No active account found for this phone number.');
+        return;
+      }
+
       if (__DEV__) {
         console.log('[SIGNUP] otp:unexpected', {
           isNewUser: result.isNewUser,
           hasRegistrationToken: Boolean(result.registrationToken),
+          hasAccessToken: Boolean(result.accessToken),
+          hasRefreshToken: Boolean(result.refreshToken),
+          hasUser: Boolean(result.user),
           hasPendingRegistration: Boolean(pendingRegistration),
+          purpose,
+          result,
         });
       }
       setError('Unexpected response. Please try again.');
     } catch (err: unknown) {
       if (__DEV__) {
-        console.log('[SIGNUP] otp:verify:error', {
+        console.error('[SIGNUP] otp:verify:error', {
+          name: err instanceof Error ? err.name : typeof err,
           message: err instanceof Error ? err.message : String(err),
           code: err instanceof ApiError ? err.code : undefined,
           details: err instanceof ApiError ? err.details : undefined,
+          err,
         });
+      }
+      if (err instanceof ApiError) {
+        setError(err.message || 'Invalid code. Please try again.');
+        return;
       }
       setError(err instanceof Error ? err.message : 'Invalid code. Please try again.');
     } finally {
