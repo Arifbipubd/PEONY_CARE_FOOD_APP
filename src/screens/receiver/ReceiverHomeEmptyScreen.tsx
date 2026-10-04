@@ -16,6 +16,7 @@ import {
   radius,
   fontSizes,
   fontFamilies,
+  letterSpacings,
 } from '../../constants/theme';
 import TodayNetworkCard from '../../components/TodayNetworkCard';
 
@@ -42,6 +43,8 @@ type Props = {
   unreadCount: number;
   dailyLimit: DailyLimitStatus | null;
   networkToday: NetworkTodaySummary | null;
+  isGuest?: boolean;
+  onLoginPress?: () => void;
   onNotificationsPress: () => void;
   onEnableLocation: () => void;
   onBrowseWithout: () => void;
@@ -52,6 +55,8 @@ function ReceiverHomeEmptyScreen({
   unreadCount,
   dailyLimit,
   networkToday,
+  isGuest = false,
+  onLoginPress,
   onNotificationsPress,
   onEnableLocation,
   onBrowseWithout,
@@ -64,8 +69,8 @@ function ReceiverHomeEmptyScreen({
       >
         <View style={styles.headerRow}>
           <View style={styles.headerText}>
-            <Text style={styles.greeting}>Hi, {firstName} 👋</Text>
-            {dailyLimit && (
+            <Text style={styles.greeting}>{isGuest ? 'Browse meals' : `Hi, ${firstName} 👋`}</Text>
+            {dailyLimit && !isGuest && (
               <View style={styles.claimsBadge}>
                 <Ionicons name="checkmark-circle" size={14} color={colors.successGreen} />
                 <Text style={styles.claimsText}>
@@ -74,14 +79,24 @@ function ReceiverHomeEmptyScreen({
               </View>
             )}
           </View>
-          <TouchableOpacity
-            style={styles.bellButton}
-            hitSlop={8}
-            onPress={onNotificationsPress}
-          >
-            <Ionicons name="notifications" size={20} color={colors.textPrimary} />
-            {unreadCount > 0 && <View style={styles.bellDot} />}
-          </TouchableOpacity>
+          {isGuest ? (
+            <TouchableOpacity
+              style={styles.loginButton}
+              hitSlop={8}
+              onPress={onLoginPress}
+            >
+              <Text style={styles.loginText}>Log in</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.bellButton}
+              hitSlop={8}
+              onPress={onNotificationsPress}
+            >
+              <Ionicons name="notifications" size={20} color={colors.textPrimary} />
+              {unreadCount > 0 && <View style={styles.bellDot} />}
+            </TouchableOpacity>
+          )}
         </View>
 
         {networkToday && (
@@ -179,6 +194,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loginButton: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentPrimary,
+  },
+  loginText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.md,
+    letterSpacing: letterSpacings.button,
+    color: colors.textInverse,
   },
   bellDot: {
     position: 'absolute',

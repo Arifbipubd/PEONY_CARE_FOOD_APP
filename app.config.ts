@@ -12,4 +12,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     },
   },
+  plugins: [
+    ...(config.plugins ?? []),
+    'expo-secure-store',
+    'expo-sharing',
+    'expo-status-bar',
+  ],
 });

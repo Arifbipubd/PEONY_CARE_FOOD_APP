@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getPublicRestaurantDetail } from '../../services/restaurant';
+import { useLocation } from '../../hooks/useLocation';
 import { PublicRestaurant, FoodItem } from '../../types';
 import { foodCategoryLabel } from '../../constants/categories';
 import { colors, spacing, radius, fontSizes, fontFamilies, layout } from '../../constants/theme';
@@ -120,17 +121,19 @@ const rSkelStyles = StyleSheet.create({
 export default function RestaurantPageScreen({ navigation, route }: Props) {
   const { restaurantId, distanceKm } = route.params;
   const insets = useSafeAreaInsets();
+  const { lat, lng, loading: locLoading } = useLocation();
 
   const [restaurant, setRestaurant] = useState<PublicRestaurant | null>(null);
   const [foods, setFoods]           = useState<FoodItem[]>([]);
   const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
-    getPublicRestaurantDetail(restaurantId)
+    if (locLoading) return;
+    getPublicRestaurantDetail(restaurantId, lat ?? undefined, lng ?? undefined)
       .then(({ restaurant, foods }) => { setRestaurant(restaurant); setFoods(foods); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [restaurantId]);
+  }, [restaurantId, lat, lng, locLoading]);
 
   const backBtnStyle = useMemo<StyleProp<ViewStyle>>(
     () => [styles.backBtn, { top: insets.top + spacing.md }],

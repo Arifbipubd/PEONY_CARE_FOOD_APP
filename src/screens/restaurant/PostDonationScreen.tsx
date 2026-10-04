@@ -14,7 +14,12 @@ import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { Ionicons } from '@expo/vector-icons';
-import { launchImageLibraryAsync } from 'expo-image-picker';
+import {
+  launchCameraAsync,
+  launchImageLibraryAsync,
+  requestCameraPermissionsAsync,
+  requestMediaLibraryPermissionsAsync,
+} from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { createDonation, updateDonation, getDonationDetail } from '../../services/restaurant';
@@ -76,6 +81,7 @@ export default function PostDonationScreen({ navigation, route }: Props) {
   const [initializing,  setInitializing]  = useState(isEditMode);
 
   const [showUnitModal, setShowUnitModal] = useState(false);
+  const [photoSheetVisible, setPhotoSheetVisible] = useState(false);
 
   const [showQrModal,       setShowQrModal]       = useState(false);
   const [qrData,            setQrData]            = useState('');
@@ -137,18 +143,50 @@ export default function PostDonationScreen({ navigation, route }: Props) {
     setScheduleError('');
   }, []);
 
-  const handlePickPhoto = useCallback(async () => {
-    const result = await launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setPhotoUri(result.assets[0].uri);
-      setPhotoChanged(true);
-    }
+  const applyPhoto = useCallback((uri: string) => {
+    setPhotoUri(uri);
+    setPhotoChanged(true);
   }, []);
+
+  const handleTakePhoto = useCallback(() => {
+    setPhotoSheetVisible(false);
+    setTimeout(async () => {
+      const { status } = await requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Camera access needed', 'Allow camera access to take a photo of this food.');
+        return;
+      }
+      const result = await launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        applyPhoto(result.assets[0].uri);
+      }
+    }, 350);
+  }, [applyPhoto]);
+
+  const handleChooseGallery = useCallback(() => {
+    setPhotoSheetVisible(false);
+    setTimeout(async () => {
+      const { status } = await requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Photo access needed', 'Allow photo access to choose an image from your gallery.');
+        return;
+      }
+      const result = await launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        applyPhoto(result.assets[0].uri);
+      }
+    }, 350);
+  }, [applyPhoto]);
 
   const handleNameChange = useCallback((text: string) => {
     setName(text);
@@ -398,7 +436,11 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         />
 
         {/* PHOTO */}
-        <TouchableOpacity style={styles.photoBox} onPress={handlePickPhoto} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.photoBox}
+          onPress={() => setPhotoSheetVisible(true)}
+          activeOpacity={0.8}
+        >
           {photoUri ? (
             <>
               <ImageWithSkeleton source={{ uri: photoUri }} style={styles.photoPreview} resizeMode="cover" />
@@ -472,6 +514,35 @@ export default function PostDonationScreen({ navigation, route }: Props) {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
+      <Modal
+        visible={photoSheetVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPhotoSheetVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => setPhotoSheetVisible(false)}
+        >
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>Add a photo</Text>
+            <TouchableOpacity style={styles.sheetOption} onPress={handleTakePhoto} activeOpacity={0.7}>
+              <View style={styles.sheetOptionLead}>
+                <Ionicons name="camera-outline" size={20} color={colors.textPrimary} />
+                <Text style={styles.sheetOptionText}>Take a photo</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.sheetOption} onPress={handleChooseGallery} activeOpacity={0.7}>
+              <View style={styles.sheetOptionLead}>
+                <Ionicons name="images-outline" size={20} color={colors.textPrimary} />
+                <Text style={styles.sheetOptionText}>Choose from gallery</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
       </Modal>
 
       {/* ── Unit picker modal ─────────────────────────────────────────────── */}
@@ -782,6 +853,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderDefault,
+  },
+  sheetOptionLead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
   sheetOptionText: {
     fontFamily: fontFamilies.regular,

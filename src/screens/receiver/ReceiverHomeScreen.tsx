@@ -17,8 +17,10 @@ import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAuthStore } from '../../store/authStore';
 import { useProfileStore } from '../../store/profileStore';
 import { useNotificationStore } from '../../store/notificationStore';
+import { openLogin } from '../../navigation/openLogin';
 import FoodCard from '../../components/FoodCard';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import FilterSheet, { FilterState, DEFAULT_FILTERS } from '../../components/FilterSheet';
@@ -237,6 +239,8 @@ const skelStyles = StyleSheet.create({
 });
 
 export default function ReceiverHomeScreen({ navigation }: Props) {
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const isGuest = accessToken == null;
   const { displayName, setProfile } = useProfileStore();
   const { unreadCount, setUnreadCount } = useNotificationStore();
   const name = displayName || 'Sarah';
@@ -262,6 +266,23 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const fetchData = useCallback((overrideLat?: number, overrideLng?: number) => {
     const useLat = overrideLat ?? lat ?? undefined;
     const useLng = overrideLng ?? lng ?? undefined;
+    if (!accessToken) {
+      return Promise.allSettled([
+        browseFood(useLat, useLng),
+        getNearbyRestaurants(useLat, useLng),
+        getNetworkToday(),
+      ]).then(([items, rests, network]) => {
+        if (items.status === 'fulfilled') setFoods(items.value);
+        if (rests.status === 'fulfilled') setRestaurants(rests.value);
+        if (network.status === 'fulfilled' && network.value.restaurantsTotal > 0) {
+          setNetworkToday(network.value);
+        } else if (network.status === 'fulfilled') {
+          setNetworkToday(null);
+        }
+        setDailyLimit(null);
+        setLoading(false);
+      });
+    }
     return Promise.allSettled([
       browseFood(useLat, useLng),
       getDailyLimit(),
@@ -287,13 +308,13 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
       }
       setLoading(false);
     });
-  }, [lat, lng, setProfile, setUnreadCount]);
+  }, [accessToken, lat, lng, setProfile, setUnreadCount]);
 
   useEffect(() => {
-    if (locLoading || lat === null || lng === null || locationPatched.current) return;
+    if (!accessToken || locLoading || lat === null || lng === null || locationPatched.current) return;
     locationPatched.current = true;
     updateReceiverLocation(lat, lng).catch(() => {});
-  }, [locLoading, lat, lng]);
+  }, [accessToken, locLoading, lat, lng]);
 
   useEffect(() => {
     if (locLoading) return;
@@ -380,17 +401,18 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
         latitude = pos.coords.latitude;
         longitude = pos.coords.longitude;
       }
-      updateReceiverLocation(latitude, longitude).catch(() => {});
+      if (accessToken) updateReceiverLocation(latitude, longitude).catch(() => {});
       fetchData(latitude, longitude);
     } catch {
       setLoading(false);
     }
-  }, [lat, lng, fetchData]);
+  }, [accessToken, lat, lng, fetchData]);
 
   const handleNotifications = useCallback(
     () => navigation.getParent()?.navigate('Alerts' as never),
     [navigation],
   );
+  const handleLogin = useCallback(() => openLogin(navigation), [navigation]);
   const handleBrowseWithout = useCallback(() => setSkipEmpty(true), []);
   const handleOpenFilter   = useCallback(() => setFilterSheetVisible(true), []);
 
@@ -450,6 +472,8 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
         unreadCount={unreadCount}
         dailyLimit={dailyLimit}
         networkToday={networkToday}
+        isGuest={isGuest}
+        onLoginPress={handleLogin}
         onNotificationsPress={handleNotifications}
         onEnableLocation={handleEnableLocation}
         onBrowseWithout={handleBrowseWithout}
@@ -465,8 +489,8 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
 
         <View style={styles.headerRow}>
           <View style={styles.headerText}>
-            <Text style={styles.greeting}>Hi, {firstName} 👋</Text>
-            {dailyLimit && (
+            <Text style={styles.greeting}>{isGuest ? 'Browse meals' : `Hi, ${firstName} 👋`}</Text>
+            {dailyLimit && !isGuest && (
               <View style={styles.claimsBadge}>
                 <Ionicons name="checkmark-circle" size={14} color={colors.successGreen} />
                 <Text style={styles.claimsText}>
@@ -475,14 +499,24 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
               </View>
             )}
           </View>
-          <TouchableOpacity
-            style={styles.bellButton}
-            hitSlop={8}
-            onPress={handleNotifications}
-          >
-            <Ionicons name="notifications" size={20} color={colors.textPrimary} />
-            {unreadCount > 0 && <View style={styles.bellDot} />}
-          </TouchableOpacity>
+          {isGuest ? (
+            <TouchableOpacity
+              style={styles.loginButton}
+              hitSlop={8}
+              onPress={handleLogin}
+            >
+              <Text style={styles.loginText}>Log in</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.bellButton}
+              hitSlop={8}
+              onPress={handleNotifications}
+            >
+              <Ionicons name="notifications" size={20} color={colors.textPrimary} />
+              {unreadCount > 0 && <View style={styles.bellDot} />}
+            </TouchableOpacity>
+          )}
         </View>
 
         {networkToday && <TodayNetworkCard summary={networkToday} />}
@@ -628,6 +662,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loginButton: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentPrimary,
+  },
+  loginText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.md,
+    letterSpacing: letterSpacings.button,
+    color: colors.textInverse,
   },
   bellDot: {
     position: 'absolute',

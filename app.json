@@ -42,7 +42,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "UDUFood needs camera access to scan claim QR codes and take profile photos.",
+          "cameraPermission": "UDUFood needs camera access to scan claim QR codes, take profile photos, and photograph food you post.",
           "microphonePermission": false,
           "recordAudioAndroid": false
         }
