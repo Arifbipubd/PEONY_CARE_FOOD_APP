@@ -213,6 +213,14 @@ export interface ApiRestaurantDetail {
   available_meals: ApiRestaurantMealSummary[];
 }
 
+export interface ApiDonationCategory {
+  code: string;
+  label: string;
+  default_unit: string;
+  /** A list of units, or one unit string such as "pack". */
+  units: string[] | string;
+}
+
 export interface ApiRestaurantDonation {
   id: string;
   name: string;

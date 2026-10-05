@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NetworkTodaySummary } from '../types';
 import {
@@ -12,12 +12,23 @@ import {
 
 type Props = {
   summary: NetworkTodaySummary;
+  onClose: () => void;
 };
 
-function TodayNetworkCard({ summary }: Props) {
+function TodayNetworkCard({ summary, onClose }: Props) {
   return (
     <View style={styles.card} accessibilityRole="summary">
-      <Text style={styles.kicker}>Today across UDUFood</Text>
+      <View style={styles.header}>
+        <Text style={styles.kicker}>Today across UDUFood</Text>
+        <TouchableOpacity
+          onPress={onClose}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+        >
+          <Ionicons name="close" size={18} color={colors.accentDark} />
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.row}>
         <Ionicons name="storefront-outline" size={16} color={colors.accentPrimary} />
@@ -48,7 +59,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     gap: spacing.sm,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
   kicker: {
+    flex: 1,
     fontFamily: fontFamilies.medium,
     fontSize: fontSizes.xs,
     letterSpacing: 0.88,

@@ -258,6 +258,7 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const [restaurants, setRestaurants]   = useState<PublicRestaurant[]>([]);
   const [dailyLimit, setDailyLimit]     = useState<DailyLimitStatus | null>(null);
   const [networkToday, setNetworkToday] = useState<NetworkTodaySummary | null>(null);
+  const [networkCardDismissed, setNetworkCardDismissed] = useState(false);
   const [loading, setLoading]           = useState(true);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -323,13 +324,24 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
 
   useFocusEffect(
     useCallback(() => {
+      setNetworkCardDismissed(false);
+    }, []),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
       if (locLoading) return;
       setLoading(true);
       fetchData();
     }, [locLoading, fetchData]),
   );
 
+  const dismissNetworkCard = useCallback(() => {
+    setNetworkCardDismissed(true);
+  }, []);
+
   const onRefresh = useCallback(() => {
+    setNetworkCardDismissed(false);
     setRefreshing(true);
     fetchData()?.finally(() => setRefreshing(false));
   }, [fetchData]);
@@ -471,7 +483,8 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
         firstName={firstName}
         unreadCount={unreadCount}
         dailyLimit={dailyLimit}
-        networkToday={networkToday}
+        networkToday={networkCardDismissed ? null : networkToday}
+        onDismissNetwork={dismissNetworkCard}
         isGuest={isGuest}
         onLoginPress={handleLogin}
         onNotificationsPress={handleNotifications}
@@ -519,7 +532,9 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
           )}
         </View>
 
-        {networkToday && <TodayNetworkCard summary={networkToday} />}
+        {networkToday && !networkCardDismissed && (
+          <TodayNetworkCard summary={networkToday} onClose={dismissNetworkCard} />
+        )}
 
         {/* Search bar + filter button */}
         <View style={styles.searchRow}>

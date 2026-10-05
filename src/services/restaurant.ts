@@ -2,13 +2,13 @@
 
 import {
   RestaurantDashboard, RestaurantDonation, RestaurantProfile, PublicRestaurant, FoodItem,
-  DonationSummary, CreateDonationPayload, RestaurantAnalytics, RestaurantClaim,
+  DonationSummary, CreateDonationPayload, DonationCategory, RestaurantAnalytics, RestaurantClaim,
   ClaimReportContext, LocationResult, LocationSearchResponse,
   RestaurantNotificationSettings,
 } from '../types';
 import type { ClaimStatus } from '../types';
 import {
-  ApiRestaurantDonation, ApiRestaurantDashboard, ApiPublicRestaurant,
+  ApiRestaurantDonation, ApiDonationCategory, ApiRestaurantDashboard, ApiPublicRestaurant,
   ApiRestaurantDetail, ApiRestaurantMealSummary,
   ApiRestaurantProfile, ApiRestaurantClaim, ApiClaimReportContext,
   ApiLocationResult, ApiLocationSearchResponse,
@@ -487,6 +487,57 @@ export const submitClaimReport = async (
     reason_id: reasonId,
     comment: comment || undefined,
   });
+};
+
+function unwrapDonationCategories(data: unknown): ApiDonationCategory[] {
+  if (Array.isArray(data)) return data as ApiDonationCategory[];
+  if (data && typeof data === 'object') {
+    const record = data as Record<string, unknown>;
+    for (const key of ['categories', 'results', 'items'] as const) {
+      const list = record[key];
+      if (Array.isArray(list)) return list as ApiDonationCategory[];
+    }
+  }
+  return [];
+}
+
+function splitUnitText(value: string): string[] {
+  return value
+    .split(',')
+    .map((unit) => unit.trim())
+    .filter((unit) => unit.length > 0);
+}
+
+/**
+ * Units may arrive as ["cup", "glass"] or as the string "pack".
+ * A string run through a list serializer becomes ["p", "a", "c", "k"] — join those back.
+ */
+function normalizeUnits(rawUnits: unknown): string[] {
+  if (typeof rawUnits === 'string') return splitUnitText(rawUnits);
+  if (!Array.isArray(rawUnits)) return [];
+
+  const pieces = rawUnits.filter((unit): unit is string => typeof unit === 'string' && unit.length > 0);
+  if (pieces.length > 1 && pieces.every((piece) => piece.length === 1)) {
+    return splitUnitText(pieces.join(''));
+  }
+  return pieces.flatMap(splitUnitText);
+}
+
+function mapDonationCategory(raw: ApiDonationCategory): DonationCategory | null {
+  const code = typeof raw.code === 'string' ? raw.code.trim() : '';
+  const label = typeof raw.label === 'string' ? raw.label.trim() : '';
+  const units = normalizeUnits(raw.units);
+  if (!code || !label || units.length === 0) return null;
+  const defaultUnit = units.includes(raw.default_unit) ? raw.default_unit : units[0]!;
+  return { code, label, defaultUnit, units };
+}
+
+/** Categories a restaurant can post, each with its own units and default. */
+export const getDonationCategories = async (): Promise<DonationCategory[]> => {
+  const res = await api.get('/restaurant/donations/categories/');
+  return unwrapDonationCategories(res.data.data)
+    .map(mapDonationCategory)
+    .filter((category): category is DonationCategory => category !== null);
 };
 
 /** Map create/update payload recurrence into API field names. */

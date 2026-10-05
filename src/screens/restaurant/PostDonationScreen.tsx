@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,10 +22,9 @@ import {
 } from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { createDonation, updateDonation, getDonationDetail } from '../../services/restaurant';
+import { createDonation, updateDonation, getDonationDetail, getDonationCategories } from '../../services/restaurant';
 import { getUserFacingErrorMessage } from '../../services/api';
-import { FoodCategory } from '../../types';
-import { FOOD_CATEGORIES } from '../../constants/categories';
+import type { DonationCategory, RestaurantDonation } from '../../types';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, layout,
 } from '../../constants/theme';
@@ -38,10 +37,6 @@ type Props = {
 };
 
 type ScheduleType = 'one-time' | 'every-day' | 'custom-days';
-
-const CATEGORIES = FOOD_CATEGORIES.map(({ value, label }) => ({ key: value, label }));
-
-const UNITS = ['packs', 'portions', 'boxes', 'bags', 'items'] as const;
 
 const SCHEDULES: { key: ScheduleType; label: string }[] = [
   { key: 'one-time',    label: 'One-time' },
@@ -65,10 +60,13 @@ export default function PostDonationScreen({ navigation, route }: Props) {
   const isEditMode = !!donationId;
   const [name,         setName]         = useState('');
   const [nameError,    setNameError]    = useState('');
-  const [category,     setCategory]     = useState<FoodCategory>('RICE');
+  const [categories,   setCategories]   = useState<DonationCategory[]>([]);
+  const [category,     setCategory]     = useState('');
   const [quantity,     setQuantity]     = useState('');
   const [quantityError, setQuantityError] = useState('');
-  const [unitIndex,    setUnitIndex]    = useState(0);
+  const [unit,         setUnit]         = useState('');
+  const [categoriesError, setCategoriesError] = useState('');
+  const [loadKey,      setLoadKey]      = useState(0);
   const [schedule,     setSchedule]     = useState<ScheduleType>('one-time');
   const [customDays,   setCustomDays]   = useState<number[]>([]);
   const [scheduleError, setScheduleError] = useState('');
@@ -78,7 +76,7 @@ export default function PostDonationScreen({ navigation, route }: Props) {
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const [photoChanged,  setPhotoChanged]  = useState(false);
-  const [initializing,  setInitializing]  = useState(isEditMode);
+  const [initializing,  setInitializing]  = useState(true);
 
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [photoSheetVisible, setPhotoSheetVisible] = useState(false);
@@ -90,40 +88,92 @@ export default function PostDonationScreen({ navigation, route }: Props) {
   const [postedPickupWindow, setPostedPickupWindow] = useState('');
   const [postedReachLabel,  setPostedReachLabel]  = useState('');
 
-  const unit = UNITS[unitIndex]!;
+  const units = useMemo(
+    () => categories.find((item) => item.code === category)?.units ?? [],
+    [categories, category],
+  );
+
+  const applyDonation = useCallback((donation: RestaurantDonation, cats: DonationCategory[]) => {
+    setName(donation.name);
+    setQuantity(String(donation.quantityOriginal));
+    const match = cats.find((item) => item.code === donation.category) ?? cats[0];
+    if (match) {
+      setCategory(match.code);
+      setUnit(match.units.includes(donation.unit) ? donation.unit : match.defaultUnit);
+    }
+    const rt = donation.recurrenceType;
+    if (rt === 'DAILY') {
+      setSchedule('every-day');
+      setCustomDays([]);
+    } else if (rt === 'CUSTOM' || rt === 'WEEKLY') {
+      setSchedule('custom-days');
+      setCustomDays(donation.recurrenceDays ?? []);
+    } else {
+      setSchedule('one-time');
+      setCustomDays([]);
+    }
+    setNotes(donation.description ?? '');
+    setPhotoUri(donation.photoUrl || null);
+  }, []);
 
   useEffect(() => {
-    if (!donationId) return;
-    getDonationDetail(donationId)
-      .then((d) => {
-        setName(d.name);
-        setCategory(d.category);
-        setQuantity(String(d.quantityOriginal));
-        const unitIdx = (UNITS as readonly string[]).indexOf(d.unit);
-        setUnitIndex(unitIdx >= 0 ? unitIdx : 0);
-        const rt = d.recurrenceType;
-        if (rt === 'DAILY') {
-          setSchedule('every-day');
-          setCustomDays([]);
-        } else if (rt === 'CUSTOM' || rt === 'WEEKLY') {
-          setSchedule('custom-days');
-          setCustomDays(d.recurrenceDays ?? []);
-        } else {
-          setSchedule('one-time');
-          setCustomDays([]);
+    let cancelled = false;
+    setInitializing(true);
+    setCategoriesError('');
+
+    (async () => {
+      try {
+        const cats = await getDonationCategories();
+        if (cancelled) return;
+        if (cats.length === 0) {
+          setCategories([]);
+          setCategoriesError('No categories are available right now.');
+          return;
         }
-        setNotes(d.description ?? '');
-        setPhotoUri(d.photoUrl || null);
-      })
-      .catch(() => {})
-      .finally(() => setInitializing(false));
-  }, [donationId]);
+        const donation = donationId ? await getDonationDetail(donationId) : null;
+        if (cancelled) return;
+        setCategories(cats);
+        if (donation) {
+          applyDonation(donation, cats);
+        } else {
+          const first = cats[0]!;
+          setCategory(first.code);
+          setUnit(first.defaultUnit);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setCategories([]);
+        setCategoriesError(getUserFacingErrorMessage(
+          err,
+          donationId
+            ? 'Could not load this listing. Please try again.'
+            : 'Could not load categories. Please try again.',
+        ));
+      } finally {
+        if (!cancelled) setInitializing(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [donationId, loadKey, applyDonation]);
 
   const bc = (field: string) =>
     focusedField === field ? colors.accentPrimary : colors.borderDefault;
 
-  const selectUnit = useCallback((index: number) => {
-    setUnitIndex(index);
+  const retryLoad = useCallback(() => {
+    setLoadKey((key) => key + 1);
+  }, []);
+
+  const handleSelectCategory = useCallback((code: string) => {
+    setCategory(code);
+    const next = categories.find((item) => item.code === code);
+    if (next) setUnit(next.defaultUnit);
+  }, [categories]);
+
+  const selectUnit = useCallback((nextUnit: string) => {
+    setUnit(nextUnit);
     setShowUnitModal(false);
   }, []);
 
@@ -216,7 +266,9 @@ export default function PostDonationScreen({ navigation, route }: Props) {
     if (
       nextNameError ||
       nextQuantityError ||
-      nextScheduleError
+      nextScheduleError ||
+      !category ||
+      !unit
     ) {
       return;
     }
@@ -273,8 +325,25 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={styles.statusBody}>
           <ActivityIndicator color={colors.accentPrimary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (categoriesError) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <View style={styles.statusBody}>
+          <Text style={styles.statusTitle}>Couldn&apos;t open this form</Text>
+          <Text style={styles.statusSub}>{categoriesError}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={retryLoad} activeOpacity={0.85}>
+            <Text style={styles.submitText}>Try again</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -328,15 +397,15 @@ export default function PostDonationScreen({ navigation, route }: Props) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipRow}
         >
-          {CATEGORIES.map(({ key, label }) => (
+          {categories.map((item) => (
             <TouchableOpacity
-              key={key}
-              style={[styles.chip, category === key && styles.chipActive]}
-              onPress={() => setCategory(key)}
+              key={item.code}
+              style={[styles.chip, category === item.code && styles.chipActive]}
+              onPress={() => handleSelectCategory(item.code)}
               activeOpacity={0.8}
             >
-              <Text style={[styles.chipText, category === key && styles.chipTextActive]}>
-                {label}
+              <Text style={[styles.chipText, category === item.code && styles.chipTextActive]}>
+                {item.label}
               </Text>
             </TouchableOpacity>
           ))}
@@ -559,21 +628,23 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         >
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>Select unit</Text>
-            {UNITS.map((u, i) => (
+            <ScrollView style={styles.sheetList} bounces={false}>
+            {units.map((option) => (
               <TouchableOpacity
-                key={u}
+                key={option}
                 style={styles.sheetOption}
-                onPress={() => selectUnit(i)}
+                onPress={() => selectUnit(option)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.sheetOptionText, unitIndex === i && styles.sheetOptionActive]}>
-                  {u}
+                <Text style={[styles.sheetOptionText, unit === option && styles.sheetOptionActive]}>
+                  {option}
                 </Text>
-                {unitIndex === i && (
+                {unit === option && (
                   <Ionicons name="checkmark" size={20} color={colors.accentPrimary} />
                 )}
               </TouchableOpacity>
             ))}
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -585,6 +656,34 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: colors.surface,
+  },
+  statusBody: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing['2xl'],
+  },
+  statusTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.lg,
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  statusSub: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes.sm,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+  },
+  retryBtn: {
+    height: layout.buttonHeight,
+    borderRadius: radius.card,
+    backgroundColor: colors.accentPrimary,
+    paddingHorizontal: spacing['2xl'],
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backBtn: {
     marginTop: spacing.md,
@@ -839,6 +938,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: spacing['2xl'],
     paddingBottom: spacing['4xl'],
+  },
+  sheetList: {
+    maxHeight: 360,
   },
   sheetTitle: {
     fontFamily: fontFamilies.bold,

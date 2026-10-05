@@ -43,6 +43,7 @@ type Props = {
   unreadCount: number;
   dailyLimit: DailyLimitStatus | null;
   networkToday: NetworkTodaySummary | null;
+  onDismissNetwork: () => void;
   isGuest?: boolean;
   onLoginPress?: () => void;
   onNotificationsPress: () => void;
@@ -55,6 +56,7 @@ function ReceiverHomeEmptyScreen({
   unreadCount,
   dailyLimit,
   networkToday,
+  onDismissNetwork,
   isGuest = false,
   onLoginPress,
   onNotificationsPress,
@@ -101,7 +103,7 @@ function ReceiverHomeEmptyScreen({
 
         {networkToday && (
           <View style={styles.networkWrap}>
-            <TodayNetworkCard summary={networkToday} />
+            <TodayNetworkCard summary={networkToday} onClose={onDismissNetwork} />
           </View>
         )}
 

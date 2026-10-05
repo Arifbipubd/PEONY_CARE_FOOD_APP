@@ -409,6 +409,14 @@ export interface DonationSummary {
 
 export type RecurrenceType = 'NONE' | 'DAILY' | 'WEEKLY' | 'CUSTOM';
 
+/** One food category and the units a restaurant may post for it. */
+export interface DonationCategory {
+  code: string;
+  label: string;
+  defaultUnit: string;
+  units: string[];
+}
+
 export interface CreateDonationPayload {
   name: string;
   description: string;
