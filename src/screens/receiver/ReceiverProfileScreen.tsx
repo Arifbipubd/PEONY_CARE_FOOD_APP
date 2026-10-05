@@ -220,6 +220,10 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
     [profile, user, storedName],
   );
 
+  const openEditProfile = useCallback(() => {
+    navigation.navigate('EditProfile');
+  }, [navigation]);
+
   const PhoneFlag = flagFromPhone(effectiveProfile.phone);
 
   const accountRows = useMemo<MenuRow[]>(
@@ -321,13 +325,21 @@ export default function ReceiverProfileScreen({ navigation }: Props) {
               <Text style={styles.avatarText}>{initials(effectiveProfile.displayName)}</Text>
             )}
           </View>
-          <TouchableOpacity style={styles.cameraBtn} onPress={() => navigation.navigate('EditProfile')} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.cameraBtn} onPress={openEditProfile} activeOpacity={0.8}>
             <Ionicons name="camera" size={15} color={colors.textInverse} />
           </TouchableOpacity>
         </View>
 
-        {/* Name */}
-        <Text style={styles.name}>{effectiveProfile.displayName}</Text>
+        <TouchableOpacity
+          style={styles.nameRow}
+          onPress={openEditProfile}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Edit profile"
+        >
+          <Text style={styles.name}>{effectiveProfile.displayName}</Text>
+          <Ionicons name="pencil" size={16} color={colors.textMuted} />
+        </TouchableOpacity>
 
         {/* Phone row */}
         <View style={styles.phoneRow}>
@@ -498,6 +510,11 @@ const styles = StyleSheet.create({
   },
 
   // ── Name / phone ─────────────────────────────────────────────────────────────
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   name: {
     fontSize: fontSizes['2xl'],
     fontFamily: fontFamilies.bold,
