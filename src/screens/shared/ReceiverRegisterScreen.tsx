@@ -45,13 +45,14 @@ export default function ReceiverRegisterScreen({ navigation }: Props) {
 
   const cleaned = phone.trim().replace(/\s/g, '');
   const isSg = country.code === 'SG';
+  const phoneMaxLength = isSg ? 8 : 10;
   const isValidPhone = isSg
     ? /^[689]\d{7}$/.test(cleaned)
     : /^0?1[3-9]\d{8}$/.test(cleaned);
   const phoneError = isSg
     ? (cleaned.length > 0 && !/^[689]/.test(cleaned) ? 'Must start with 6, 8 or 9' :
        cleaned.length > 8 ? 'Must be exactly 8 digits' : '')
-    : (cleaned.length > 11 ? 'Please enter a valid phone number' : '');
+    : (cleaned.length > phoneMaxLength ? 'Must be at most 10 digits' : '');
   const canSubmit = name.trim().length > 0 && isValidPhone;
 
   async function handleSend() {
@@ -62,7 +63,7 @@ export default function ReceiverRegisterScreen({ navigation }: Props) {
     try {
       const localPart = cleaned.startsWith('0') ? cleaned.slice(1) : cleaned;
       const fullPhone = `${country.dial}${localPart}`;
-      await AsyncStorage.setItem('peony_pending_name', name.trim());
+      await AsyncStorage.setItem('udufood_pending_name', name.trim());
       await sendOtp(fullPhone, 'REGISTER');
       navigation.navigate('Otp', {
         phone: fullPhone,
@@ -96,7 +97,7 @@ export default function ReceiverRegisterScreen({ navigation }: Props) {
         enableOnAndroid
         extraScrollHeight={20}
         >
-          <LogoBadge size={80} />
+          <LogoBadge width={160} />
 
           <Text style={styles.title}>Create your account</Text>
 
@@ -111,9 +112,13 @@ export default function ReceiverRegisterScreen({ navigation }: Props) {
             <Input
               label="Mobile number"
               value={phone}
-              onChangeText={(t) => { setPhone(t.replace(/\D/g, '')); setError(''); }}
-              placeholder={isSg ? '91234567' : '01712345678'}
+              onChangeText={(t) => {
+                setPhone(t.replace(/\D/g, '').slice(0, phoneMaxLength));
+                setError('');
+              }}
+              placeholder={isSg ? '91234567' : '1712345678'}
               keyboardType="number-pad"
+              maxLength={phoneMaxLength}
               error={phoneError || (rateLimitSecs > 0 && error ? `${error} Retry in ${rateLimitSecs}s.` : error)}
               leftSection={
                 <CountryPicker selected={country} onSelect={(c) => { setCountry(c); setPhone(''); setError(''); }} />

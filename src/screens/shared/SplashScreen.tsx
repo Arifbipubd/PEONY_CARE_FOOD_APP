@@ -9,11 +9,8 @@ import LogoBadge from '../../components/LogoBadge';
 import {
   colors,
   spacing,
-  fontSizes,
-  fontWeights,
   fontFamilies,
   lineHeights,
-  letterSpacings,
 } from '../../constants/theme';
 
 type Props = {
@@ -24,10 +21,7 @@ export default function SplashScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.body}>
-        <View style={styles.logoGlow}>
-          <LogoBadge size={96} />
-        </View>
-        <Text style={styles.title}>{'Peony\nCare'}</Text>
+        <LogoBadge width={180} />
         <Text style={styles.subtitle}>
           {'Complementary meals for Singaporeans in need —\nfrom generous restaurants and donors nearby.'}
         </Text>
@@ -64,30 +58,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing['2xl'],
   },
-  logoGlow: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: colors.accentLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing['2xl'],
-  },
-  title: {
-    fontFamily: fontFamilies.bold,
-    fontSize: fontSizes['5xl'],
-    lineHeight: lineHeights.heading,
-    letterSpacing: letterSpacings.heading,
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
   subtitle: {
     fontFamily: fontFamilies.regular,
     fontSize: 14,
     lineHeight: lineHeights.body,
     color: colors.textMuted,
     textAlign: 'center',
+    marginTop: spacing['2xl'],
     marginBottom: spacing['3xl'],
   },
   badgeWrap: { alignItems: 'center' },

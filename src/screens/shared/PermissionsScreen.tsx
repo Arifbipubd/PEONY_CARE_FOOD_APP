@@ -1,18 +1,23 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { requestForegroundPermissionsAsync } from 'expo-location';
+import { useCameraPermissions } from 'expo-camera';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 import { useAuthStore } from '../../store/authStore';
 import { UserRole } from '../../types';
+import { LEGAL_URLS } from '../../constants/legal';
 import { colors, spacing, fontSizes, fontFamilies, letterSpacings, radius } from '../../constants/theme';
 
 type Props = {
@@ -21,7 +26,7 @@ type Props = {
 };
 
 type PermItem = {
-  key:       string;
+  key:       'location' | 'camera' | 'notifications';
   icon:      'location' | 'camera' | 'notifications';
   iconBg:    string;
   iconColor: string;
@@ -55,7 +60,7 @@ const RECEIVER_PERMS: PermItem[] = [
     iconBg:    colors.mintLight,
     iconColor: colors.successGreen,
     title:     'Notifications',
-    desc:      'Get alerted when new food appears nearby. You can mute these anytime in settings.',
+    desc:      'In-app alerts for claims and nearby meals. Push alerts will be optional when available.',
     badge:     'OPTIONAL',
   },
 ];
@@ -76,29 +81,31 @@ const RESTAURANT_PERMS: PermItem[] = [
     iconBg:    colors.mintLight,
     iconColor: colors.successGreen,
     title:     'Notifications',
-    desc:      'Get alerted when receivers claim your food and when donors sponsor a meal.',
-    badge:     'REQUIRED',
+    desc:      'In-app alerts when receivers claim your food. Push alerts will be optional when available.',
+    badge:     'OPTIONAL',
   },
 ];
 
 const ROLE_CONFIG: Record<string, { perms: PermItem[]; subtitle: string }> = {
   RESTAURANT: {
     perms:    RESTAURANT_PERMS,
-    subtitle: 'Two things we\'ll ask for so the app can work for your restaurant.',
+    subtitle: 'We\'ll ask for camera access so you can upload photos.',
   },
   RECEIVER: {
     perms:    RECEIVER_PERMS,
-    subtitle: 'Three things we\'ll ask for so the app can help you find food.',
+    subtitle: 'We\'ll ask for location and camera so you can find and claim meals.',
   },
   DONOR: {
     perms:    RECEIVER_PERMS,
-    subtitle: 'Three things we\'ll ask for so the app can help you donate.',
+    subtitle: 'We\'ll ask for a few permissions so the app can work for you.',
   },
 };
 
 export default function PermissionsScreen({ navigation, route }: Props) {
   const { accessToken, refreshToken, user } = route.params;
   const { setAuth } = useAuthStore();
+  const [, requestCameraPermission] = useCameraPermissions();
+  const [loading, setLoading] = useState(false);
 
   const { perms, subtitle } = useMemo(
     () => ROLE_CONFIG[user.role] ?? ROLE_CONFIG.RECEIVER,
@@ -109,9 +116,30 @@ export default function PermissionsScreen({ navigation, route }: Props) {
     setAuth(accessToken, refreshToken, user as { id: string; phone: string; role: UserRole });
   }, [accessToken, refreshToken, user, setAuth]);
 
-  const handleAllow = useCallback(() => {
-    finish();
-  }, [finish]);
+  const handleAllow = useCallback(async () => {
+    setLoading(true);
+    try {
+      const needsLocation = perms.some((p) => p.key === 'location');
+      const needsCamera = perms.some((p) => p.key === 'camera');
+
+      if (needsLocation) {
+        await requestForegroundPermissionsAsync();
+      }
+      if (needsCamera) {
+        await requestCameraPermission();
+      }
+    } finally {
+      // Continue even if the user denies — screens re-request at the moment of use.
+      setLoading(false);
+      finish();
+    }
+  }, [perms, requestCameraPermission, finish]);
+
+  const openPrivacy = useCallback(() => {
+    Linking.openURL(LEGAL_URLS.privacy).catch(() => {
+      navigation.navigate('TermsPrivacy');
+    });
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -145,18 +173,26 @@ export default function PermissionsScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.allowBtn} onPress={handleAllow} activeOpacity={0.85}>
-            <Text style={styles.allowLabel}>Allow & continue</Text>
-            <Ionicons name="arrow-forward" size={18} color={colors.textInverse} />
+          <TouchableOpacity
+            style={styles.allowBtn}
+            onPress={handleAllow}
+            activeOpacity={0.85}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={colors.textInverse} />
+            ) : (
+              <>
+                <Text style={styles.allowLabel}>Allow & continue</Text>
+                <Ionicons name="arrow-forward" size={18} color={colors.textInverse} />
+              </>
+            )}
           </TouchableOpacity>
         </View>
 
         <Text style={styles.privacy}>
           We only use this data to help you find food. Details in our{' '}
-          <Text
-            style={styles.privacyLink}
-            onPress={() => navigation.navigate('TermsPrivacy')}
-          >
+          <Text style={styles.privacyLink} onPress={openPrivacy}>
             Privacy Policy
           </Text>
           .
@@ -177,7 +213,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['2xl'],
   },
 
-  // Header
   header: {
     paddingHorizontal: spacing['2xl'],
   },
@@ -202,7 +237,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['3xl'],
   },
 
-  // Cards
   cards: { gap: 12 },
   card: {
     flexDirection: 'row',
@@ -246,7 +280,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  // Actions
   actions: {
     marginTop: spacing.xl,
     gap: spacing.sm,
@@ -267,20 +300,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.28,
     color: colors.textInverse,
   },
-  skipBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: spacing['2xl'],
-    height: 54,
-  },
-  skipLabel: {
-    fontFamily: fontFamilies.bold,
-    fontSize: fontSizes['14'],
-    letterSpacing: 0.28,
-    color: colors.textMuted,
-  },
 
-  // Privacy
   privacy: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes['12'],

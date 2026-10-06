@@ -9,12 +9,14 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getDonations, reactivateDonation, deleteDonation } from '../../services/restaurant';
+import { ApiError } from '../../services/api';
 import { RestaurantDonation, DonationSummary } from '../../types';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import PostFAB from '../../components/PostFAB';
@@ -22,6 +24,7 @@ import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
 } from '../../constants/theme';
 import { DonationsStackParamList } from '../../navigation/RestaurantTabs';
+import { displayAvailability } from '../../utils/availability';
 
 type Tab = 'active' | 'past' | 'inactive';
 type Props = {
@@ -160,7 +163,7 @@ const ActiveRow = React.memo(({ item, onPress }: { item: RestaurantDonation; onP
   const nameText = item.sponsorDisplayName ? `${item.name} · Sponsored` : item.name;
   const subtitle = item.sponsorDisplayName
     ? `${item.quantityClaimed} of ${item.quantityOriginal} claimed · by ${item.sponsorDisplayName}`
-    : `${item.quantityClaimed} of ${item.quantityOriginal} claimed · ${item.pickupWindow}`;
+    : `${item.quantityClaimed} of ${item.quantityOriginal} claimed · ${displayAvailability(item)}`;
   const rightText  = isDone ? 'Done' : `${item.quantityClaimed} / ${item.quantityOriginal}`;
   const rightColor = isDone ? colors.successGreen : colors.textMuted;
 
@@ -337,6 +340,11 @@ export default function DonationListScreen({ navigation, route }: Props) {
         : prev,
       );
       getDonations().then((result) => setActive(result.active));
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError
+        ? err.message
+        : 'Could not reactivate. Please try again.';
+      Alert.alert('Cannot reactivate', msg);
     } finally {
       setActionLoading((prev) => { const s = new Set(prev); s.delete(id); return s; });
     }
@@ -546,7 +554,7 @@ export default function DonationListScreen({ navigation, route }: Props) {
               <View style={styles.infoBox}>
                 <Ionicons name="information-circle" size={20} color={colors.textMuted} style={styles.infoIcon} />
                 <Text style={styles.infoText}>
-                  Inactive donations were closed before the pickup window ended. Reactivate to bring them back to your Active list, or delete permanently.
+                  Inactive donations were closed before the end of the day. Reactivate to bring them back to your Active list, or delete permanently.
                 </Text>
               </View>
             }

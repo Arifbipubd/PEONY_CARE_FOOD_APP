@@ -288,7 +288,7 @@ export default function RestaurantProfileScreen({ navigation }: Props) {
             iconColor={colors.textPrimary}
             iconBg={colors.surfaceSecondary}
             title="Notifications"
-            onPress={navToAlerts}
+            onPress={() => navigation.navigate('RestaurantNotificationSettings')}
           />
           <View style={styles.divider} />
           <ProfileRow

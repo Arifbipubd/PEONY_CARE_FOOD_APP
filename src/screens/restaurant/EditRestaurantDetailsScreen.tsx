@@ -8,6 +8,7 @@ import {
   Modal,
   FlatList,
   Pressable,
+  Alert,
 } from 'react-native';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -17,6 +18,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { launchImageLibraryAsync } from 'expo-image-picker';
 import { setOnConfirm } from './RestaurantLocationScreen';
 import { getRestaurantProfile, updateRestaurantProfile, uploadRestaurantProfilePhoto } from '../../services/restaurant';
+import { getUserFacingErrorMessage } from '../../services/api';
 import { RestaurantProfile } from '../../types';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
@@ -324,8 +326,12 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
       const newUrl = await uploadRestaurantProfilePhoto(asset.uri);
       setProfile((prev) => (prev ? { ...prev, photoUrl: newUrl } : prev));
       setPhotoPreview(null);
-    } catch {
+    } catch (err) {
       setPhotoPreview(null);
+      Alert.alert(
+        "Couldn't update photo",
+        getUserFacingErrorMessage(err, 'Could not upload this photo. Please try again.'),
+      );
     }
   }, []);
 
@@ -355,8 +361,11 @@ export default function EditRestaurantDetailsScreen({ navigation }: Props) {
         about,
       });
       navigation.goBack();
-    } catch {
-      // API error — stay on screen, user can retry
+    } catch (err) {
+      Alert.alert(
+        "Couldn't save",
+        getUserFacingErrorMessage(err, 'Could not save your details. Please try again.'),
+      );
     } finally {
       setSaving(false);
     }

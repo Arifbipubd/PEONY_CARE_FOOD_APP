@@ -25,7 +25,7 @@ const CollectQrSheet = memo(({ visible, qrData, onCancel }: Props) => (
         <Text style={styles.title}>Show this QR to the receiver</Text>
 
         <Text style={styles.sub}>
-          Ask them to scan it in their Peony Care app to confirm pickup. It's marked
+          Ask them to scan it in their UDUFood app to confirm pickup. It's marked
           collected only when their scan succeeds.
         </Text>
 

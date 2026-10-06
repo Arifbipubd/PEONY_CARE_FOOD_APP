@@ -1,10 +1,12 @@
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, useEffect, memo } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { CustomSwitch } from '../../components/CustomSwitch';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,11 +18,15 @@ import {
   spacing,
   radius,
   fontSizes,
-  fontWeights,
   fontFamilies,
   letterSpacings,
 } from '../../constants/theme';
 import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
+import {
+  getNotificationSettings,
+  updateNotificationSettings,
+} from '../../services/receiver';
+import { logApiCatch } from '../../services/api';
 
 type Props = {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'NotificationSettings'>;
@@ -34,6 +40,7 @@ type SettingRowProps = {
   value: boolean;
   onValueChange: (v: boolean) => void;
   showDivider?: boolean;
+  disabled?: boolean;
 };
 
 const SettingRow = memo(function SettingRow({
@@ -44,10 +51,11 @@ const SettingRow = memo(function SettingRow({
   value,
   onValueChange,
   showDivider,
+  disabled,
 }: SettingRowProps) {
   return (
     <>
-      <View style={styles.row}>
+      <View style={[styles.row, disabled && styles.rowDisabled]}>
         <View style={[styles.rowIcon, { backgroundColor: iconBg }]}>
           {icon}
         </View>
@@ -55,7 +63,11 @@ const SettingRow = memo(function SettingRow({
           <Text style={styles.rowTitle}>{title}</Text>
           <Text style={styles.rowSub}>{subtitle}</Text>
         </View>
-        <CustomSwitch value={value} onValueChange={onValueChange} />
+        <CustomSwitch
+          value={value}
+          onValueChange={onValueChange}
+          disabled={disabled}
+        />
       </View>
       {showDivider && <View style={styles.divider} />}
     </>
@@ -63,15 +75,69 @@ const SettingRow = memo(function SettingRow({
 });
 
 export default function NotificationSettingsScreen({ navigation }: Props) {
-  const [pushEnabled,       setPushEnabled]       = useState(true);
-  const [newFoodEnabled,    setNewFoodEnabled]    = useState(true);
-  const [claimEnabled,      setClaimEnabled]      = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [newFoodEnabled, setNewFoodEnabled] = useState(true);
+  const [claimEnabled, setClaimEnabled] = useState(true);
   const [dailyLimitEnabled, setDailyLimitEnabled] = useState(true);
 
-  const togglePush       = useCallback((v: boolean) => setPushEnabled(v),       []);
-  const toggleNewFood    = useCallback((v: boolean) => setNewFoodEnabled(v),    []);
-  const toggleClaim      = useCallback((v: boolean) => setClaimEnabled(v),      []);
+  useEffect(() => {
+    getNotificationSettings()
+      .then((s) => {
+        setPushEnabled(s.pushEnabled);
+        setNewFoodEnabled(s.alertNewFoodNearby);
+        setClaimEnabled(s.alertClaimConfirmations);
+        setDailyLimitEnabled(s.alertDailyLimitReset);
+      })
+      .catch((err) => {
+        logApiCatch('getNotificationSettings', err);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const togglePush = useCallback((v: boolean) => setPushEnabled(v), []);
+  const toggleNewFood = useCallback((v: boolean) => setNewFoodEnabled(v), []);
+  const toggleClaim = useCallback((v: boolean) => setClaimEnabled(v), []);
   const toggleDailyLimit = useCallback((v: boolean) => setDailyLimitEnabled(v), []);
+
+  const handleSave = useCallback(() => {
+    if (saving) return;
+    setSaving(true);
+    updateNotificationSettings({
+      pushEnabled,
+      alertNewFoodNearby: newFoodEnabled,
+      alertClaimConfirmations: claimEnabled,
+      alertDailyLimitReset: dailyLimitEnabled,
+    })
+      .then(() => navigation.goBack())
+      .catch((err) => {
+        logApiCatch('updateNotificationSettings', err);
+        Alert.alert('Couldn’t save', 'Please check your connection and try again.');
+        setSaving(false);
+      });
+  }, [
+    saving,
+    pushEnabled,
+    newFoodEnabled,
+    claimEnabled,
+    dailyLimitEnabled,
+    navigation,
+  ]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={8}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={colors.accentPrimary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
@@ -84,12 +150,10 @@ export default function NotificationSettingsScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
       >
-        {/* Hero */}
         <Text style={styles.eyebrow}>Stay in the loop</Text>
         <Text style={styles.title}>Notifications</Text>
         <Text style={styles.subtitle}>Choose which alerts reach you and when.</Text>
 
-        {/* Push notifications section */}
         <Text style={styles.sectionLabel}>Push notifications</Text>
 
         <SettingRow
@@ -101,7 +165,6 @@ export default function NotificationSettingsScreen({ navigation }: Props) {
           onValueChange={togglePush}
         />
 
-        {/* Food alerts section */}
         <Text style={[styles.sectionLabel, styles.sectionLabelGap]}>Food alerts</Text>
 
         <SettingRow
@@ -112,6 +175,7 @@ export default function NotificationSettingsScreen({ navigation }: Props) {
           value={newFoodEnabled}
           onValueChange={toggleNewFood}
           showDivider
+          disabled={!pushEnabled}
         />
         <SettingRow
           icon={<Ionicons name="checkmark-circle" size={18} color={colors.textPrimary} />}
@@ -121,6 +185,7 @@ export default function NotificationSettingsScreen({ navigation }: Props) {
           value={claimEnabled}
           onValueChange={toggleClaim}
           showDivider
+          disabled={!pushEnabled}
         />
         <SettingRow
           icon={<Ionicons name="refresh" size={18} color={colors.goldDark} />}
@@ -129,18 +194,23 @@ export default function NotificationSettingsScreen({ navigation }: Props) {
           subtitle="When your claim limit resets"
           value={dailyLimitEnabled}
           onValueChange={toggleDailyLimit}
+          disabled={!pushEnabled}
         />
       </ScrollView>
 
-      {/* Save button */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.saveBtn}
+          style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
           activeOpacity={0.85}
-          onPress={() => navigation.goBack()}
+          onPress={handleSave}
+          disabled={saving}
         >
-          <Ionicons name="checkmark" size={18} color={colors.textInverse} />
-          <Text style={styles.saveBtnText}>Save settings</Text>
+          {saving ? (
+            <ActivityIndicator size="small" color={colors.textInverse} />
+          ) : (
+            <Ionicons name="checkmark" size={18} color={colors.textInverse} />
+          )}
+          <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save settings'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -158,12 +228,17 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
 
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   scroll: {
     paddingHorizontal: spacing['2xl'],
     paddingBottom: spacing['2xl'],
   },
 
-  // ── Hero ─────────────────────────────────────────────────────────────────────
   eyebrow: {
     fontFamily: fontFamilies.medium,
     fontSize: fontSizes.sm,
@@ -184,7 +259,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing['2xl'],
   },
 
-  // ── Section titles ────────────────────────────────────────────────────────────
   sectionLabel: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.lg,
@@ -196,12 +270,14 @@ const styles = StyleSheet.create({
     marginTop: spacing['2xl'],
   },
 
-  // ── Setting row ───────────────────────────────────────────────────────────────
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
     paddingVertical: spacing.lg,
+  },
+  rowDisabled: {
+    opacity: 0.45,
   },
   rowIcon: {
     width: 36,
@@ -230,7 +306,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.borderDefault,
   },
 
-  // ── Footer ────────────────────────────────────────────────────────────────────
   footer: {
     paddingHorizontal: 16,
     paddingTop: spacing.sm,
@@ -244,6 +319,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     height: 52,
     gap: spacing.sm,
+  },
+  saveBtnDisabled: {
+    opacity: 0.7,
   },
   saveBtnText: {
     fontFamily: fontFamilies.bold,

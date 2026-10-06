@@ -2,16 +2,30 @@
 
 import {
   RestaurantDashboard, RestaurantDonation, RestaurantProfile, PublicRestaurant, FoodItem,
-  DonationSummary, CreateDonationPayload, RestaurantAnalytics,
+  DonationSummary, CreateDonationPayload, DonationCategory, RestaurantAnalytics, RestaurantClaim,
+  ClaimReportContext, LocationResult, LocationSearchResponse,
+  RestaurantNotificationSettings,
 } from '../types';
 import type { ClaimStatus } from '../types';
 import {
-  ApiRestaurantDonation, ApiRestaurantDashboard, ApiPublicRestaurant,
+  ApiRestaurantDonation, ApiDonationCategory, ApiRestaurantDashboard, ApiPublicRestaurant,
   ApiRestaurantDetail, ApiRestaurantMealSummary,
-  ApiRestaurantProfile,
+  ApiRestaurantProfile, ApiRestaurantClaim, ApiClaimReportContext,
+  ApiLocationResult, ApiLocationSearchResponse,
+  ApiRestaurantNotificationSettings,
 } from '../types/api';
-import { MOCK_RESTAURANT_DASHBOARD } from '../mock/restaurantData';
-import { api } from './api';
+import { api, logApiCatch } from './api';
+import { compressImageForUpload } from '../utils/compressImage';
+import { parseRecurrenceDays, serializeRecurrenceDays } from '../utils/availability';
+
+async function photoFormValue(localUri: string): Promise<Blob> {
+  const photo = await compressImageForUpload(localUri);
+  return { uri: photo.uri, name: photo.name, type: photo.mimeType } as unknown as Blob;
+}
+
+function logRestaurant(step: string, info?: unknown): void {
+  if (__DEV__) console.log(`[RESTAURANT] ${step}`, info ?? '');
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -73,6 +87,8 @@ function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
     isRepeating: d.recurrence_type != null
       ? d.recurrence_type !== 'NONE'
       : d.is_repeating,
+    recurrenceType: d.recurrence_type ?? null,
+    recurrenceDays: parseRecurrenceDays(d.recurrence_days),
     repeatTimeLabel: d.recurrence_label ?? d.recurrence_schedule_summary ?? d.repeat_time_label,
     nextPostLabel: d.next_post_label,
     donationSourceNote: d.source?.detail || d.source_note || d.donation_source_note,
@@ -87,7 +103,7 @@ function mapApiDonation(d: ApiRestaurantDonation): RestaurantDonation {
 }
 
 export const pauseDonation = async (foodId: string): Promise<void> => {
-  await api.patch(`/restaurant/donations/${foodId}/deactivate/`);
+  await api.post(`/restaurant/donations/${foodId}/close/`);
 };
 
 function mapApiDashboard(d: ApiRestaurantDashboard): RestaurantDashboard {
@@ -204,14 +220,21 @@ export const getApprovalStatus = async (): Promise<{
   submittedAt: string;
   approvedAt: string | null;
 }> => {
-  const res = await api.get('/restaurant/approval-status/');
-  const d = res.data.data;
-  return {
-    isApproved:  d.is_approved,
-    isVerified:  d.is_verified,
-    submittedAt: d.submitted_at,
-    approvedAt:  d.approved_at ?? null,
-  };
+  logRestaurant('getApprovalStatus → request');
+  try {
+    const res = await api.get('/restaurant/approval-status/');
+    logRestaurant('getApprovalStatus ← response', { status: res.status, data: res.data });
+    const d = res.data.data;
+    return {
+      isApproved:  d.is_approved,
+      isVerified:  d.is_verified,
+      submittedAt: d.submitted_at,
+      approvedAt:  d.approved_at ?? null,
+    };
+  } catch (err) {
+    logApiCatch('restaurant.getApprovalStatus', err);
+    throw err;
+  }
 };
 
 
@@ -248,17 +271,27 @@ export const getDashboard = async (): Promise<RestaurantDashboard> => {
     }
 
     if (flatItems.length > 0) {
+      // Dashboard already shows Today / Yesterday / pastGroups from BE labels.
+      // Skip those IDs so pickup-date regrouping cannot duplicate the same listing
+      // (e.g. BE "Today" + FE "13 Aug" for an Aug-13 pickup_start).
+      const shownIds = new Set([
+        ...mapped.todayListings.map((i) => i.id),
+        ...mapped.yesterdayListings.map((i) => i.id),
+        ...mapped.pastGroups.flatMap((g) => g.listings.map((i) => i.id)),
+      ]);
       const todayIso = new Date().toISOString().slice(0, 10);
       const byDate = new Map<string, ApiRestaurantDonation[]>();
       for (const item of flatItems) {
+        if (shownIds.has(item.id)) continue;
         const date = (item.pickup_start ?? '').slice(0, 10);
-        if (date === todayIso) continue;
+        if (!date || date === todayIso) continue;
         const arr = byDate.get(date) ?? [];
         arr.push(item);
         byDate.set(date, arr);
       }
       const existingLabels = new Set(mapped.pastGroups.map((g) => g.label));
       for (const [date, items] of byDate.entries()) {
+        if (items.length === 0) continue;
         const label = formatDateLabel(date);
         if (existingLabels.has(label)) continue;
         mapped.pastGroups.push({
@@ -326,29 +359,213 @@ export const getDonations = async (): Promise<{
 };
 
 export const getDonationDetail = async (foodId: string): Promise<RestaurantDonation> => {
-  const res = await api.get(`/restaurant/donations/${foodId}/`);
-  return mapApiDonation(res.data.data);
+  logRestaurant('getDonationDetail → request', { foodId });
+  try {
+    const res = await api.get(`/restaurant/donations/${foodId}/`);
+    logRestaurant('getDonationDetail ← response', { status: res.status, data: res.data });
+    return mapApiDonation(res.data.data);
+  } catch (err) {
+    logApiCatch('restaurant.getDonationDetail', err);
+    throw err;
+  }
 };
 
 export const reactivateDonation = async (foodId: string): Promise<RestaurantDonation> => {
-  const res = await api.patch(`/restaurant/donations/${foodId}/reactivate/`);
+  const res = await api.post(`/restaurant/donations/${foodId}/reactivate/`);
   return mapApiDonation(res.data.data);
 };
 
 export const deleteDonation = async (foodId: string): Promise<void> => {
-  await api.delete(`/restaurant/donations/${foodId}/`);
+  logRestaurant('deleteDonation → request', { foodId });
+  try {
+    const res = await api.delete(`/restaurant/donations/${foodId}/`);
+    logRestaurant('deleteDonation ← response', { status: res.status, data: res.data });
+  } catch (err) {
+    logApiCatch('restaurant.deleteDonation', err);
+    throw err;
+  }
+};
+
+function mapApiRestaurantClaim(c: ApiRestaurantClaim): RestaurantClaim {
+  return {
+    id: c.id,
+    receiverName: c.receiver_name,
+    receiverInitials: c.receiver_initials,
+    foodId: c.food_id,
+    foodName: c.food_name,
+    itemsLabel: c.items_label,
+    claimedAt: c.claimed_at,
+    collectedAt: c.collected_at,
+    collectedAtLabel: c.collected_at_label,
+    noShowAt: c.no_show_at,
+    pickupWindow: c.pickup_window,
+    pickupWindowShort: c.pickup_window_short,
+    status: c.status,
+    statusKey: c.status_key,
+    statusLabel: c.status_label,
+    canMarkCollected: c.can_mark_collected,
+    canMarkNoShow: c.can_mark_no_show,
+    canUndoNoShow: c.can_undo_no_show,
+  };
+}
+
+export const getClaimsForDonation = async (foodId: string): Promise<RestaurantClaim[]> => {
+  const res = await api.get(`/restaurant/donations/${foodId}/claims/`);
+  return (res.data.data as ApiRestaurantClaim[]).map(mapApiRestaurantClaim);
 };
 
 export const collectClaim = async (claimId: string): Promise<void> => {
   await api.post(`/restaurant/claims/${claimId}/collect/`, {});
 };
 
+function mapApiLocationResult(d: ApiLocationResult): LocationResult {
+  return {
+    addressLine: d.address_line,
+    address: d.address,
+    postalCode: d.postal_code,
+    latitude: d.latitude,
+    longitude: d.longitude,
+    country: d.country,
+    subtitle: d.subtitle,
+    display: d.display,
+  };
+}
+
+export const searchLocation = async (q: string): Promise<LocationSearchResponse> => {
+  const res = await api.get('/restaurant/location/search/', { params: { q } });
+  const d: ApiLocationSearchResponse = res.data.data;
+  return {
+    query: d.query,
+    count: d.count,
+    results: d.results.map(mapApiLocationResult),
+  };
+};
+
+export const reverseGeocode = async (lat: number, lng: number): Promise<LocationResult> => {
+  const res = await api.get('/restaurant/location/reverse/', { params: { lat, lng } });
+  return mapApiLocationResult(res.data.data as ApiLocationResult);
+};
+
+export const confirmLocation = async (payload: {
+  address: string;
+  addressLine?: string;
+  postalCode?: string;
+  latitude: number;
+  longitude: number;
+}): Promise<LocationResult> => {
+  const res = await api.post('/restaurant/location/confirm/', {
+    address: payload.address,
+    address_line: payload.addressLine,
+    postal_code: payload.postalCode,
+    latitude: payload.latitude,
+    longitude: payload.longitude,
+  });
+  return mapApiLocationResult(res.data.data as ApiLocationResult);
+};
+
+export const getClaimReportContext = async (claimId: string): Promise<ClaimReportContext> => {
+  const res = await api.get(`/restaurant/claims/${claimId}/report/`);
+  const d: ApiClaimReportContext = res.data.data;
+  return {
+    claimId: d.claim_id,
+    receiverName: d.receiver_name,
+    receiverPhoneTail: d.receiver_phone_tail,
+    foodName: d.food_name,
+    pickupWindowShort: d.pickup_window_short,
+    contextLine: d.context_line,
+    footerNote: d.footer_note,
+    reasons: d.reasons.map((r) => ({ id: r.id, code: r.code, label: r.label })),
+  };
+};
+
+export const submitClaimReport = async (
+  claimId: string,
+  reasonId: string,
+  comment?: string,
+): Promise<void> => {
+  await api.post(`/restaurant/claims/${claimId}/report/`, {
+    reason_id: reasonId,
+    comment: comment || undefined,
+  });
+};
+
+function unwrapDonationCategories(data: unknown): ApiDonationCategory[] {
+  if (Array.isArray(data)) return data as ApiDonationCategory[];
+  if (data && typeof data === 'object') {
+    const record = data as Record<string, unknown>;
+    for (const key of ['categories', 'results', 'items'] as const) {
+      const list = record[key];
+      if (Array.isArray(list)) return list as ApiDonationCategory[];
+    }
+  }
+  return [];
+}
+
+function splitUnitText(value: string): string[] {
+  return value
+    .split(',')
+    .map((unit) => unit.trim())
+    .filter((unit) => unit.length > 0);
+}
+
+/**
+ * Units may arrive as ["cup", "glass"] or as the string "pack".
+ * A string run through a list serializer becomes ["p", "a", "c", "k"] — join those back.
+ */
+function normalizeUnits(rawUnits: unknown): string[] {
+  if (typeof rawUnits === 'string') return splitUnitText(rawUnits);
+  if (!Array.isArray(rawUnits)) return [];
+
+  const pieces = rawUnits.filter((unit): unit is string => typeof unit === 'string' && unit.length > 0);
+  if (pieces.length > 1 && pieces.every((piece) => piece.length === 1)) {
+    return splitUnitText(pieces.join(''));
+  }
+  return pieces.flatMap(splitUnitText);
+}
+
+function mapDonationCategory(raw: ApiDonationCategory): DonationCategory | null {
+  const code = typeof raw.code === 'string' ? raw.code.trim() : '';
+  const label = typeof raw.label === 'string' ? raw.label.trim() : '';
+  const units = normalizeUnits(raw.units);
+  if (!code || !label || units.length === 0) return null;
+  const defaultUnit = units.includes(raw.default_unit) ? raw.default_unit : units[0]!;
+  return { code, label, defaultUnit, units };
+}
+
+/** Categories a restaurant can post, each with its own units and default. */
+export const getDonationCategories = async (): Promise<DonationCategory[]> => {
+  const res = await api.get('/restaurant/donations/categories/');
+  return unwrapDonationCategories(res.data.data)
+    .map(mapDonationCategory)
+    .filter((category): category is DonationCategory => category !== null);
+};
+
+/** Map create/update payload recurrence into API field names. */
+function resolveRecurrenceFields(
+  payload: CreateDonationPayload,
+): { recurrence_type: string; recurrence_days?: number[] } | null {
+  if (payload.recurrenceType != null) {
+    const days =
+      (payload.recurrenceType === 'CUSTOM' || payload.recurrenceType === 'WEEKLY')
+      && payload.recurrenceDays
+      && payload.recurrenceDays.length > 0
+        ? payload.recurrenceDays
+        : undefined;
+    return {
+      recurrence_type: payload.recurrenceType,
+      ...(days ? { recurrence_days: days } : {}),
+    };
+  }
+  if (payload.isRepeating != null) {
+    return { recurrence_type: payload.isRepeating ? 'DAILY' : 'NONE' };
+  }
+  return null;
+}
+
 export const updateDonation = async (foodId: string, payload: CreateDonationPayload): Promise<RestaurantDonation> => {
+  const recurrence = resolveRecurrenceFields(payload);
   let res;
   if (payload.localPhotoUri) {
-    const filename = payload.localPhotoUri.split('/').pop() ?? 'photo.jpg';
-    const ext      = filename.split('.').pop()?.toLowerCase() ?? 'jpeg';
-    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
     const formData = new FormData();
     formData.append('name',         payload.name);
     formData.append('description',  payload.description ?? '');
@@ -357,10 +574,13 @@ export const updateDonation = async (foodId: string, payload: CreateDonationPayl
     formData.append('quantity',     String(payload.quantityOriginal));
     formData.append('pickup_start', payload.pickupStart);
     formData.append('pickup_end',   payload.pickupEnd);
-    if (payload.isRepeating != null) {
-      formData.append('recurrence_type', payload.isRepeating ? 'DAILY' : 'NONE');
+    if (recurrence) {
+      formData.append('recurrence_type', recurrence.recurrence_type);
+      if (recurrence.recurrence_days) {
+        formData.append('recurrence_days', serializeRecurrenceDays(recurrence.recurrence_days));
+      }
     }
-    formData.append('photo', { uri: payload.localPhotoUri, name: filename, type: mimeType } as unknown as Blob);
+    formData.append('photo', await photoFormValue(payload.localPhotoUri));
     res = await api.patch(`/restaurant/donations/${foodId}/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -373,18 +593,16 @@ export const updateDonation = async (foodId: string, payload: CreateDonationPayl
       quantity:     payload.quantityOriginal,
       pickup_start: payload.pickupStart,
       pickup_end:   payload.pickupEnd,
-      ...(payload.isRepeating != null && { recurrence_type: payload.isRepeating ? 'DAILY' : 'NONE' }),
+      ...recurrence,
     });
   }
   return mapApiDonation(res.data.data);
 };
 
 export const createDonation = async (payload: CreateDonationPayload): Promise<RestaurantDonation> => {
+  const recurrence = resolveRecurrenceFields(payload);
   let res;
   if (payload.localPhotoUri) {
-    const filename = payload.localPhotoUri.split('/').pop() ?? 'photo.jpg';
-    const ext      = filename.split('.').pop()?.toLowerCase() ?? 'jpeg';
-    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
     const formData = new FormData();
     formData.append('name',         payload.name);
     formData.append('description',  payload.description ?? '');
@@ -393,10 +611,13 @@ export const createDonation = async (payload: CreateDonationPayload): Promise<Re
     formData.append('quantity',     String(payload.quantityOriginal));
     formData.append('pickup_start', payload.pickupStart);
     formData.append('pickup_end',   payload.pickupEnd);
-    if (payload.isRepeating != null) {
-      formData.append('recurrence_type', payload.isRepeating ? 'DAILY' : 'NONE');
+    if (recurrence) {
+      formData.append('recurrence_type', recurrence.recurrence_type);
+      if (recurrence.recurrence_days) {
+        formData.append('recurrence_days', serializeRecurrenceDays(recurrence.recurrence_days));
+      }
     }
-    formData.append('photo', { uri: payload.localPhotoUri, name: filename, type: mimeType } as unknown as Blob);
+    formData.append('photo', await photoFormValue(payload.localPhotoUri));
     res = await api.post('/restaurant/donations/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -409,24 +630,43 @@ export const createDonation = async (payload: CreateDonationPayload): Promise<Re
       quantity:     payload.quantityOriginal,
       pickup_start: payload.pickupStart,
       pickup_end:   payload.pickupEnd,
-      ...(payload.isRepeating != null && { recurrence_type: payload.isRepeating ? 'DAILY' : 'NONE' }),
+      ...recurrence,
     });
   }
   _hasDonations = true;
   return mapApiDonation(res.data.data);
 };
 
-export const getTodaysClaims = async (): Promise<{ total: number; claims: RestaurantDonation[] }> => {
-  // MOCK:
-  await new Promise((r) => setTimeout(r, 400));
-  return {
-    total: MOCK_RESTAURANT_DASHBOARD.claimed_today,
-    claims: MOCK_RESTAURANT_DASHBOARD.today_listings.map(mapApiDonation),
-  };
-  /* REAL API:
+export interface TodaysClaimsData {
+  total:     number;
+  pending:   number;
+  collected: number;
+  noShow:    number;
+  claims:    RestaurantClaim[];
+}
+
+export const getTodaysClaims = async (): Promise<TodaysClaimsData> => {
   const res = await api.get('/restaurant/claims/today/');
-  return res.data.data;
-  */
+  const raw = res.data.data;
+  // Backend returns grouped shape: { total, summary: { pending, collected, no_show }, groups: [{ key, claims[] }] }
+  const groups: Array<{ claims: ApiRestaurantClaim[] }> = raw.groups ?? [];
+  const flatArr: ApiRestaurantClaim[] = groups.flatMap((g) => g.claims ?? []);
+  const claims = flatArr.map(mapApiRestaurantClaim);
+  const summary = raw.summary ?? {};
+  const pending   = (summary.pending   as number | undefined) ?? claims.filter(c => (c.statusKey ?? c.status) === 'CLAIMED').length;
+  const collected = (summary.collected as number | undefined) ?? claims.filter(c => (c.statusKey ?? c.status) === 'COLLECTED').length;
+  const noShow    = (summary.no_show   as number | undefined) ?? claims.filter(c => (c.statusKey ?? c.status) === 'NO_SHOW').length;
+  return {
+    total:     (raw.total as number | undefined) ?? claims.length,
+    pending,
+    collected,
+    noShow,
+    claims,
+  };
+};
+
+export const markNoShow = async (claimId: string): Promise<void> => {
+  await api.post(`/restaurant/claims/${claimId}/no-show/`, {});
 };
 
 export const getAnalytics = async (range: string = '30D'): Promise<RestaurantAnalytics> => {
@@ -491,12 +731,8 @@ export interface UpdateRestaurantProfilePayload {
 }
 
 export const uploadRestaurantProfilePhoto = async (localUri: string): Promise<string> => {
-  const filename = localUri.split('/').pop() ?? 'photo.jpg';
-  const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpeg';
-  const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
-
   const formData = new FormData();
-  formData.append('photo', { uri: localUri, name: filename, type: mimeType } as unknown as Blob);
+  formData.append('photo', await photoFormValue(localUri));
 
   const res = await api.patch('/restaurant/profile/', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -576,11 +812,12 @@ export const uploadMenuPhotos = async (
   assets: Array<{ uri: string; type?: string; name?: string }>,
 ): Promise<MenuPhoto[]> => {
   const formData = new FormData();
-  assets.forEach((asset) => {
+  const compressed = await Promise.all(assets.map((asset) => compressImageForUpload(asset.uri)));
+  compressed.forEach((photo) => {
     formData.append('photos', {
-      uri:  asset.uri,
-      type: asset.type ?? 'image/jpeg',
-      name: asset.name ?? 'photo.jpg',
+      uri:  photo.uri,
+      type: photo.mimeType,
+      name: photo.name,
     } as unknown as Blob);
   });
   const res = await api.post('/restaurant/menu-photos/', formData, {
@@ -593,6 +830,13 @@ export const uploadMenuPhotos = async (
 
 export const deleteMenuPhoto = async (photoId: string): Promise<MenuPhoto[]> => {
   const res = await api.delete(`/restaurant/menu-photos/${photoId}/`);
+  const photos = mapMenuPhotos(res.data.data);
+  _menuPhotoCount = photos.length;
+  return photos;
+};
+
+export const reorderMenuPhotos = async (photoIds: string[]): Promise<MenuPhoto[]> => {
+  const res = await api.patch('/restaurant/menu-photos/reorder/', { photo_ids: photoIds });
   const photos = mapMenuPhotos(res.data.data);
   _menuPhotoCount = photos.length;
   return photos;
@@ -630,15 +874,61 @@ export const getRestaurantProfile = async (): Promise<RestaurantProfile> => {
   };
 };
 
+function mapApiNotificationSettings(
+  s: ApiRestaurantNotificationSettings,
+): RestaurantNotificationSettings {
+  return {
+    pushEnabled: s.push_enabled,
+    emailEnabled: s.email_enabled,
+    alertNewClaim: s.alert_new_claim,
+    alertSponsored: s.alert_sponsored,
+    alertAllClaimed: s.alert_all_claimed,
+    alertWindowExpiring: s.alert_window_expiring,
+    alertNoShow: s.alert_no_show,
+    alertDonationClaimed: s.alert_donation_claimed,
+    alertReceipts: s.alert_receipts,
+  };
+}
+
+/** GET /restaurant/notifications/settings/ */
+export const getNotificationSettings = async (): Promise<RestaurantNotificationSettings> => {
+  const res = await api.get('/restaurant/notifications/settings/');
+  return mapApiNotificationSettings(res.data.data as ApiRestaurantNotificationSettings);
+};
+
+/** PATCH /restaurant/notifications/settings/ */
+export const updateNotificationSettings = async (
+  settings: RestaurantNotificationSettings,
+): Promise<RestaurantNotificationSettings> => {
+  const res = await api.patch('/restaurant/notifications/settings/', {
+    push_enabled: settings.pushEnabled,
+    email_enabled: settings.emailEnabled,
+    alert_new_claim: settings.alertNewClaim,
+    alert_sponsored: settings.alertSponsored,
+    alert_all_claimed: settings.alertAllClaimed,
+    alert_window_expiring: settings.alertWindowExpiring,
+    alert_no_show: settings.alertNoShow,
+    alert_donation_claimed: settings.alertDonationClaimed,
+    alert_receipts: settings.alertReceipts,
+  });
+  return mapApiNotificationSettings(res.data.data as ApiRestaurantNotificationSettings);
+};
+
 export const getNearbyRestaurants = async (
   lat?: number,
   lng?: number,
   radius_km: number = 5,
 ): Promise<PublicRestaurant[]> => {
-  const res = await api.get('/receiver/restaurants/browse/', {
-    params: { lat, lng, radius_km },
-  });
-  return (res.data.data as ApiPublicRestaurant[]).map(mapApiPublicRestaurant);
+  const params = { lat, lng, radius_km };
+  logRestaurant('getNearbyRestaurants → request', { params });
+  try {
+    const res = await api.get('/receiver/restaurants/browse/', { params });
+    logRestaurant('getNearbyRestaurants ← response', { status: res.status, data: res.data });
+    return (res.data.data as ApiPublicRestaurant[]).map(mapApiPublicRestaurant);
+  } catch (err) {
+    logApiCatch('restaurant.getNearbyRestaurants', err);
+    throw err;
+  }
 };
 
 // Used by RestaurantPageScreen — one call returns restaurant info + available meals.
@@ -647,12 +937,18 @@ export const getPublicRestaurantDetail = async (
   lat?: number,
   lng?: number,
 ): Promise<{ restaurant: PublicRestaurant; foods: FoodItem[] }> => {
-  const res = await api.get(`/receiver/restaurants/${restaurantId}/`, {
-    params: { lat, lng },
-  });
-  const d: ApiRestaurantDetail = res.data.data;
-  return {
-    restaurant: mapApiRestaurantDetail(d),
-    foods: d.available_meals.map((m) => mapApiMealSummary(m, d)),
-  };
+  const params = { lat, lng };
+  logRestaurant('getPublicRestaurantDetail → request', { restaurantId, params });
+  try {
+    const res = await api.get(`/receiver/restaurants/${restaurantId}/`, { params });
+    logRestaurant('getPublicRestaurantDetail ← response', { status: res.status, data: res.data });
+    const d: ApiRestaurantDetail = res.data.data;
+    return {
+      restaurant: mapApiRestaurantDetail(d),
+      foods: d.available_meals.map((m) => mapApiMealSummary(m, d)),
+    };
+  } catch (err) {
+    logApiCatch('restaurant.getPublicRestaurantDetail', err);
+    throw err;
+  }
 };

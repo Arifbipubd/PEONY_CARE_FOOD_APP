@@ -5,7 +5,19 @@ export type UserRole = 'RECEIVER' | 'RESTAURANT' | 'DONOR';
 
 export type CreditPreference = 'SHOW_NAME' | 'INITIALS' | 'ANONYMOUS';
 
-export type FoodCategory = 'RICE' | 'NOODLES' | 'BREAD' | 'SNACKS' | 'DRINKS' | 'OTHER';
+export type FoodCategory =
+  | 'COOKED_MEAL'
+  | 'RICE'
+  | 'NOODLES'
+  | 'BREAD_BAKERY'
+  | 'VEGETABLES'
+  | 'FRUITS'
+  | 'PROTEIN'
+  | 'SOUP'
+  | 'DESSERT'
+  | 'DRINKS'
+  | 'PACKAGED'
+  | 'OTHER';
 
 export type FoodStatus = 'AVAILABLE' | 'PARTIALLY_CLAIMED' | 'FULLY_CLAIMED' | 'EXPIRED';
 
@@ -82,6 +94,17 @@ export interface DailyLimitStatus {
   resetsAt: string;
 }
 
+/** Platform-wide snapshot for Receiver Home (`GET /receiver/dashboard/`). */
+export interface NetworkTodaySummary {
+  restaurantsTotal: number;
+  restaurantsGivingToday: number;
+  restaurantsLabel: string;
+  foodsTodayCount: number;
+  foodsTodayPortions: number;
+  foodsTodayPortionsAvailable: number;
+  foodsTodayLabel: string;
+}
+
 export interface Claim {
   claimId: string;
   status: ClaimStatus;
@@ -102,11 +125,47 @@ export interface Claim {
   };
 }
 
+export interface ReportReason {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface ReviewTag {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface Review {
+  id: string;
+  restaurantId: string;
+  rating: number;
+  ratingLabel: string | null;
+  tagCodes: string[];
+  tags: ReviewTag[];
+  comment: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewForm {
+  restaurantId: string;
+  restaurantName: string;
+  latestFoodName?: string;
+  collectedAt: string | null;
+  collectedLabel: string;
+  contextSubtitle: string;
+  canReview: boolean;
+  hasReview: boolean;
+  tags: ReviewTag[];
+  review: Review | null;
+}
+
 export interface ReviewPayload {
   restaurantId: string;
-  claimId: string;
   rating: number;
-  tags: string[];
+  tagCodes: string[];
   comment: string;
 }
 
@@ -121,7 +180,9 @@ export interface ClaimHistoryItem {
   status: ClaimHistoryItemStatus;
   claimedAt: string;
   pickupWindow: string;
-  rating?: number;
+  hasReview: boolean;
+  canReview: boolean;
+  rating?: number | null;
 }
 
 export interface ClaimHistory {
@@ -168,6 +229,27 @@ export interface LocationSettings {
   longitude: number | null;
   recentPlacesCount: number;
   recentPlaces: RecentPlace[];
+}
+
+export interface ReceiverNotificationSettings {
+  pushEnabled: boolean;
+  alertNewFoodNearby: boolean;
+  alertClaimConfirmations: boolean;
+  alertDailyLimitReset: boolean;
+}
+
+export interface RestaurantNotificationSettings {
+  pushEnabled: boolean;
+  emailEnabled: boolean;
+  alertNewClaim: boolean;
+  alertSponsored: boolean;
+  alertAllClaimed: boolean;
+  alertWindowExpiring: boolean;
+  alertNoShow: boolean;
+  /** API-only — no UI row yet; preserve on save */
+  alertDonationClaimed: boolean;
+  /** API-only — no UI row yet; preserve on save */
+  alertReceipts: boolean;
 }
 
 // ─── Public Restaurant Page ───────────────────────────────────────────────────
@@ -220,6 +302,61 @@ export interface RestaurantProfile {
   reviewCount: number;
 }
 
+export interface LocationResult {
+  addressLine: string;
+  address: string;
+  postalCode: string;
+  latitude: number;
+  longitude: number;
+  country?: string;
+  subtitle?: string;
+  display?: string;
+}
+
+export interface LocationSearchResponse {
+  query: string;
+  count: number;
+  results: LocationResult[];
+}
+
+export interface ClaimReportReason {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface ClaimReportContext {
+  claimId: string;
+  receiverName: string;
+  receiverPhoneTail: string;
+  foodName: string;
+  pickupWindowShort: string;
+  contextLine: string;
+  footerNote: string;
+  reasons: ClaimReportReason[];
+}
+
+export interface RestaurantClaim {
+  id: string;
+  receiverName: string;
+  receiverInitials?: string;
+  foodId?: string;
+  foodName: string;
+  itemsLabel?: string;
+  claimedAt: string;
+  collectedAt: string | null;
+  collectedAtLabel?: string | null;
+  noShowAt?: string | null;
+  pickupWindow: string;
+  pickupWindowShort?: string;
+  status: string;
+  statusKey?: string;
+  statusLabel: string;
+  canMarkCollected: boolean;
+  canMarkNoShow?: boolean;
+  canUndoNoShow?: boolean;
+}
+
 // RestaurantDonation is a food listing from the restaurant's own management view.
 // Includes list_status, food_qr_data — NOT part of receiver view.
 export interface RestaurantDonation {
@@ -247,6 +384,10 @@ export interface RestaurantDonation {
   expiredCount?: number;
   estimatedReachLabel?: string;
   isRepeating?: boolean;
+  /** Backend: "NONE" | "DAILY" | "WEEKLY" | "CUSTOM" */
+  recurrenceType?: string | null;
+  /** Weekday indices Mon=0 … Sun=6 when recurrence is CUSTOM/WEEKLY */
+  recurrenceDays?: number[];
   repeatTimeLabel?: string;
   nextPostLabel?: string;
   donationSourceNote?: string;
@@ -255,7 +396,7 @@ export interface RestaurantDonation {
     receiverName: string;
     claimedAt: string;
     collectedAt?: string;
-    status: ClaimStatus;
+    status: string;
   }>;
 }
 
@@ -266,6 +407,16 @@ export interface DonationSummary {
   weeklyMeals: number;
 }
 
+export type RecurrenceType = 'NONE' | 'DAILY' | 'WEEKLY' | 'CUSTOM';
+
+/** One food category and the units a restaurant may post for it. */
+export interface DonationCategory {
+  code: string;
+  label: string;
+  defaultUnit: string;
+  units: string[];
+}
+
 export interface CreateDonationPayload {
   name: string;
   description: string;
@@ -274,7 +425,11 @@ export interface CreateDonationPayload {
   quantityOriginal: number;
   pickupStart: string;
   pickupEnd: string;
+  /** Prefer recurrenceType; kept for callers that only know daily vs not */
   isRepeating?: boolean;
+  recurrenceType?: RecurrenceType;
+  /** Weekday indices Mon=0 … Sun=6 for CUSTOM / WEEKLY */
+  recurrenceDays?: number[];
   localPhotoUri?: string | null;
 }
 
@@ -350,4 +505,27 @@ export interface AppNotification {
   payload: Record<string, unknown>;
   readAt: string | null;
   createdAt: string;
+}
+
+export interface NotificationGroup {
+  key: string;
+  label: string;
+  date: string;
+  count: number;
+  items: AppNotification[];
+}
+
+export interface NotificationPagination {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export interface NotificationInbox {
+  groups: NotificationGroup[];
+  unreadCount: number;
+  pagination: NotificationPagination;
 }

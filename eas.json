@@ -4,8 +4,9 @@
   },
   "build": {
     "preview": {
+      "environment": "preview",
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://13.48.42.184:8000/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://api.udufood.com/api/v1"
       },
       "android": {
         "buildType": "apk",
@@ -14,8 +15,11 @@
       }
     },
     "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.udufood.com/api/v1"
+      },
       "android": {
-        "buildType": "apk"
+        "buildType": "app-bundle"
       }
     }
   }

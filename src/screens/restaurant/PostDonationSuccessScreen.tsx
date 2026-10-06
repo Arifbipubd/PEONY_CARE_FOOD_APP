@@ -12,6 +12,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { getRestaurantProfile } from '../../services/restaurant';
+import { foodCategoryLabel } from '../../constants/categories';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, layout,
 } from '../../constants/theme';
@@ -20,11 +21,6 @@ import { DonationsStackParamList, RestaurantTabParamList } from '../../navigatio
 type Props = {
   navigation: NativeStackNavigationProp<DonationsStackParamList, 'PostDonationSuccess'>;
   route:      RouteProp<DonationsStackParamList, 'PostDonationSuccess'>;
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  RICE: 'Rice', NOODLES: 'Noodles', BREAD: 'Bread',
-  SNACKS: 'Snacks', DRINKS: 'Drinks', OTHER: 'Other',
 };
 
 export default function PostDonationSuccessScreen({ navigation, route }: Props) {
@@ -49,7 +45,7 @@ export default function PostDonationSuccessScreen({ navigation, route }: Props) 
       ?.navigate('Home');
   }, [navigation]);
 
-  const categoryLabel = CATEGORY_LABELS[category] ?? category;
+  const categoryLabel = foodCategoryLabel(category);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -90,7 +86,7 @@ export default function PostDonationSuccessScreen({ navigation, route }: Props) 
             </View>
             <View style={styles.detailText}>
               <Text style={styles.detailTitle}>{pickupWindow}</Text>
-              <Text style={styles.detailSub}>Pickup window</Text>
+              <Text style={styles.detailSub}>Available</Text>
             </View>
           </View>
 

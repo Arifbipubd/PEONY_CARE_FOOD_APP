@@ -53,6 +53,21 @@ export interface ApiDailyLimit {
   resets_at: string;
 }
 
+export interface ApiNetworkToday {
+  restaurants: {
+    total: number;
+    giving_today: number;
+    label: string;
+  };
+  foods_today: {
+    count: number;
+    portions: number;
+    portions_available: number;
+    label: string;
+  };
+  radius_km?: number;
+}
+
 export interface ApiClaimResponse {
   claim_id: string;
   status: string;
@@ -72,12 +87,14 @@ export interface ApiClaimHistoryItem {
   restaurant_name: string;
   restaurant_id?: string;
   restaurant_photo_url?: string | null;
-  photo_url?: string;
+  photo_url?: string | null;
   sponsor_display_name?: string | null;
   status: string;
   claimed_at: string;
   pickup_window: string;
-  rating?: number;
+  rating?: number | null;
+  has_review?: boolean;
+  can_review?: boolean;
 }
 
 export interface ApiClaimHistory {
@@ -124,6 +141,25 @@ export interface ApiLocationSettings {
   longitude: number | null;
   recent_places_count: number;
   recent_places: ApiRecentPlace[];
+}
+
+export interface ApiReceiverNotificationSettings {
+  push_enabled: boolean;
+  alert_new_food_nearby: boolean;
+  alert_claim_confirmations: boolean;
+  alert_daily_limit_reset: boolean;
+}
+
+export interface ApiRestaurantNotificationSettings {
+  push_enabled: boolean;
+  email_enabled: boolean;
+  alert_new_claim: boolean;
+  alert_sponsored: boolean;
+  alert_all_claimed: boolean;
+  alert_window_expiring: boolean;
+  alert_no_show: boolean;
+  alert_donation_claimed: boolean;
+  alert_receipts: boolean;
 }
 
 export interface ApiPublicRestaurant {
@@ -177,6 +213,14 @@ export interface ApiRestaurantDetail {
   available_meals: ApiRestaurantMealSummary[];
 }
 
+export interface ApiDonationCategory {
+  code: string;
+  label: string;
+  default_unit: string;
+  /** A list of units, or one unit string such as "pack". */
+  units: string[] | string;
+}
+
 export interface ApiRestaurantDonation {
   id: string;
   name: string;
@@ -211,7 +255,7 @@ export interface ApiRestaurantDonation {
   // Recurrence — backend uses recurrence_type, not is_repeating
   recurrence_type?: string;          // "NONE" | "DAILY" | "WEEKLY" | "CUSTOM"
   recurrence_label?: string | null;
-  recurrence_days?: number[];
+  recurrence_days?: number[] | string[] | string;
   recurrence_schedule_summary?: string | null;
   recurrence_badge?: string | null;
   // Donation source — backend wraps in a source object
@@ -325,13 +369,43 @@ export interface ApiNotification {
   title: string;
   body: string;
   payload: Record<string, unknown>;
+  is_read?: boolean;
   read_at: string | null;
   created_at: string;
 }
 
-export interface ApiNotificationList {
+export interface ApiNotificationGroup {
+  key: string;
+  label: string;
+  date: string;
   count: number;
-  results: ApiNotification[];
+  items: ApiNotification[];
+}
+
+export interface ApiNotificationPagination {
+  page: number;
+  page_size: number;
+  total_count: number;
+  total_pages: number;
+  has_next: boolean;
+  has_previous: boolean;
+}
+
+/** GET /notifications/ → data payload (grouped + paginated) */
+export interface ApiNotificationList {
+  groups: ApiNotificationGroup[];
+  unread_count: number;
+  pagination: ApiNotificationPagination;
+}
+
+export interface ApiNotificationUnreadCount {
+  unread_count: number;
+}
+
+/** POST /notifications/read-all/ → data payload */
+export interface ApiNotificationReadAll {
+  marked_read: number;
+  unread_count: number;
 }
 
 export interface ApiOtpSendResponse {
@@ -358,4 +432,100 @@ export interface ApiAuthTokens {
   access: string;
   refresh: string;
   user: ApiAuthUser;
+}
+
+export interface ApiLocationResult {
+  address_line: string;
+  address: string;
+  postal_code: string;
+  latitude: number;
+  longitude: number;
+  country?: string;
+  subtitle?: string;
+  display?: string;
+  snapped?: boolean;
+  distance_m?: number | null;
+}
+
+export interface ApiLocationSearchResponse {
+  query: string;
+  count: number;
+  results: ApiLocationResult[];
+}
+
+export interface ApiClaimReportReason {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface ApiClaimReportContext {
+  claim_id: string;
+  receiver_name: string;
+  receiver_phone_tail: string;
+  food_name: string;
+  pickup_window_short: string;
+  context_line: string;
+  footer_note: string;
+  reasons: ApiClaimReportReason[];
+}
+
+export interface ApiRestaurantClaim {
+  id: string;
+  receiver_name: string;
+  receiver_initials?: string;
+  food_id?: string;
+  food_name: string;
+  items_label?: string;
+  claimed_at: string;
+  collected_at: string | null;
+  collected_at_label?: string | null;
+  no_show_at?: string | null;
+  pickup_window: string;
+  pickup_window_short?: string;
+  status: string;
+  status_key?: string;
+  status_label: string;
+  can_mark_collected: boolean;
+  can_mark_no_show?: boolean;
+  can_undo_no_show?: boolean;
+}
+
+export interface ApiReportReason {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface ApiReviewTag {
+  id: string;
+  code: string;
+  label: string;
+}
+
+export interface ApiReview {
+  id: string;
+  restaurant_id: string;
+  rating: number;
+  rating_label: string | null;
+  tag_codes: string[];
+  tags: ApiReviewTag[];
+  comment: string;
+  created_at: string;
+  updated_at: string;
+  message?: string;
+  success_message?: string;
+}
+
+export interface ApiReviewForm {
+  restaurant_id: string;
+  restaurant_name: string;
+  latest_food_name?: string;
+  collected_at: string | null;
+  collected_label: string;
+  context_subtitle: string;
+  can_review: boolean;
+  has_review: boolean;
+  tags: ApiReviewTag[];
+  review: ApiReview | null;
 }

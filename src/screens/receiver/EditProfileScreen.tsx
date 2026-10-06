@@ -8,13 +8,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
+import Input from '../../components/Input';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { requestCameraPermissionsAsync, launchCameraAsync, requestMediaLibraryPermissionsAsync, launchImageLibraryAsync } from 'expo-image-picker';
 import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
 import { useProfileStore } from '../../store/profileStore';
-import { api } from '../../services/api';
+import { api, getUserFacingErrorMessage } from '../../services/api';
 import {
   colors, spacing, fontSizes, fontFamilies, radius,
 } from '../../constants/theme';
@@ -34,6 +35,7 @@ function initials(name: string): string {
 
 export default function EditProfileScreen({ navigation }: Props) {
   const { photoUrl, displayName, setProfile } = useProfileStore();
+  const [name, setName] = useState(displayName);
   const [pendingUri, setPendingUri] = useState<string | null>(photoUrl);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -71,36 +73,57 @@ export default function EditProfileScreen({ navigation }: Props) {
 
   const handleSave = useCallback(async () => {
     if (saving) return;
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setSaveError('Full name is required');
+      return;
+    }
+
+    const nameChanged = trimmed !== displayName.trim();
+    const photoRemoved = pendingUri === null && photoUrl !== null;
+    const photoAdded = pendingUri !== null && !pendingUri.startsWith('http');
+    if (!nameChanged && !photoRemoved && !photoAdded) {
+      navigation.goBack();
+      return;
+    }
+
     setSaving(true);
     setSaveError('');
     try {
-      if (pendingUri === null) {
-        // User removed photo — send JSON
-        const res = await api.patch('/receiver/profile/', { remove_photo: true });
-        setProfile({ photoUrl: res.data.data.photo_url ?? null });
-      } else if (!pendingUri.startsWith('http')) {
-        // New local file — send multipart
+      let nextName = trimmed;
+      let nextPhoto = photoUrl;
+
+      if (photoAdded && pendingUri) {
         const filename = pendingUri.split('/').pop() ?? 'photo.jpg';
         const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpeg';
         const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
         const formData = new FormData();
+        formData.append('display_name', trimmed);
         formData.append('photo', { uri: pendingUri, name: filename, type: mimeType } as unknown as Blob);
         const res = await api.patch('/receiver/profile/', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
-        setProfile({ photoUrl: res.data.data.photo_url ?? null });
+        nextName = res.data.data.display_name ?? trimmed;
+        nextPhoto = res.data.data.photo_url ?? null;
+      } else {
+        const body: { display_name: string; remove_photo?: boolean } = { display_name: trimmed };
+        if (photoRemoved) body.remove_photo = true;
+        const res = await api.patch('/receiver/profile/', body);
+        nextName = res.data.data.display_name ?? trimmed;
+        nextPhoto = res.data.data.photo_url ?? (photoRemoved ? null : photoUrl);
       }
-      // No change (same remote URL) — skip API call
+
+      setProfile({ displayName: nextName, photoUrl: nextPhoto });
       navigation.goBack();
     } catch (err: unknown) {
-      setSaveError(err instanceof Error ? err.message : 'Could not save photo. Try again.');
+      setSaveError(getUserFacingErrorMessage(err, 'Could not save profile. Try again.'));
       setSaving(false);
     }
-  }, [saving, pendingUri, setProfile, navigation]);
+  }, [saving, name, displayName, pendingUri, photoUrl, setProfile, navigation]);
 
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
@@ -108,9 +131,9 @@ export default function EditProfileScreen({ navigation }: Props) {
 
         <View style={styles.heroText}>
           <Text style={styles.eyebrow}>Make it yours</Text>
-          <Text style={styles.title}>Profile picture</Text>
+          <Text style={styles.title}>Edit profile</Text>
           <Text style={styles.desc}>
-            Restaurants see this photo when you collect your meal.
+            Restaurants see your name and photo when you collect your meal.
           </Text>
         </View>
 
@@ -123,10 +146,21 @@ export default function EditProfileScreen({ navigation }: Props) {
                 resizeMode="cover"
               />
             ) : (
-              <Text style={styles.avatarText}>{initials(displayName || 'U')}</Text>
+              <Text style={styles.avatarText}>{initials(name.trim() || 'U')}</Text>
             )}
           </View>
         </View>
+
+        <Text style={styles.sectionTitle}>Your name</Text>
+        <Input
+          label="Full name"
+          value={name}
+          onChangeText={setName}
+          placeholder="Your name"
+          required
+          leftIcon={<Ionicons name="person-outline" size={18} color={colors.textMuted} />}
+          style={styles.nameInput}
+        />
 
         <Text style={styles.sectionTitle}>Change photo</Text>
 
@@ -276,6 +310,11 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     paddingHorizontal: spacing['2xl'],
     marginBottom: spacing.md,
+  },
+
+  nameInput: {
+    marginHorizontal: spacing['2xl'],
+    marginBottom: 28,
   },
 
   actionCard: {

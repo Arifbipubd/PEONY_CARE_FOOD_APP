@@ -34,7 +34,7 @@ export default function ApprovalPendingScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.body}>
-        <LogoBadge size={80} />
+        <LogoBadge width={160} />
 
         <View style={styles.iconWrap}>
           <Ionicons name="time" size={48} color={colors.warningYellow} />

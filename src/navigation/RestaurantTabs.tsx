@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { getUnreadCount } from '../services/notifications';
 
 import RestaurantDashboardScreen from '../screens/restaurant/RestaurantDashboardScreen';
 import DonationListScreen        from '../screens/restaurant/DonationListScreen';
@@ -20,6 +22,7 @@ import EditRestaurantDetailsScreen          from '../screens/restaurant/EditRest
 import RestaurantLocationScreen             from '../screens/restaurant/RestaurantLocationScreen';
 import MenuPhotosScreen                     from '../screens/restaurant/MenuPhotosScreen';
 import RestaurantAnalyticsScreen            from '../screens/restaurant/RestaurantAnalyticsScreen';
+import RestaurantNotificationSettingsScreen from '../screens/restaurant/RestaurantNotificationSettingsScreen';
 import { colors, fontSizes }     from '../constants/theme';
 import { useNotificationStore }  from '../store/notificationStore';
 
@@ -35,6 +38,7 @@ export type ProfileStackParamList = {
   MenuPhotos:                 undefined;
   RestaurantAnalytics:        undefined;
   TodaysClaims:               undefined;
+  RestaurantNotificationSettings: undefined;
 };
 
 export type RestaurantTabParamList = {
@@ -77,6 +81,7 @@ function ProfileNavigator() {
       <ProfileStack.Screen name="MenuPhotos"              component={MenuPhotosScreen} />
       <ProfileStack.Screen name="RestaurantAnalytics"     component={RestaurantAnalyticsScreen} />
       <ProfileStack.Screen name="TodaysClaims"            component={TodaysClaimsScreen} />
+      <ProfileStack.Screen name="RestaurantNotificationSettings" component={RestaurantNotificationSettingsScreen} />
     </ProfileStack.Navigator>
   );
 }
@@ -100,7 +105,12 @@ const TAB_ICONS = {
 };
 
 export default function RestaurantTabs() {
-  const { unreadCount } = useNotificationStore();
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const setUnreadCount = useNotificationStore((s) => s.setUnreadCount);
+
+  useEffect(() => {
+    getUnreadCount().then(setUnreadCount);
+  }, [setUnreadCount]);
 
   return (
     <Tab.Navigator

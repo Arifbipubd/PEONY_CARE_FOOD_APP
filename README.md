@@ -1,4 +1,4 @@
-# Peony Care Food App
+# UDUFood
 
 A complementary meal donation app connecting Singaporeans in need with restaurants and donors.
 
@@ -6,7 +6,7 @@ A complementary meal donation app connecting Singaporeans in need with restauran
 
 ## About
 
-Peony Care is a mobile app that lets restaurants list surplus food as complementary meals, receivers claim them via QR code, and donors sponsor portions for those in need.
+UDUFood is a mobile app that lets restaurants list surplus food as complementary meals, receivers claim them via QR code, and donors sponsor portions for those in need.
 
 **Three roles:**
 - **Receiver** — browses nearby listings and claims a complementary meal once per day via QR scan
@@ -26,7 +26,7 @@ Peony Care is a mobile app that lets restaurants list surplus food as complement
 | Language | TypeScript (strict) |
 | Navigation | React Navigation v7 (native stack + bottom tabs) |
 | State | Zustand |
-| HTTP | Axios (backend not yet connected — mock data) |
+| HTTP | Axios → `EXPO_PUBLIC_API_URL` (production: `https://api.udufood.com/api/v1`) |
 | Storage | AsyncStorage (user meta) · expo-secure-store (tokens) |
 | Camera | expo-camera (QR scan) |
 
@@ -49,8 +49,8 @@ Or skip Android Studio entirely — install **Expo Go** on your Android phone an
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/Arifbipubd/PEONY_CARE_FOOD_APP.git
-cd PEONY_CARE_FOOD_APP
+git clone https://github.com/Arifbipubd/PEONY_CARE_FOOD_APP.git udufood
+cd udufood
 
 # 2. Install dependencies
 npm install
@@ -79,9 +79,18 @@ npx expo start --android
 npx expo start --clear
 ```
 
-### Logging in (mock)
+### Logging in
 
-Any phone number works on the login screen. Enter any 6-digit code on the OTP screen. On the register screen, choose a role to land in the matching tab navigator.
+Uses real OTP via the API. For local/dev, set `EXPO_PUBLIC_API_URL` in `.env` (see `.env.sample`).
+
+**Play Store reviewer accounts** (no SMS — see `store/PLAY_STORE.md`):
+
+| Role | Phone | OTP |
+|------|-------|-----|
+| Receiver | `90000001` | `1234` |
+| Restaurant | `90000002` | `1234` |
+
+Signup roles currently shipped: **Restaurant** and **Receiver** (Donor is gated off for P1).
 
 ---
 
@@ -132,9 +141,9 @@ Restaurant with `isApproved === false` → `ApprovalPendingScreen`.
 
 ---
 
-## Mock Data / Backend
+## Backend
 
-All screens use mock data from `src/mock/`. When the Django REST backend is ready, only the service functions in `src/services/` need to change — nothing else in the codebase is affected.
+Auth, Receiver, and Restaurant services call the live API. Donor dashboard and a few edges may still use mocks until P2. See `store/PLAY_STORE.md` for Play Console submission notes.
 
 ---
 

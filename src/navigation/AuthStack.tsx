@@ -17,12 +17,39 @@ export type PendingRegistration =
   | { role: 'DONOR';    displayName: string; email: string }
   | { role: 'RESTAURANT'; restaurantName: string; uen: string; address: string; contactName: string; email: string; contactPhone: string; latitude: number; longitude: number };
 
+export type RestaurantRegisterFieldErrors = {
+  restaurantName?: string;
+  uen?: string;
+  address?: string;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+};
+
+export type RestaurantRegisterDraft = {
+  restaurantName: string;
+  uen: string;
+  address: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  countryCode: 'SG' | 'BD';
+  latitude: number;
+  longitude: number;
+  termsAccepted?: boolean;
+};
+
 export type AuthStackParamList = {
   Splash:             undefined;
   ChooseRole:         undefined;
   ReceiverRegister:   undefined;
   DonorRegister:      undefined;
-  RestaurantRegister: undefined;
+  RestaurantRegister: {
+    draft?: RestaurantRegisterDraft;
+    fieldErrors?: RestaurantRegisterFieldErrors;
+    registrationToken?: string;
+    fullPhone?: string;
+  } | undefined;
   Login:              undefined;
   Otp: {
     phone:                string;

@@ -64,7 +64,7 @@ export const MOCK_FOOD_ITEMS: ApiFoodItem[] = [
     id: 'food-003',
     name: 'Kaya Toast Set',
     description: 'Toasted bread with kaya and butter, soft-boiled eggs, and coffee.',
-    category: 'BREAD',
+    category: 'BREAD_BAKERY',
     unit: 'set',
     photo_url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400',
     quantity_original: 15,

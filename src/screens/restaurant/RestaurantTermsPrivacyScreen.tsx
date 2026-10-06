@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +13,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
 } from '../../constants/theme';
+import { LEGAL_URLS } from '../../constants/legal';
 import { ProfileStackParamList } from '../../navigation/RestaurantTabs';
 
 type Props = {
@@ -31,9 +33,9 @@ type SectionData = {
 };
 
 const HERO_SUBTITLE: Record<Tab, string> = {
-  terms:   'How Peony Care works for restaurant partners.',
+  terms:   'How Udufood works for restaurant partners.',
   privacy: 'What we collect and how we use it.',
-  cookies: 'How Peony Care handles your data and what you agree to.',
+  cookies: 'How Udufood handles your data and what you agree to.',
 };
 
 const TERMS_SECTIONS: SectionData[] = [
@@ -45,23 +47,23 @@ const TERMS_SECTIONS: SectionData[] = [
     heading: '2. Posting donations',
     body: 'Food you post must be safe for consumption and accurately described.',
     bullets: [
-      'Set realistic pickup windows — receivers plan around them.',
-      'Close listings you can no longer fulfil before the window opens.',
+      'Post only food that is ready to collect today.',
+      'Close listings you can no longer fulfil.',
       "Don't post food that's past its safe use-by date.",
       'Photos must show the actual dish, not stock images.',
     ],
   },
   {
     heading: '3. Sponsored donations',
-    body: "When an individual donor sponsors meals at your restaurant, you'll receive a notification listing the dishes and quantity. Prepare them as you would a regular order. Peony Care processes the payment from the donor and transfers it to your registered bank account.",
+    body: "Where sponsored or donor-supported listings are available, you may receive a notification with the dish list and quantity. Prepare them as described in the app — receivers claim them through Udufood. We do not process card payments in the app today.",
   },
   {
     heading: '4. No-show claims',
-    body: "After a pickup window closes, mark any receiver who didn't collect as No-show in the app. The portion returns to the pool so others can claim it. Peony Care tracks no-show patterns to improve platform reliability.",
+    body: "At the end of the day, mark any receiver who didn't collect as No-show in the app. The portion returns to the pool so others can claim it. Udufood tracks no-show patterns to improve platform reliability.",
   },
   {
     heading: '5. Account termination',
-    body: 'We may suspend or terminate restaurant accounts for false or misleading listings, harassment of receivers, repeated failure to fulfil posted donations, or fraudulent sponsored-order activity.',
+    body: 'We may suspend or terminate restaurant accounts for false or misleading listings, harassment of receivers, repeated failure to fulfil posted donations, or abuse of the platform.',
   },
 ];
 
@@ -71,18 +73,18 @@ const PRIVACY_SECTIONS: SectionData[] = [
     bullets: [
       'Business: restaurant name, UEN, address, opening hours.',
       'Contact: owner/manager name, business email, business mobile.',
-      'Operations: donations posted, claims received, sponsored orders, payout history.',
+      'Operations: donations posted, claims received, and related restaurant activity.',
     ],
   },
   {
     heading: 'How we use it',
-    body: "We use your data to list your restaurant on the platform for receivers to find, manage claims and sponsored orders, and pay you for sponsored donations. We don't sell your data — ever.",
+    body: "We use your data to list your restaurant on the platform for receivers to find and to manage claims and donation listings. We don't sell your data — ever.",
   },
   {
     heading: 'PDPA compliance',
     bodyParts: [
-      { text: "Peony Care complies with Singapore's Personal Data Protection Act (PDPA). You can request to view, correct, or delete your business profile at any time by emailing " },
-      { text: 'privacy@peonycare.sg', accent: true },
+      { text: "Udufood complies with Singapore's Personal Data Protection Act (PDPA). You can request to view, correct, or delete your business profile at any time by emailing " },
+      { text: 'support@udufood.com', accent: true },
       { text: '.' },
     ],
   },
@@ -90,26 +92,25 @@ const PRIVACY_SECTIONS: SectionData[] = [
     heading: "What's public vs private",
     bullets: [
       'Public: your restaurant name, address, hours, and dish photos — visible to all receivers and donors.',
-      'Private: your contact email, contact mobile, UEN, and payout records — never shown to other users.',
+      'Private: your contact email, contact mobile, and UEN — never shown to other users.',
     ],
   },
   {
     heading: 'How long we keep it',
-    body: 'Business data is retained while your restaurant account is open. After deletion: contact details removed within 30 days; UEN and tax-related records retained 7 years per ACRA and IRAS requirements; payout records retained 7 years.',
+    body: 'Business data is retained while your restaurant account is open. After deletion: contact details removed within 30 days; UEN and related business records may be retained where required for legal or regulatory purposes.',
   },
   {
     heading: 'Service providers',
     body: 'We use trusted third parties to operate the platform:',
     bullets: [
       'Twilio — SMS delivery for OTP codes.',
-      'Stripe — payout processing for sponsored donations.',
       'Cloudflare — security and DDoS protection.',
       'Iconify — icon assets (no personal data).',
     ],
   },
   {
     heading: 'Where your data lives',
-    body: 'Business data is stored in Singapore on AWS ap-southeast-1. Payment data is processed by Stripe (Singapore region).',
+    body: 'Business data is stored on AWS. We do not collect or process payment card data in the app.',
   },
   {
     heading: 'Age requirement',
@@ -128,7 +129,7 @@ const COOKIES_SECTIONS: SectionData[] = [
   },
   {
     heading: 'Third parties',
-    body: 'We use Cloudflare for security and Stripe for payment processing. No tracking pixels, no ad networks.',
+    body: 'We use Cloudflare for security. No tracking pixels, no ad networks.',
   },
 ];
 
@@ -166,7 +167,13 @@ const SectionBlock = memo(function SectionBlock({
         <Text style={styles.sectionBody}>
           {section.bodyParts.map((part, i) =>
             part.accent ? (
-              <Text key={i} style={styles.accentInline}>{part.text}</Text>
+              <Text
+                key={i}
+                style={styles.accentInline}
+                onPress={() => Linking.openURL(`mailto:${LEGAL_URLS.supportEmail}`)}
+              >
+                {part.text}
+              </Text>
             ) : (
               <Text key={i}>{part.text}</Text>
             )
@@ -260,7 +267,24 @@ export default function RestaurantTermsPrivacyScreen({ navigation }: Props) {
 
         <View style={styles.footerCard}>
           <Text style={styles.footerNote}>Questions about your data? Email</Text>
-          <Text style={styles.footerEmail}>privacy@peonycare.sg.</Text>
+          <Text
+            style={styles.footerEmail}
+            onPress={() => Linking.openURL(`mailto:${LEGAL_URLS.privacyEmail}`)}
+          >
+            {LEGAL_URLS.privacyEmail}
+          </Text>
+          <Text
+            style={styles.footerLink}
+            onPress={() => Linking.openURL(LEGAL_URLS.privacy)}
+          >
+            View privacy policy online
+          </Text>
+          <Text
+            style={styles.footerLink}
+            onPress={() => Linking.openURL(LEGAL_URLS.terms)}
+          >
+            View terms online
+          </Text>
         </View>
 
       </ScrollView>
@@ -400,5 +424,12 @@ const styles = StyleSheet.create({
     fontSize: fontSizes['12'],
     lineHeight: 18,
     color: colors.accentPrimary,
+  },
+  footerLink: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    lineHeight: 18,
+    color: colors.accentPrimary,
+    marginTop: spacing.sm,
   },
 });

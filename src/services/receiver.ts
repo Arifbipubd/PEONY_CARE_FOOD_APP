@@ -5,9 +5,13 @@
 import {
   FoodItem, DailyLimitStatus, Claim, ClaimHistory, ClaimHistoryItem,
   ReceiverProfile, LocationSettings, RecentPlace, ReviewPayload,
+  ReviewForm, Review, ReviewTag, ReportReason, ReceiverNotificationSettings,
+  NetworkTodaySummary,
 } from '../types';
 import {
   ApiFoodItem, ApiFoodDetail, ApiDailyLimit, ApiClaimHistoryItem, ApiRecentPlace,
+  ApiReviewForm, ApiReview, ApiReviewTag, ApiReportReason,
+  ApiReceiverNotificationSettings, ApiNetworkToday,
 } from '../types/api';
 import { api } from './api';
 
@@ -74,10 +78,12 @@ function mapApiClaimHistoryItem(d: ApiClaimHistoryItem): ClaimHistoryItem {
     restaurantPhotoUrl: d.restaurant_photo_url ?? null,
     photoUrl: d.photo_url || undefined,
     sponsorDisplayName: d.sponsor_display_name ?? undefined,
-    status: d.status as ClaimHistoryItem['status'],
+    status: (d.status === 'CLAIMED' || d.status === 'COLLECTED') ? 'CLAIMED' : 'EXPIRED',
     claimedAt: d.claimed_at,
     pickupWindow: d.pickup_window,
-    rating: d.rating,
+    hasReview: d.has_review ?? false,
+    canReview: d.can_review ?? false,
+    rating: d.rating ?? null,
   };
 }
 
@@ -131,6 +137,31 @@ export const getFoodDetail = async (
 export const getDailyLimit = async (): Promise<DailyLimitStatus> => {
   const res = await api.get('/receiver/claims/today/');
   return mapApiDailyLimit(res.data.data);
+};
+
+function mapApiNetworkToday(d: ApiNetworkToday): NetworkTodaySummary {
+  const restaurants = d.restaurants;
+  const foods = d.foods_today;
+  const restaurantsTotal = restaurants?.total ?? 0;
+  const restaurantsGivingToday = restaurants?.giving_today ?? 0;
+  const foodsTodayCount = foods?.count ?? 0;
+  return {
+    restaurantsTotal,
+    restaurantsGivingToday,
+    restaurantsLabel:
+      restaurants?.label
+      || `${restaurantsGivingToday} restaurants giving food out of ${restaurantsTotal}`,
+    foodsTodayCount,
+    foodsTodayPortions: foods?.portions ?? 0,
+    foodsTodayPortionsAvailable: foods?.portions_available ?? 0,
+    foodsTodayLabel: foods?.label || `${foodsTodayCount} foods given today`,
+  };
+}
+
+/** GET /receiver/dashboard/ — platform-wide restaurant + food counts for today. */
+export const getNetworkToday = async (): Promise<NetworkTodaySummary> => {
+  const res = await api.get('/receiver/dashboard/');
+  return mapApiNetworkToday(res.data.data as ApiNetworkToday);
 };
 
 export const claimFood = async (
@@ -202,12 +233,116 @@ export const getLocationSettings = async (): Promise<LocationSettings> => {
   };
 };
 
+function mapApiReviewTag(t: ApiReviewTag): ReviewTag {
+  return { id: t.id, code: t.code, label: t.label };
+}
+
+function mapApiReview(r: ApiReview): Review {
+  return {
+    id: r.id,
+    restaurantId: r.restaurant_id,
+    rating: r.rating,
+    ratingLabel: r.rating_label,
+    tagCodes: r.tag_codes,
+    tags: r.tags.map(mapApiReviewTag),
+    comment: r.comment,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+function mapApiReviewForm(d: ApiReviewForm): ReviewForm {
+  return {
+    restaurantId: d.restaurant_id,
+    restaurantName: d.restaurant_name,
+    latestFoodName: d.latest_food_name,
+    collectedAt: d.collected_at,
+    collectedLabel: d.collected_label,
+    contextSubtitle: d.context_subtitle,
+    canReview: d.can_review,
+    hasReview: d.has_review,
+    tags: d.tags.map(mapApiReviewTag),
+    review: d.review ? mapApiReview(d.review) : null,
+  };
+}
+
 export const submitReview = async (payload: ReviewPayload): Promise<void> => {
   await api.post(`/receiver/restaurants/${payload.restaurantId}/review/`, {
-    claim_id: payload.claimId,
     rating: payload.rating,
-    tags: payload.tags,
+    tag_codes: payload.tagCodes,
     comment: payload.comment || undefined,
+  });
+};
+
+export const getReview = async (restaurantId: string): Promise<ReviewForm> => {
+  const res = await api.get(`/receiver/restaurants/${restaurantId}/review/`);
+  return mapApiReviewForm(res.data.data as ApiReviewForm);
+};
+
+export const updateReview = async (
+  restaurantId: string,
+  payload: ReviewPayload,
+): Promise<Review> => {
+  const res = await api.patch(`/receiver/restaurants/${restaurantId}/review/`, {
+    rating: payload.rating,
+    tag_codes: payload.tagCodes,
+    comment: payload.comment || undefined,
+  });
+  return mapApiReview(res.data.data as ApiReview);
+};
+
+export const deleteReview = async (restaurantId: string): Promise<void> => {
+  await api.delete(`/receiver/restaurants/${restaurantId}/review/`);
+};
+
+export const updateLocationSettings = async (settings: {
+  searchRadiusKm?: number;
+  locationServicesEnabled?: boolean;
+  saveLocationHistory?: boolean;
+  latitude?: number;
+  longitude?: number;
+}): Promise<LocationSettings> => {
+  const body: Record<string, unknown> = {};
+  if (settings.searchRadiusKm          != null) body.browse_radius_km          = settings.searchRadiusKm;
+  if (settings.locationServicesEnabled  != null) body.location_services_enabled = settings.locationServicesEnabled;
+  if (settings.saveLocationHistory      != null) body.save_location_history     = settings.saveLocationHistory;
+  if (settings.latitude                 != null) body.latitude                  = settings.latitude;
+  if (settings.longitude                != null) body.longitude                 = settings.longitude;
+  const res = await api.patch('/receiver/settings/location/', body);
+  const s = res.data.data;
+  return {
+    searchRadiusKm: s.browse_radius_km,
+    radiusOptionsKm: s.radius_options_km,
+    locationServicesEnabled: s.location_services_enabled,
+    saveLocationHistory: s.save_location_history,
+    latitude: s.latitude,
+    longitude: s.longitude,
+    recentPlacesCount: s.recent_places_count,
+    recentPlaces: (s.recent_places as ApiRecentPlace[]).map(mapApiRecentPlace),
+  };
+};
+
+export const clearLocationHistory = async (): Promise<void> => {
+  await api.delete('/receiver/settings/location/history/');
+};
+
+export const getReportReasons = async (): Promise<ReportReason[]> => {
+  const res = await api.get('/receiver/reports/reasons/');
+  return (res.data.data as ApiReportReason[]).map((r) => ({
+    id: r.id,
+    code: r.code,
+    label: r.label,
+  }));
+};
+
+export const reportFood = async (
+  foodId: string,
+  reasonId: string,
+  comment?: string,
+): Promise<void> => {
+  await api.post(`/receiver/donations/${foodId}/report/`, {
+    reason_id: reasonId,
+    comment: comment || undefined,
   });
 };
 
@@ -227,4 +362,34 @@ export const getReceiverProfile = async (): Promise<ReceiverProfile> => {
     lifetimeMeals: p.stats.lifetime_meals,
     restaurantsCount: p.stats.restaurants_count,
   };
+};
+
+function mapApiNotificationSettings(
+  s: ApiReceiverNotificationSettings,
+): ReceiverNotificationSettings {
+  return {
+    pushEnabled: s.push_enabled,
+    alertNewFoodNearby: s.alert_new_food_nearby,
+    alertClaimConfirmations: s.alert_claim_confirmations,
+    alertDailyLimitReset: s.alert_daily_limit_reset,
+  };
+}
+
+/** GET /receiver/notifications/settings/ */
+export const getNotificationSettings = async (): Promise<ReceiverNotificationSettings> => {
+  const res = await api.get('/receiver/notifications/settings/');
+  return mapApiNotificationSettings(res.data.data as ApiReceiverNotificationSettings);
+};
+
+/** PATCH /receiver/notifications/settings/ */
+export const updateNotificationSettings = async (
+  settings: ReceiverNotificationSettings,
+): Promise<ReceiverNotificationSettings> => {
+  const res = await api.patch('/receiver/notifications/settings/', {
+    push_enabled: settings.pushEnabled,
+    alert_new_food_nearby: settings.alertNewFoodNearby,
+    alert_claim_confirmations: settings.alertClaimConfirmations,
+    alert_daily_limit_reset: settings.alertDailyLimitReset,
+  });
+  return mapApiNotificationSettings(res.data.data as ApiReceiverNotificationSettings);
 };

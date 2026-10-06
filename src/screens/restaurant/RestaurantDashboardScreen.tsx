@@ -13,8 +13,10 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import { getDashboard, getMenuPhotos, menuPhotosExist, donationsExist } from '../../services/restaurant';
+import { getUnreadCount } from '../../services/notifications';
 import { useLocation } from '../../hooks/useLocation';
 import { RestaurantDashboard, RestaurantDonation } from '../../types';
+import { displayAvailability } from '../../utils/availability';
 import { useNotificationStore } from '../../store/notificationStore';
 import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import PostFAB from '../../components/PostFAB';
@@ -89,7 +91,7 @@ const StatCard = React.memo(({ value, label, valueColor }: { value: string; labe
 
 // ─── Donation row ────────────────────────────────────────────────────────────
 
-const DonationRow = React.memo(({ item }: { item: RestaurantDonation }) => {
+const DonationRow = React.memo(({ item, onPress }: { item: RestaurantDonation; onPress: () => void }) => {
   const isFullyClaimed  = item.status === 'FULLY_CLAIMED';
   const isSponsored     = !!item.sponsorDisplayName;
   const showClaimedTick = isFullyClaimed && !item.photoUrl && !isSponsored;
@@ -104,12 +106,12 @@ const DonationRow = React.memo(({ item }: { item: RestaurantDonation }) => {
 
   const subtitle = isSponsored
     ? `${item.quantityClaimed} of ${item.quantityOriginal} claimed · by ${item.sponsorDisplayName}`
-    : `${item.quantityClaimed} of ${item.quantityOriginal} claimed · ${item.pickupWindow}`;
+    : `${item.quantityClaimed} of ${item.quantityOriginal} claimed · ${displayAvailability(item)}`;
 
   const nameLabel = isSponsored ? `${item.name} · Sponsored` : item.name;
 
   return (
-    <View style={styles.donationRow}>
+    <TouchableOpacity style={styles.donationRow} onPress={onPress} activeOpacity={0.7}>
       {isSponsored ? (
         <View style={styles.sponsorAvatar}>
           <Text style={styles.sponsorInitials}>{item.sponsorInitials ?? ''}</Text>
@@ -135,7 +137,7 @@ const DonationRow = React.memo(({ item }: { item: RestaurantDonation }) => {
       >
         {rightLabel}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 });
 
@@ -202,7 +204,7 @@ const EmptyDashboard = React.memo(({ restaurantName, hasMenuPhotos, hasDonations
       </View>
 
       {/* Welcome title + subtitle */}
-      <Text style={es.title}>{'Welcome to Peony Care,\n' + restaurantName + ' 🌸'}</Text>
+      <Text style={es.title}>{'Welcome to Udufood,\n' + restaurantName}</Text>
       <Text style={es.subtitle}>
         {"You're all set up. Complete one quick step to start receiving donations."}
       </Text>
@@ -513,21 +515,21 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
   const [loading, setLoading]             = useState(true);
   const [hasMenuPhotos, setHasMenuPhotos] = useState(() => menuPhotosExist());
   const [hasDonations, setHasDonations]   = useState(() => donationsExist());
-  const { unreadCount } = useNotificationStore();
+  const { unreadCount, setUnreadCount } = useNotificationStore();
   const { lat, lng } = useLocation();
 
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(
-    () => Promise.all([getDashboard(), getMenuPhotos()])
-      .then(([d]) => {
+    () => Promise.all([getDashboard(), getMenuPhotos(), getUnreadCount()])
+      .then(([d, , count]) => {
         setData(d);
         setHasMenuPhotos(menuPhotosExist());
         setHasDonations(donationsExist());
-        console.log('[Dashboard] data:', JSON.stringify(d, null, 2));
+        setUnreadCount(count);
       })
       .catch(() => {}),
-    [lat, lng],
+    [lat, lng, setUnreadCount],
   );
 
   useFocusEffect(
@@ -544,6 +546,21 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
 
   const goToPost = useCallback(() => {
     navigation.navigate('Donations', { screen: 'PostDonation' } as never);
+  }, [navigation]);
+
+  const goToDetail = useCallback((donationId: string) => {
+    navigation.navigate('Donations', {
+      screen: 'DonationDetail',
+      params: { donationId },
+    } as never);
+  }, [navigation]);
+
+  const goToClaims = useCallback(() => {
+    navigation.navigate('Profile', { screen: 'TodaysClaims' } as never);
+  }, [navigation]);
+
+  const goToAnalytics = useCallback(() => {
+    navigation.navigate('Profile', { screen: 'RestaurantAnalytics' } as never);
   }, [navigation]);
 
   const isEmpty = useMemo(
@@ -610,7 +627,13 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
           <Text style={styles.growthText}>+{data.growthPctThisWeek}% this week</Text>
         </View>
 
-        {/* Today stats */}
+        {/* Today section header + stats */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Today</Text>
+          <TouchableOpacity onPress={goToClaims} hitSlop={8}>
+            <Text style={styles.sectionLink}>See claims</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.statRow}>
           <StatCard value={String(data.activeCount)}  label="ACTIVE"        valueColor={colors.accentPrimary} />
           <StatCard value={String(data.claimedToday)} label="CLAIMED TODAY" valueColor={colors.textPrimary} />
@@ -620,7 +643,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
         {/* This week */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>This week</Text>
-          <TouchableOpacity hitSlop={8}>
+          <TouchableOpacity onPress={goToAnalytics} hitSlop={8}>
             <Text style={styles.sectionLink}>Details</Text>
           </TouchableOpacity>
         </View>
@@ -646,7 +669,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
           </Text>
         </View>
         {data.todayListings.map((item) => (
-          <DonationRow key={item.id} item={item} />
+          <DonationRow key={item.id} item={item} onPress={() => goToDetail(item.id)} />
         ))}
 
         {/* Yesterday group */}
@@ -659,7 +682,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
               </Text>
             </View>
             {data.yesterdayListings.map((item) => (
-              <DonationRow key={item.id} item={item} />
+              <DonationRow key={item.id} item={item} onPress={() => goToDetail(item.id)} />
             ))}
           </>
         )}
@@ -674,7 +697,7 @@ export default function RestaurantDashboardScreen({ navigation }: Props) {
               </Text>
             </View>
             {group.listings.map((item) => (
-              <DonationRow key={item.id} item={item} />
+              <DonationRow key={item.id} item={item} onPress={() => goToDetail(item.id)} />
             ))}
           </React.Fragment>
         ))}

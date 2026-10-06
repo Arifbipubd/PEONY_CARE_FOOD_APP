@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings,
 } from '../../constants/theme';
+import { LEGAL_URLS } from '../../constants/legal';
 import { ProfileStackParamList } from '../../navigation/RestaurantTabs';
 
 type Props = {
@@ -26,7 +27,7 @@ type FaqEntry = { q: string; a: string };
 const FAQ_ITEMS: FaqEntry[] = [
   {
     q: 'How do I post a donation?',
-    a: 'From the home screen, tap the Post button. Fill in dish details, quantity, and the pickup window — that\'s it.',
+    a: 'From the home screen, tap the Post button. Fill in dish details and quantity — the listing is available today. Choose Every day if you want it posted again tomorrow.',
   },
   {
     q: 'How do I close an active donation?',
@@ -38,10 +39,10 @@ const FAQ_ITEMS: FaqEntry[] = [
   },
   {
     q: 'What if a receiver doesn\'t show up?',
-    a: 'After the pickup window ends, tap No-show on the claim. The portion returns to the pool so others can claim it.',
+    a: 'At the end of the day, tap No-show on the claim. The portion returns to the pool so others can claim it.',
   },
   {
-    q: 'Is there a fee to use Peony Care?',
+    q: 'Is there a fee to use Udufood?',
     a: 'No. Posting donations and receiving sponsored orders is free for restaurant partners — forever.',
   },
 ];
@@ -127,7 +128,7 @@ export default function RestaurantHelpFaqScreen({ navigation }: Props) {
   }, []);
 
   const handleEmail = useCallback(() => {
-    Linking.openURL('mailto:partners@peonycare.sg');
+    Linking.openURL(`mailto:${LEGAL_URLS.supportEmail}`);
   }, []);
 
   return (
@@ -152,7 +153,7 @@ export default function RestaurantHelpFaqScreen({ navigation }: Props) {
           </View>
           <View style={styles.contactText}>
             <Text style={styles.contactTitle}>Email us</Text>
-            <Text style={styles.contactSub}>partners@peonycare.sg</Text>
+            <Text style={styles.contactSub}>{LEGAL_URLS.supportEmail}</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TouchableOpacity>
@@ -174,7 +175,7 @@ export default function RestaurantHelpFaqScreen({ navigation }: Props) {
           <Text style={styles.footerNote}>
             {'Still need help? Email '}
             <Text style={styles.footerEmail} onPress={handleEmail}>
-              partners@peonycare.sg
+              {LEGAL_URLS.supportEmail}
             </Text>
             {' — we usually reply within 4 hours.'}
           </Text>

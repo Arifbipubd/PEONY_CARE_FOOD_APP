@@ -20,15 +20,6 @@ const ROLES = [
     screen: 'RestaurantRegister' as const,
   },
   {
-    key: 'DONOR' as const,
-    title: 'Individual Donor',
-    subtitle: 'Sponsor meals for those in need',
-    iconBg: colors.goldLight,
-    iconColor: colors.goldDark,
-    renderIcon: (color: string) => <MaterialCommunityIcons name="hand-heart" size={24} color={color} />,
-    screen: 'DonorRegister' as const,
-  },
-  {
     key: 'RECEIVER' as const,
     title: 'Receiver',
     subtitle: 'Find complimentary food near you',
@@ -47,7 +38,7 @@ export default function ChooseRoleScreen({ navigation }: Props) {
       </TouchableOpacity>
 
       <View style={styles.body}>
-        <Text style={styles.title}>Join Peony Care</Text>
+        <Text style={styles.title}>Join Udufood</Text>
         <Text style={styles.subtitle}>Choose how you'd like to contribute</Text>
 
         <View style={styles.cards}>

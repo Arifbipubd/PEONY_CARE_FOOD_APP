@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useMemo } from 'react';
+import { memo, useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { getFoodDetail, getDailyLimit } from '../../services/receiver';
+import { useLocation } from '../../hooks/useLocation';
+import { useAuthStore } from '../../store/authStore';
+import { openLogin } from '../../navigation/openLogin';
 import { FoodItem, DailyLimitStatus } from '../../types';
+import { foodCategoryLabel } from '../../constants/categories';
 import { colors, spacing, radius, fontSizes, fontFamilies, layout } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
@@ -21,22 +25,6 @@ type Props = {
   navigation: NativeStackNavigationProp<HomeStackParamList, 'FoodDetail'>;
   route: RouteProp<HomeStackParamList, 'FoodDetail'>;
 };
-
-const CATEGORY_LABELS: Record<string, string> = {
-  RICE: 'Rice', NOODLES: 'Noodles', BREAD: 'Bread',
-  SNACKS: 'Snacks', DRINKS: 'Drinks', OTHER: 'Other',
-};
-
-function formatPickupFull(start: string, end: string): string {
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleTimeString('en-SG', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  return `Today, ${fmt(start)} — ${fmt(end)}`;
-}
-
 
 const DetailSkeleton = memo(function DetailSkeleton() {
   const opacity = usePulse();
@@ -89,18 +77,32 @@ const dSkelStyles = StyleSheet.create({
 export default function FoodDetailScreen({ navigation, route }: Props) {
   const { foodId } = route.params;
   const insets = useSafeAreaInsets();
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const { lat, lng, loading: locLoading } = useLocation();
 
   const [food, setFood]             = useState<FoodItem | null>(null);
   const [dailyLimit, setDailyLimit] = useState<DailyLimitStatus | null>(null);
   const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
-    Promise.allSettled([getFoodDetail(foodId), getDailyLimit()]).then(([item, limit]) => {
+    if (locLoading) return;
+    const detail = getFoodDetail(foodId, lat ?? undefined, lng ?? undefined);
+    if (!accessToken) {
+      detail
+        .then((item) => {
+          setFood(item);
+          setDailyLimit(null);
+        })
+        .catch(() => setFood(null))
+        .finally(() => setLoading(false));
+      return;
+    }
+    Promise.allSettled([detail, getDailyLimit()]).then(([item, limit]) => {
       if (item.status === 'fulfilled')  setFood(item.value);
       if (limit.status === 'fulfilled') setDailyLimit(limit.value);
       setLoading(false);
     });
-  }, [foodId]);
+  }, [foodId, accessToken, lat, lng, locLoading]);
 
   const claimed = (food?.quantityOriginal ?? 0) - (food?.quantityAvailable ?? 0);
   const pct = food != null && food.quantityOriginal > 0
@@ -114,6 +116,25 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
     () => [styles.progressFill, { width: `${pct}%` as `${number}%` }],
     [pct],
   );
+  const handleReport = useCallback(() => {
+    if (!food) return;
+    if (!accessToken) {
+      openLogin(navigation);
+      return;
+    }
+    navigation.navigate('ReportListing', {
+      restaurantName: food.restaurantName,
+      foodId: food.id,
+    });
+  }, [accessToken, food, navigation]);
+  const handleClaim = useCallback(() => {
+    if (!food) return;
+    if (!accessToken) {
+      openLogin(navigation);
+      return;
+    }
+    navigation.navigate('QrScanner', { expectedFoodId: food.id });
+  }, [accessToken, food, navigation]);
 
   if (loading) {
     return <DetailSkeleton />;
@@ -127,7 +148,15 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
 
         {/* Hero image + back button */}
         <View>
-          <ImageWithSkeleton source={{ uri: food.photoUrl }} style={styles.image} resizeMode="cover" />
+          {food.photoUrl ? (
+            <ImageWithSkeleton source={{ uri: food.photoUrl }} style={styles.image} resizeMode="cover" />
+          ) : (
+            <View style={[styles.image, styles.imagePlaceholder]}>
+              <View style={styles.placeholderCircle}>
+                <Ionicons name="restaurant" size={32} color={colors.textMuted} />
+              </View>
+            </View>
+          )}
           <TouchableOpacity
             style={backBtnStyle}
             onPress={() => navigation.goBack()}
@@ -149,7 +178,7 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
           {/* Category chip */}
           <View style={styles.categoryChip}>
             <Text style={styles.categoryText}>
-              {CATEGORY_LABELS[food.category] ?? food.category}
+              {foodCategoryLabel(food.category)}
             </Text>
           </View>
 
@@ -188,12 +217,9 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
 
           <View style={styles.divider} />
 
-          {/* Pickup window */}
           <View style={styles.infoRow}>
             <Ionicons name="time" size={16} color={colors.pickupOrange} />
-            <Text style={styles.pickupTime}>
-              {formatPickupFull(food.pickupStart, food.pickupEnd)}
-            </Text>
+            <Text style={styles.pickupTime}>Available today</Text>
           </View>
 
           <View style={styles.divider} />
@@ -259,10 +285,7 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
         <TouchableOpacity
           style={styles.reportRow}
           activeOpacity={0.7}
-          onPress={() => navigation.navigate('ReportListing', {
-            restaurantName: food.restaurantName,
-            foodId: food.id,
-          })}
+          onPress={handleReport}
         >
           <Ionicons name="flag-outline" size={14} color={colors.textMuted} />
           <Text style={styles.reportText}>Report this listing</Text>
@@ -271,9 +294,11 @@ export default function FoodDetailScreen({ navigation, route }: Props) {
         <TouchableOpacity
           style={styles.claimBtn}
           activeOpacity={0.85}
-          onPress={() => navigation.navigate('QrScanner', { expectedFoodId: food.id })}
+          onPress={handleClaim}
         >
-          <Text style={styles.claimBtnText}>CLAIM THIS FOOD</Text>
+          <Text style={styles.claimBtnText}>
+            {accessToken ? 'CLAIM THIS FOOD' : 'LOG IN TO CLAIM'}
+          </Text>
         </TouchableOpacity>
         {dailyLimit && (
           <Text style={styles.dailyLimitText}>
@@ -292,6 +317,19 @@ const styles = StyleSheet.create({
     width: '100%',
     height: layout.foodImageHeight,
     backgroundColor: colors.borderDefault,
+  },
+  imagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceSecondary,
+  },
+  placeholderCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.pill,
+    backgroundColor: colors.borderDefault,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   backBtn: {

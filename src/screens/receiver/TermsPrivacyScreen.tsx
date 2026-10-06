@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +13,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings,
 } from '../../constants/theme';
+import { LEGAL_URLS } from '../../constants/legal';
 import { ProfileStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
@@ -31,15 +33,15 @@ type SectionData = {
 };
 
 const HERO_SUBTITLE: Record<Tab, string> = {
-  terms:   'How Peony Care works for receivers.',
+  terms:   'How Udufood works for receivers.',
   privacy: 'What we collect and how we use it.',
-  cookies: 'How Peony Care handles your data and what you agree to.',
+  cookies: 'How Udufood handles your data and what you agree to.',
 };
 
 const TERMS_SECTIONS: SectionData[] = [
   {
     heading: '1. Eligibility',
-    body: 'Peony Care is for Singapore residents who need food assistance. You register with your mobile number — no NRIC, income document, or other verification required.',
+    body: 'Udufood is for Singapore residents who need food assistance. You register with your mobile number — no NRIC, income document, or other verification required.',
   },
   {
     heading: '2. One claim per day',
@@ -47,7 +49,7 @@ const TERMS_SECTIONS: SectionData[] = [
   },
   {
     heading: '3. Pickup & etiquette',
-    body: 'If you claim food, please collect it within the stated pickup window.',
+    body: 'If you claim food, please collect it today.',
     bullets: [
       'Show your QR code at pickup.',
       'Be respectful to restaurant staff.',
@@ -58,7 +60,7 @@ const TERMS_SECTIONS: SectionData[] = [
   },
   {
     heading: '4. Food safety',
-    body: "Restaurants and individual donors are responsible for the quality and safety of the food they post. Peony Care is a platform — we don't prepare, store, or transport food. If you ever receive food that looks unsafe, refuse it and report it through the app.",
+    body: "Restaurants and individual donors are responsible for the quality and safety of the food they post. Udufood is a platform — we don't prepare, store, or transport food. If you ever receive food that looks unsafe, refuse it and report it through the app.",
   },
   {
     heading: '5. Account termination',
@@ -82,8 +84,8 @@ const PRIVACY_SECTIONS: SectionData[] = [
   {
     heading: 'PDPA compliance',
     bodyParts: [
-      { text: "Peony Care complies with Singapore's Personal Data Protection Act (PDPA). You can request to view, correct, or delete your data at any time by emailing " },
-      { text: 'privacy@peonycare.sg', accent: true },
+      { text: "Udufood complies with Singapore's Personal Data Protection Act (PDPA). You can request to view, correct, or delete your data at any time by emailing " },
+      { text: 'support@udufood.com', accent: true },
       { text: '.' },
     ],
   },
@@ -241,7 +243,24 @@ export default function TermsPrivacyScreen({ navigation }: Props) {
         {/* Footer */}
         <View style={styles.footerCard}>
           <Text style={styles.footerNote}>Questions about your data? Email</Text>
-          <Text style={styles.footerEmail}>privacy@peonycare.sg.</Text>
+          <Text
+            style={styles.footerEmail}
+            onPress={() => Linking.openURL(`mailto:${LEGAL_URLS.privacyEmail}`)}
+          >
+            {LEGAL_URLS.privacyEmail}
+          </Text>
+          <Text
+            style={styles.footerLink}
+            onPress={() => Linking.openURL(LEGAL_URLS.privacy)}
+          >
+            View privacy policy online
+          </Text>
+          <Text
+            style={styles.footerLink}
+            onPress={() => Linking.openURL(LEGAL_URLS.terms)}
+          >
+            View terms online
+          </Text>
         </View>
 
       </ScrollView>
@@ -397,5 +416,12 @@ const styles = StyleSheet.create({
     fontSize: fontSizes['12'],
     lineHeight: 18,
     color: colors.accentPrimary,
+  },
+  footerLink: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    lineHeight: 18,
+    color: colors.accentPrimary,
+    marginTop: spacing.sm,
   },
 });

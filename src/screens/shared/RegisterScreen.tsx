@@ -85,7 +85,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <LogoBadge size={80} />
+        <LogoBadge width={160} />
 
         <Text style={styles.title}>{copy.title}</Text>
 

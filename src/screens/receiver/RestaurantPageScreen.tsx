@@ -15,7 +15,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getPublicRestaurantDetail } from '../../services/restaurant';
+import { useLocation } from '../../hooks/useLocation';
 import { PublicRestaurant, FoodItem } from '../../types';
+import { foodCategoryLabel } from '../../constants/categories';
 import { colors, spacing, radius, fontSizes, fontFamilies, layout } from '../../constants/theme';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
@@ -24,16 +26,11 @@ type Props = {
   route: RouteProp<HomeStackParamList, 'RestaurantPage'>;
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  RICE: 'Rice', NOODLES: 'Noodles', BREAD: 'Bread',
-  SNACKS: 'Snacks', DRINKS: 'Drinks', OTHER: 'Other',
-};
-
 function uniqueCategoryChip(foods: FoodItem[]): string {
   const seen = new Set<string>();
   const labels: string[] = [];
   for (const f of foods) {
-    const label = CATEGORY_LABELS[f.category] ?? f.category;
+    const label = foodCategoryLabel(f.category);
     if (!seen.has(label)) { seen.add(label); labels.push(label); }
   }
   return labels.join(' · ');
@@ -124,17 +121,19 @@ const rSkelStyles = StyleSheet.create({
 export default function RestaurantPageScreen({ navigation, route }: Props) {
   const { restaurantId, distanceKm } = route.params;
   const insets = useSafeAreaInsets();
+  const { lat, lng, loading: locLoading } = useLocation();
 
   const [restaurant, setRestaurant] = useState<PublicRestaurant | null>(null);
   const [foods, setFoods]           = useState<FoodItem[]>([]);
   const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
-    getPublicRestaurantDetail(restaurantId)
+    if (locLoading) return;
+    getPublicRestaurantDetail(restaurantId, lat ?? undefined, lng ?? undefined)
       .then(({ restaurant, foods }) => { setRestaurant(restaurant); setFoods(foods); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [restaurantId]);
+  }, [restaurantId, lat, lng, locLoading]);
 
   const backBtnStyle = useMemo<StyleProp<ViewStyle>>(
     () => [styles.backBtn, { top: insets.top + spacing.md }],
@@ -161,7 +160,7 @@ export default function RestaurantPageScreen({ navigation, route }: Props) {
             <Text style={styles.foodLeftNum}>{item.quantityAvailable}</Text>
             {' left'}
           </Text>
-          <Text style={styles.foodPickup}>{item.pickupWindow}</Text>
+          <Text style={styles.foodPickup}>Today</Text>
         </View>
         <Text
           style={item.sponsorshipType === 'DIRECT' ? styles.sponsorDirect : styles.sponsorSponsored}

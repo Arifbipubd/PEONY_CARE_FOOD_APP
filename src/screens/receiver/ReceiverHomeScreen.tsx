@@ -17,17 +17,21 @@ import SkeletonBox, { usePulse } from '../../components/SkeletonBox';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAuthStore } from '../../store/authStore';
 import { useProfileStore } from '../../store/profileStore';
 import { useNotificationStore } from '../../store/notificationStore';
+import { openLogin } from '../../navigation/openLogin';
 import FoodCard from '../../components/FoodCard';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import FilterSheet, { FilterState, DEFAULT_FILTERS } from '../../components/FilterSheet';
-import { browseFood, getDailyLimit, getReceiverProfile, searchFood, updateReceiverLocation } from '../../services/receiver';
+import { browseFood, getDailyLimit, getNetworkToday, getReceiverProfile, searchFood, updateReceiverLocation } from '../../services/receiver';
 import { useLocation } from '../../hooks/useLocation';
 import { getNearbyRestaurants } from '../../services/restaurant';
-import { getNotifications } from '../../services/notifications';
-import { FoodItem, FoodCategory, DailyLimitStatus, PublicRestaurant } from '../../types';
+import { getUnreadCount } from '../../services/notifications';
+import { FoodItem, FoodCategory, DailyLimitStatus, NetworkTodaySummary, PublicRestaurant } from '../../types';
+import TodayNetworkCard from '../../components/TodayNetworkCard';
 import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, letterSpacings, lineHeights, layout } from '../../constants/theme';
+import { FOOD_CATEGORIES } from '../../constants/categories';
 import { HomeStackParamList } from '../../navigation/ReceiverTabs';
 
 type Props = {
@@ -37,11 +41,8 @@ type Props = {
 type Tab = 'meals' | 'restaurants';
 
 const CHIPS: { label: string; value: FoodCategory | null }[] = [
-  { label: 'All',     value: null },
-  { label: 'Rice',    value: 'RICE' },
-  { label: 'Noodles', value: 'NOODLES' },
-  { label: 'Bread',   value: 'BREAD' },
-  { label: 'Snacks',  value: 'SNACKS' },
+  { label: 'All', value: null },
+  ...FOOD_CATEGORIES.map(({ value, label }) => ({ label, value })),
 ];
 
 
@@ -135,10 +136,13 @@ const HomeSkeleton = memo(function HomeSkeleton() {
     <SafeAreaView style={styles.screen}>
       <View style={skelStyles.top}>
         <View style={skelStyles.headerRow}>
-          <SkeletonBox opacity={opacity} width={130} height={26} />
+          <View style={skelStyles.headerText}>
+            <SkeletonBox opacity={opacity} width={130} height={26} />
+            <SkeletonBox opacity={opacity} width={140} height={22} borderRadius={100} />
+          </View>
           <SkeletonBox opacity={opacity} width={40} height={40} borderRadius={100} />
         </View>
-        <SkeletonBox opacity={opacity} width={140} height={26} borderRadius={100} />
+        <SkeletonBox opacity={opacity} height={84} borderRadius={18} />
         <View style={skelStyles.searchRow}>
           <SkeletonBox opacity={opacity} height={48} borderRadius={14} style={skelStyles.searchFlex} />
           <SkeletonBox opacity={opacity} width={48} height={48} borderRadius={14} />
@@ -190,6 +194,10 @@ const skelStyles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerText: {
+    flex: 1,
+    gap: spacing.xs,
+  },
   searchRow: {
     flexDirection: 'row',
     gap: spacing.sm,
@@ -231,8 +239,10 @@ const skelStyles = StyleSheet.create({
 });
 
 export default function ReceiverHomeScreen({ navigation }: Props) {
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const isGuest = accessToken == null;
   const { displayName, setProfile } = useProfileStore();
-  const { unreadCount, setNotifications } = useNotificationStore();
+  const { unreadCount, setUnreadCount } = useNotificationStore();
   const name = displayName || 'Sarah';
   const firstName = name.split(' ')[0];
   const { lat, lng, loading: locLoading } = useLocation();
@@ -247,6 +257,8 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const [searchResults, setSearchResults] = useState<FoodItem[] | null>(null);
   const [restaurants, setRestaurants]   = useState<PublicRestaurant[]>([]);
   const [dailyLimit, setDailyLimit]     = useState<DailyLimitStatus | null>(null);
+  const [networkToday, setNetworkToday] = useState<NetworkTodaySummary | null>(null);
+  const [networkCardDismissed, setNetworkCardDismissed] = useState(false);
   const [loading, setLoading]           = useState(true);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -255,38 +267,66 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
   const fetchData = useCallback((overrideLat?: number, overrideLng?: number) => {
     const useLat = overrideLat ?? lat ?? undefined;
     const useLng = overrideLng ?? lng ?? undefined;
-    console.log('[Home] fetchData lat:', useLat, 'lng:', useLng);
+    if (!accessToken) {
+      return Promise.allSettled([
+        browseFood(useLat, useLng),
+        getNearbyRestaurants(useLat, useLng),
+        getNetworkToday(),
+      ]).then(([items, rests, network]) => {
+        if (items.status === 'fulfilled') setFoods(items.value);
+        if (rests.status === 'fulfilled') setRestaurants(rests.value);
+        if (network.status === 'fulfilled' && network.value.restaurantsTotal > 0) {
+          setNetworkToday(network.value);
+        } else if (network.status === 'fulfilled') {
+          setNetworkToday(null);
+        }
+        setDailyLimit(null);
+        setLoading(false);
+      });
+    }
     return Promise.allSettled([
       browseFood(useLat, useLng),
       getDailyLimit(),
       getNearbyRestaurants(useLat, useLng),
       getReceiverProfile(),
-      getNotifications(),
-    ]).then(([items, limit, rests, profile, notifications]) => {
-      console.log('[Home] foods:', items.status, items.status === 'fulfilled' ? items.value.length : (items as PromiseRejectedResult).reason);
-      console.log('[Home] restaurants:', rests.status, rests.status === 'fulfilled' ? rests.value.length : (rests as PromiseRejectedResult).reason);
+      getUnreadCount(),
+      getNetworkToday(),
+    ]).then(([items, limit, rests, profile, unread, network]) => {
       if (items.status === 'fulfilled')         setFoods(items.value);
       if (limit.status === 'fulfilled')         setDailyLimit(limit.value);
       if (rests.status === 'fulfilled')         setRestaurants(rests.value);
       if (profile.status === 'fulfilled') {
-        console.log('[Home] profile', profile.value);
         setProfile({ displayName: profile.value.displayName });
+        if (profile.value.browseRadiusKm) {
+          setFilters((f) => ({ ...f, maxDistanceKm: profile.value.browseRadiusKm! }));
+        }
       }
-      if (notifications.status === 'fulfilled') setNotifications(notifications.value);
+      if (unread.status === 'fulfilled') setUnreadCount(unread.value);
+      if (network.status === 'fulfilled' && network.value.restaurantsTotal > 0) {
+        setNetworkToday(network.value);
+      } else if (network.status === 'fulfilled') {
+        setNetworkToday(null);
+      }
       setLoading(false);
     });
-  }, [lat, lng, setProfile, setNotifications]);
+  }, [accessToken, lat, lng, setProfile, setUnreadCount]);
 
   useEffect(() => {
-    if (locLoading || lat === null || lng === null || locationPatched.current) return;
+    if (!accessToken || locLoading || lat === null || lng === null || locationPatched.current) return;
     locationPatched.current = true;
     updateReceiverLocation(lat, lng).catch(() => {});
-  }, [locLoading, lat, lng]);
+  }, [accessToken, locLoading, lat, lng]);
 
   useEffect(() => {
     if (locLoading) return;
     fetchData();
   }, [locLoading, fetchData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setNetworkCardDismissed(false);
+    }, []),
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -296,7 +336,12 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
     }, [locLoading, fetchData]),
   );
 
+  const dismissNetworkCard = useCallback(() => {
+    setNetworkCardDismissed(true);
+  }, []);
+
   const onRefresh = useCallback(() => {
+    setNetworkCardDismissed(false);
     setRefreshing(true);
     fetchData()?.finally(() => setRefreshing(false));
   }, [fetchData]);
@@ -349,10 +394,6 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
       if (showOnly.sponsored && f.sponsorshipType === 'DIRECT') return false;
       if (showOnly.halal && !f.isHalal) return false;
       if (showOnly.vegetarian && !f.isVegetarian) return false;
-      if (showOnly.pickupUnder1h) {
-        const msLeft = new Date(f.pickupEnd).getTime() - Date.now();
-        if (!(msLeft > 0 && msLeft <= 60 * 60 * 1000)) return false;
-      }
       return true;
     });
   }, [searchResults, foods, filters]);
@@ -372,17 +413,18 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
         latitude = pos.coords.latitude;
         longitude = pos.coords.longitude;
       }
-      updateReceiverLocation(latitude, longitude).catch(() => {});
+      if (accessToken) updateReceiverLocation(latitude, longitude).catch(() => {});
       fetchData(latitude, longitude);
     } catch {
       setLoading(false);
     }
-  }, [lat, lng, fetchData]);
+  }, [accessToken, lat, lng, fetchData]);
 
   const handleNotifications = useCallback(
     () => navigation.getParent()?.navigate('Alerts' as never),
     [navigation],
   );
+  const handleLogin = useCallback(() => openLogin(navigation), [navigation]);
   const handleBrowseWithout = useCallback(() => setSkipEmpty(true), []);
   const handleOpenFilter   = useCallback(() => setFilterSheetVisible(true), []);
 
@@ -441,6 +483,10 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
         firstName={firstName}
         unreadCount={unreadCount}
         dailyLimit={dailyLimit}
+        networkToday={networkCardDismissed ? null : networkToday}
+        onDismissNetwork={dismissNetworkCard}
+        isGuest={isGuest}
+        onLoginPress={handleLogin}
         onNotificationsPress={handleNotifications}
         onEnableLocation={handleEnableLocation}
         onBrowseWithout={handleBrowseWithout}
@@ -454,27 +500,40 @@ export default function ReceiverHomeScreen({ navigation }: Props) {
       {/* ── Fixed top section ── */}
       <View style={styles.top}>
 
-        {/* Greeting + Bell */}
         <View style={styles.headerRow}>
-          <Text style={styles.greeting}>Hi, {firstName} 👋</Text>
-          <TouchableOpacity
-            style={styles.bellButton}
-            hitSlop={8}
-            onPress={handleNotifications}
-          >
-            <Ionicons name="notifications" size={20} color={colors.textPrimary} />
-            {unreadCount > 0 && <View style={styles.bellDot} />}
-          </TouchableOpacity>
+          <View style={styles.headerText}>
+            <Text style={styles.greeting}>{isGuest ? 'Browse meals' : `Hi, ${firstName} 👋`}</Text>
+            {dailyLimit && !isGuest && (
+              <View style={styles.claimsBadge}>
+                <Ionicons name="checkmark-circle" size={14} color={colors.successGreen} />
+                <Text style={styles.claimsText}>
+                  Claims: {dailyLimit.used}/{dailyLimit.limit} today
+                </Text>
+              </View>
+            )}
+          </View>
+          {isGuest ? (
+            <TouchableOpacity
+              style={styles.loginButton}
+              hitSlop={8}
+              onPress={handleLogin}
+            >
+              <Text style={styles.loginText}>Log in</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.bellButton}
+              hitSlop={8}
+              onPress={handleNotifications}
+            >
+              <Ionicons name="notifications" size={20} color={colors.textPrimary} />
+              {unreadCount > 0 && <View style={styles.bellDot} />}
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Claims badge */}
-        {dailyLimit && (
-          <View style={styles.claimsBadge}>
-            <Ionicons name="checkmark-circle" size={14} color={colors.successGreen} />
-            <Text style={styles.claimsText}>
-              Claims: {dailyLimit.used}/{dailyLimit.limit} today
-            </Text>
-          </View>
+        {networkToday && !networkCardDismissed && (
+          <TodayNetworkCard summary={networkToday} onClose={dismissNetworkCard} />
         )}
 
         {/* Search bar + filter button */}
@@ -601,6 +660,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerText: {
+    flex: 1,
+    gap: spacing.xs,
+  },
   greeting: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xl,
@@ -614,6 +677,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loginButton: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentPrimary,
+  },
+  loginText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.md,
+    letterSpacing: letterSpacings.button,
+    color: colors.textInverse,
   },
   bellDot: {
     position: 'absolute',
@@ -686,8 +761,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     paddingTop: spacing.md,
-    paddingBottom: 12,   // component-specific, not in spacing scale
-    paddingHorizontal: 4, // component-specific, not in spacing scale
+    paddingBottom: 12,
+    paddingHorizontal: 4,
     gap: spacing.xs,
     marginBottom: -1,
   },

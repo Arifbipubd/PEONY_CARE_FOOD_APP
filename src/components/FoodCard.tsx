@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import ImageWithSkeleton from './ImageWithSkeleton';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { FoodItem, FoodCategory } from '../types';
-import { colors, spacing, radius, fontSizes, fontWeights, fontFamilies, layout } from '../constants/theme';
+import { foodCategoryLabel } from '../constants/categories';
+import { colors, spacing, radius, fontSizes, fontFamilies, layout } from '../constants/theme';
 
 interface FoodCardProps {
   item: FoodItem;
@@ -11,17 +12,7 @@ interface FoodCardProps {
 }
 
 function formatCategory(cat: FoodCategory): string {
-  return cat.charAt(0) + cat.slice(1).toLowerCase();
-}
-
-function formatPickupWindow(start: string, end: string): string {
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleTimeString('en-SG', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  return `Pickup ${fmt(start)} – ${fmt(end)}`;
+  return foodCategoryLabel(cat);
 }
 
 function sponsorLabel(item: FoodItem): string {
@@ -52,30 +43,26 @@ const FoodCard = React.memo(function FoodCard({ item, onPress }: FoodCardProps) 
       <View style={styles.content}>
         <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
 
-        <View style={styles.restaurantRow}>
-          <Ionicons name="storefront-outline" size={12} color={colors.textMuted} />
-          <Text style={styles.restaurantText} numberOfLines={1}>{item.restaurantName}</Text>
-        </View>
-
         <View style={styles.metaRow}>
+          <View style={styles.restaurantItem}>
+            <Ionicons name="storefront-outline" size={12} color={colors.textMuted} />
+            <Text style={styles.restaurantText} numberOfLines={1}>{item.restaurantName}</Text>
+          </View>
           <View style={styles.metaItem}>
             <Ionicons name="navigate" size={12} color={colors.textMuted} />
             <Text style={styles.metaText}>{item.distanceKm.toFixed(1)} km</Text>
           </View>
           <View style={styles.metaItem}>
             <Ionicons name="time" size={12} color={colors.pickupOrange} />
-            <Text style={styles.pickupText}>
-              {formatPickupWindow(item.pickupStart, item.pickupEnd)}
-            </Text>
+            <Text style={styles.pickupText}>Today</Text>
           </View>
         </View>
 
         <View style={styles.sponsorRow}>
-          {item.sponsorshipType === 'DIRECT' ? (
-            <Ionicons name="storefront-outline" size={12} color={colors.textMuted} />
-          ) : item.sponsorshipType === 'SPONSORED_NAMED' ? (
+          {item.sponsorshipType === 'SPONSORED_NAMED' && (
             <MaterialCommunityIcons name="hand-heart" size={12} color={colors.warningYellow} />
-          ) : (
+          )}
+          {item.sponsorshipType === 'SPONSORED_ANONYMOUS' && (
             <Ionicons name="heart" size={12} color={colors.warningYellow} />
           )}
           <Text style={styles.sponsorText}>{sponsorLabel(item)}</Text>
@@ -151,15 +138,16 @@ const styles = StyleSheet.create({
     letterSpacing: -0.225,        // component-specific, not in letterSpacings scale
     color: colors.textPrimary,
   },
-  restaurantRow: {
+  restaurantItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,                       // component-specific, not in spacing scale
-    marginTop: 4,                 // component-specific, not in spacing scale
+    gap: spacing.xs,
+    minWidth: 0,
   },
   restaurantText: {
     fontFamily: fontFamilies.regular,
-    fontSize: fontSizes.sm,       // 13px
+    fontSize: fontSizes.sm,
     color: colors.textMuted,
     flex: 1,
     includeFontPadding: false,
@@ -167,7 +155,7 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,                       // component-specific, not in spacing scale
+    gap: spacing.sm,
     marginTop: spacing.xs,
   },
   metaItem: {

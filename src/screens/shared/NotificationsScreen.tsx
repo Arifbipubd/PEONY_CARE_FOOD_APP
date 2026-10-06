@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, memo } from 'react';
+import { useState, useCallback, useMemo, memo, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
@@ -12,9 +12,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useAuthStore } from '../../store/authStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import {
   getNotifications,
+  getUnreadCount,
   markRead as apiMarkRead,
   markAllRead as apiMarkAllRead,
 } from '../../services/notifications';
@@ -24,7 +26,9 @@ import {
 } from '../../constants/theme';
 
 type Props = {
-  navigation: BottomTabNavigationProp<Record<string, undefined>>;
+  // Shared across role tab navigators — destinations differ by role.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  navigation: BottomTabNavigationProp<any>;
 };
 
 type IconConfig = {
@@ -34,11 +38,112 @@ type IconConfig = {
   library?: 'mci';
 };
 
+type Section = {
+  key: string;
+  title: string;
+  data: AppNotification[];
+};
+
+/** Read an ID from payload — accepts string or number, tries several key aliases. */
+function payloadId(
+  payload: Record<string, unknown>,
+  ...keys: string[]
+): string | null {
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === 'string' && value.length > 0) return value;
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return null;
+}
+
+function isClaimConfirmationType(type: string): boolean {
+  return (
+    type === 'CLAIM_CONFIRMED' ||
+    type === 'MEAL_CLAIMED' ||
+    type === 'CLAIM_COLLECTED' ||
+    type === 'CLAIM_SUCCESS'
+  );
+}
+
+function isNewFoodType(type: string): boolean {
+  return type === 'NEW_FOOD_NEARBY' || type === 'FOOD_EXPIRING';
+}
+
+/** Open the screen linked to this notification (food detail, restaurant, claims, …). */
+function navigateFromNotification(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  navigation: BottomTabNavigationProp<any>,
+  item: AppNotification,
+  role: string | undefined,
+) {
+  const foodId = payloadId(
+    item.payload,
+    'food_id',
+    'foodId',
+    'donation_id',
+    'donationId',
+  );
+  const restaurantId = payloadId(
+    item.payload,
+    'restaurant_id',
+    'restaurantId',
+  );
+
+  if (role === 'RECEIVER') {
+    // Meal / claim confirmation → claim history
+    if (isClaimConfirmationType(item.type)) {
+      navigation.navigate('History');
+      return;
+    }
+
+    // New food nearby / expiring → food detail
+    if (foodId && isNewFoodType(item.type)) {
+      navigation.navigate('Home', {
+        screen: 'FoodDetail',
+        params: { foodId },
+      });
+      return;
+    }
+
+    if (restaurantId && item.type === 'RESTAURANT_UPDATE') {
+      navigation.navigate('Home', {
+        screen: 'RestaurantPage',
+        params: { restaurantId },
+      });
+      return;
+    }
+
+    // Fallback: any notification that carries a food id opens food detail
+    if (foodId) {
+      navigation.navigate('Home', {
+        screen: 'FoodDetail',
+        params: { foodId },
+      });
+    }
+    return;
+  }
+
+  if (role === 'RESTAURANT') {
+    if (
+      item.type === 'FOOD_CLAIMED' ||
+      isClaimConfirmationType(item.type) ||
+      foodId
+    ) {
+      navigation.navigate('Profile', { screen: 'TodaysClaims' });
+    }
+  }
+}
+
 function getIconConfig(type: string): IconConfig {
   switch (type) {
     case 'CLAIM_CONFIRMED':
+    case 'MEAL_CLAIMED':
+    case 'CLAIM_COLLECTED':
+    case 'CLAIM_SUCCESS':
       return { name: 'checkmark-circle',   color: colors.successGreen,  bg: colors.successGreenLight };
     case 'NEW_FOOD_NEARBY':
+    case 'FOOD_CLAIMED':
       return { name: 'silverware-fork-knife', color: colors.accentPrimary, bg: colors.avatarBg, library: 'mci' as const };
     case 'FOOD_EXPIRING':
       return { name: 'time',               color: colors.goldDark,      bg: colors.goldLight };
@@ -63,38 +168,64 @@ function relTime(isoString: string): string {
   return new Date(isoString).toLocaleDateString('en-SG', { month: 'short', day: 'numeric' });
 }
 
-function daysDiff(isoString: string): number {
-  const notifDate = new Date(isoString);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  notifDate.setHours(0, 0, 0, 0);
-  return Math.round((today.getTime() - notifDate.getTime()) / 86400000);
-}
+const MarkAllReadButton = memo(function MarkAllReadButton({
+  visible,
+  disabled,
+  onPress,
+}: {
+  visible: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  if (!visible) return null;
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={disabled}
+      hitSlop={8}
+      activeOpacity={0.7}
+    >
+      <Text style={[styles.markAllText, disabled && styles.markAllTextDisabled]}>
+        Mark all read
+      </Text>
+    </TouchableOpacity>
+  );
+});
 
-function buildSections(notifications: AppNotification[]) {
-  const ORDER = ['Today', 'Yesterday', 'This week', 'Earlier'] as const;
-  const groups: Partial<Record<typeof ORDER[number], AppNotification[]>> = {};
-
-  for (const n of notifications) {
-    const d = daysDiff(n.createdAt);
-    const label: typeof ORDER[number] =
-      d === 0 ? 'Today' : d === 1 ? 'Yesterday' : d < 7 ? 'This week' : 'Earlier';
-    if (!groups[label]) groups[label] = [];
-    groups[label]!.push(n);
-  }
-
-  return ORDER.filter((label) => groups[label]).map((label) => ({
-    title: label,
-    data: groups[label]!,
-  }));
-}
+const NotificationsHeader = memo(function NotificationsHeader({
+  onBack,
+  showMarkAll,
+  markAllDisabled,
+  onMarkAll,
+}: {
+  onBack: () => void;
+  showMarkAll: boolean;
+  markAllDisabled: boolean;
+  onMarkAll: () => void;
+}) {
+  return (
+    <>
+      <View style={styles.filterRow}>
+        <TouchableOpacity onPress={onBack} hitSlop={8}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <MarkAllReadButton
+          visible={showMarkAll}
+          disabled={markAllDisabled}
+          onPress={onMarkAll}
+        />
+      </View>
+      <Text style={styles.pageTitle}>Notifications</Text>
+    </>
+  );
+});
 
 const NotifRow = memo(function NotifRow({
   item,
   onPress,
 }: {
   item: AppNotification;
-  onPress: (id: string) => void;
+  onPress: (item: AppNotification) => void;
 }) {
   const icon   = getIconConfig(item.type);
   const isRead = item.readAt !== null;
@@ -102,7 +233,7 @@ const NotifRow = memo(function NotifRow({
     <TouchableOpacity
       style={styles.row}
       activeOpacity={0.75}
-      onPress={() => onPress(item.id)}
+      onPress={() => onPress(item)}
     >
       <View style={[styles.iconCircle, { backgroundColor: icon.bg }]}>
         {icon.library === 'mci'
@@ -128,105 +259,158 @@ const NotifRow = memo(function NotifRow({
 });
 
 export default function NotificationsScreen({ navigation }: Props) {
+  const role = useAuthStore((s) => s.user?.role);
   const {
-    notifications, setNotifications,
+    groups, unreadCount, page, hasNext,
+    setInbox, appendInbox, setUnreadCount,
     markRead: storeMarkRead, markAllRead: storeMarkAllRead,
   } = useNotificationStore();
-  const [loading, setLoading]       = useState(notifications.length === 0);
-  const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = useCallback(
-    () => getNotifications().then((items) => setNotifications(items)).catch(() => {}),
-    [setNotifications],
+  const itemCount = useMemo(
+    () => groups.reduce((sum, g) => sum + g.items.length, 0),
+    [groups],
+  );
+
+  const [loading, setLoading]         = useState(itemCount === 0);
+  const [refreshing, setRefreshing]   = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [markingAll, setMarkingAll]   = useState(false);
+  const loadingMoreRef = useRef(false);
+  const hasUnread = unreadCount > 0;
+
+  const loadPage = useCallback(
+    (pageNum: number, mode: 'replace' | 'append') => {
+      return getNotifications({ page: pageNum, pageSize: 20 })
+        .then((inbox) => {
+          if (mode === 'replace') setInbox(inbox);
+          else appendInbox(inbox);
+        })
+        .catch(() => {});
+    },
+    [setInbox, appendInbox],
   );
 
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      loadData().finally(() => setLoading(false));
-    }, [loadData]),
+      loadPage(1, 'replace').finally(() => setLoading(false));
+    }, [loadPage]),
   );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    loadData().finally(() => setRefreshing(false));
-  }, [loadData]);
+    loadPage(1, 'replace').finally(() => setRefreshing(false));
+  }, [loadPage]);
 
-  const handleTap = useCallback((id: string) => {
-    storeMarkRead(id);
-    apiMarkRead(id);
-  }, [storeMarkRead]);
+  const onEndReached = useCallback(() => {
+    if (!hasNext || loadingMoreRef.current || loading || refreshing) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    loadPage(page + 1, 'append').finally(() => {
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
+    });
+  }, [hasNext, loading, refreshing, page, loadPage]);
+
+  const handleTap = useCallback((item: AppNotification) => {
+    if (item.readAt === null) {
+      storeMarkRead(item.id);
+      apiMarkRead(item.id).then(() => getUnreadCount().then(setUnreadCount));
+    }
+    navigateFromNotification(navigation, item, role);
+  }, [storeMarkRead, setUnreadCount, navigation, role]);
 
   const handleMarkAll = useCallback(() => {
+    if (unreadCount === 0 || markingAll) return;
+    setMarkingAll(true);
     storeMarkAllRead();
-    apiMarkAllRead();
-  }, [storeMarkAllRead]);
+    apiMarkAllRead()
+      .then((result) => setUnreadCount(result.unreadCount))
+      .catch(() => loadPage(1, 'replace'))
+      .finally(() => setMarkingAll(false));
+  }, [unreadCount, markingAll, storeMarkAllRead, setUnreadCount, loadPage]);
 
-  const sections = useMemo(() => buildSections(notifications), [notifications]);
+  const goHome = useCallback(() => {
+    navigation.navigate('Home' as never);
+  }, [navigation]);
+
+  const sections = useMemo<Section[]>(
+    () =>
+      groups.map((g) => ({
+        key: g.key,
+        title: g.label,
+        data: g.items,
+      })),
+    [groups],
+  );
 
   if (loading) {
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
-        <View style={styles.filterRow}>
-          <TouchableOpacity onPress={() => navigation.navigate('Home' as never)} hitSlop={8}>
-            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleMarkAll} hitSlop={8}>
-            <Ionicons name="options" size={22} color={colors.textMuted} />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.pageTitle}>Notifications</Text>
-        <ActivityIndicator style={{ flex: 1 }} color={colors.accentPrimary} />
+        <NotificationsHeader
+          onBack={goHome}
+          showMarkAll={hasUnread}
+          markAllDisabled={markingAll}
+          onMarkAll={handleMarkAll}
+        />
+        <ActivityIndicator style={styles.loader} color={colors.accentPrimary} />
       </SafeAreaView>
     );
   }
 
-  // ── Empty state ──────────────────────────────────────────────────────────────
-  if (notifications.length === 0) {
+  if (itemCount === 0) {
+    const listFailed = unreadCount > 0;
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
-        <View style={styles.filterRow}>
-          <TouchableOpacity onPress={() => navigation.navigate('Home' as never)} hitSlop={8}>
-            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleMarkAll} hitSlop={8}>
-            <Ionicons name="options" size={22} color={colors.textMuted} />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.pageTitle}>Notifications</Text>
+        <NotificationsHeader
+          onBack={goHome}
+          showMarkAll={hasUnread}
+          markAllDisabled={markingAll}
+          onMarkAll={handleMarkAll}
+        />
         <View style={styles.emptyBody}>
           <View style={styles.emptyIconCircle}>
-            <Ionicons name="notifications" size={48} color={colors.textMuted} />
+            <Ionicons
+              name={listFailed ? 'refresh' : 'notifications'}
+              size={48}
+              color={colors.textMuted}
+            />
           </View>
-          <Text style={styles.emptyTitle}>All caught up</Text>
+          <Text style={styles.emptyTitle}>
+            {listFailed ? 'Couldn’t load notifications' : 'All caught up'}
+          </Text>
           <Text style={styles.emptyDesc}>
-            When new food appears nearby or someone claims your donation, you'll see it here.
+            {listFailed
+              ? 'You have unread alerts, but the list failed to load. Pull to refresh or try again.'
+              : 'When new food appears nearby or someone claims your donation, you\'ll see it here.'}
           </Text>
           <TouchableOpacity
             style={styles.emptyCta}
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('Home' as never)}
+            onPress={() => {
+              if (listFailed) {
+                setLoading(true);
+                loadPage(1, 'replace').finally(() => setLoading(false));
+                return;
+              }
+              navigation.navigate('Home' as never);
+            }}
           >
-            <Text style={styles.emptyCtaText}>Browse food</Text>
+            <Text style={styles.emptyCtaText}>{listFailed ? 'Try again' : 'Browse food'}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-  // ── Filled state ─────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-
-      <View style={styles.filterRow}>
-        <TouchableOpacity onPress={() => navigation.navigate('Home' as never)} hitSlop={8}>
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleMarkAll} hitSlop={8}>
-          <Ionicons name="options" size={22} color={colors.textMuted} />
-        </TouchableOpacity>
-      </View>
-      <Text style={styles.pageTitle}>Notifications</Text>
+      <NotificationsHeader
+        onBack={goHome}
+        showMarkAll={hasUnread}
+        markAllDisabled={markingAll}
+        onMarkAll={handleMarkAll}
+      />
 
       <SectionList
         sections={sections}
@@ -241,7 +425,21 @@ export default function NotificationsScreen({ navigation }: Props) {
         maxToRenderPerBatch={10}
         windowSize={5}
         stickySectionHeadersEnabled={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accentPrimary} colors={[colors.accentPrimary]} />}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          loadingMore
+            ? <ActivityIndicator style={styles.footerLoader} color={colors.accentPrimary} />
+            : null
+        }
+        refreshControl={(
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.accentPrimary}
+            colors={[colors.accentPrimary]}
+          />
+        )}
       />
 
     </SafeAreaView>
@@ -251,7 +449,6 @@ export default function NotificationsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.surface },
 
-  // ── Header ───────────────────────────────────────────────────────────────────
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -268,8 +465,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing['2xl'],
     paddingBottom: 16,
   },
+  markAllText: {
+    fontSize: fontSizes['12'],
+    fontFamily: fontFamilies.medium,
+    color: colors.accentPrimary,
+  },
+  markAllTextDisabled: {
+    color: colors.textMuted,
+  },
+  loader: {
+    flex: 1,
+  },
 
-  // ── Section header ───────────────────────────────────────────────────────────
   sectionHeader: {
     fontSize: fontSizes['12'],
     fontFamily: fontFamilies.medium,
@@ -278,10 +485,12 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
 
-  // ── Notification row ─────────────────────────────────────────────────────────
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: spacing['4xl'],
+  },
+  footerLoader: {
+    paddingVertical: spacing.xl,
   },
   row: {
     flexDirection: 'row',
@@ -336,7 +545,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
 
-  // ── Empty state ───────────────────────────────────────────────────────────────
   emptyBody: {
     flex: 1,
     alignItems: 'center',

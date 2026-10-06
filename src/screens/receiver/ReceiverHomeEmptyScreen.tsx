@@ -9,14 +9,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { DailyLimitStatus } from '../../types';
+import { DailyLimitStatus, NetworkTodaySummary } from '../../types';
 import {
   colors,
   spacing,
   radius,
   fontSizes,
   fontFamilies,
+  letterSpacings,
 } from '../../constants/theme';
+import TodayNetworkCard from '../../components/TodayNetworkCard';
 
 const STEPS = [
   {
@@ -27,7 +29,7 @@ const STEPS = [
   {
     n: 2,
     title: 'Claim one',
-    desc: 'Reserve a portion. You have until the pickup window ends to collect it.',
+    desc: 'Reserve a portion. Collect it today before the listing expires.',
   },
   {
     n: 3,
@@ -40,6 +42,10 @@ type Props = {
   firstName: string;
   unreadCount: number;
   dailyLimit: DailyLimitStatus | null;
+  networkToday: NetworkTodaySummary | null;
+  onDismissNetwork: () => void;
+  isGuest?: boolean;
+  onLoginPress?: () => void;
   onNotificationsPress: () => void;
   onEnableLocation: () => void;
   onBrowseWithout: () => void;
@@ -49,6 +55,10 @@ function ReceiverHomeEmptyScreen({
   firstName,
   unreadCount,
   dailyLimit,
+  networkToday,
+  onDismissNetwork,
+  isGuest = false,
+  onLoginPress,
   onNotificationsPress,
   onEnableLocation,
   onBrowseWithout,
@@ -59,26 +69,41 @@ function ReceiverHomeEmptyScreen({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
       >
-        {/* Header */}
         <View style={styles.headerRow}>
-          <Text style={styles.greeting}>Hi, {firstName} 👋</Text>
-          <TouchableOpacity
-            style={styles.bellButton}
-            hitSlop={8}
-            onPress={onNotificationsPress}
-          >
-            <Ionicons name="notifications" size={20} color={colors.textPrimary} />
-            {unreadCount > 0 && <View style={styles.bellDot} />}
-          </TouchableOpacity>
+          <View style={styles.headerText}>
+            <Text style={styles.greeting}>{isGuest ? 'Browse meals' : `Hi, ${firstName} 👋`}</Text>
+            {dailyLimit && !isGuest && (
+              <View style={styles.claimsBadge}>
+                <Ionicons name="checkmark-circle" size={14} color={colors.successGreen} />
+                <Text style={styles.claimsText}>
+                  Claims: {dailyLimit.used}/{dailyLimit.limit} today
+                </Text>
+              </View>
+            )}
+          </View>
+          {isGuest ? (
+            <TouchableOpacity
+              style={styles.loginButton}
+              hitSlop={8}
+              onPress={onLoginPress}
+            >
+              <Text style={styles.loginText}>Log in</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.bellButton}
+              hitSlop={8}
+              onPress={onNotificationsPress}
+            >
+              <Ionicons name="notifications" size={20} color={colors.textPrimary} />
+              {unreadCount > 0 && <View style={styles.bellDot} />}
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Claims badge */}
-        {dailyLimit && (
-          <View style={styles.claimsBadge}>
-            <Ionicons name="checkmark-circle" size={14} color={colors.successGreen} />
-            <Text style={styles.claimsText}>
-              Claims: {dailyLimit.used}/{dailyLimit.limit} today
-            </Text>
+        {networkToday && (
+          <View style={styles.networkWrap}>
+            <TodayNetworkCard summary={networkToday} onClose={onDismissNetwork} />
           </View>
         )}
 
@@ -97,9 +122,8 @@ function ReceiverHomeEmptyScreen({
           </Text>
         </View>
 
-        {/* HOW PEONY CARE WORKS */}
         <View style={styles.stepsSection}>
-          <Text style={styles.stepsLabel}>HOW PEONY CARE WORKS</Text>
+          <Text style={styles.stepsLabel}>HOW UDUFOOD WORKS</Text>
           {STEPS.map((step, idx) => (
             <View key={step.n}>
               <View style={styles.stepRow}>
@@ -155,6 +179,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: spacing.lg,
   },
+  headerText: {
+    flex: 1,
+    gap: spacing.xs,
+  },
   greeting: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes.xl,
@@ -168,6 +196,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loginButton: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentPrimary,
+  },
+  loginText: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.md,
+    letterSpacing: letterSpacings.button,
+    color: colors.textInverse,
   },
   bellDot: {
     position: 'absolute',
@@ -190,12 +230,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     gap: 4,
-    marginTop: spacing.md,
   },
   claimsText: {
     fontFamily: fontFamilies.semiBold,
     fontSize: fontSizes['12'],
     color: colors.successGreen,
+  },
+  networkWrap: {
+    marginTop: spacing.md,
   },
 
   emptySection: {

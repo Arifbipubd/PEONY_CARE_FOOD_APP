@@ -1,12 +1,10 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  Pressable,
   ScrollView,
-  FlatList,
   Modal,
   StyleSheet,
   ActivityIndicator,
@@ -16,16 +14,22 @@ import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ImageWithSkeleton from '../../components/ImageWithSkeleton';
 import { Ionicons } from '@expo/vector-icons';
-import { launchImageLibraryAsync } from 'expo-image-picker';
+import {
+  launchCameraAsync,
+  launchImageLibraryAsync,
+  requestCameraPermissionsAsync,
+  requestMediaLibraryPermissionsAsync,
+} from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { createDonation, updateDonation, getDonationDetail } from '../../services/restaurant';
-import { ApiError } from '../../services/api';
-import { FoodCategory } from '../../types';
+import { createDonation, updateDonation, getDonationDetail, getDonationCategories } from '../../services/restaurant';
+import { getUserFacingErrorMessage } from '../../services/api';
+import type { DonationCategory, RestaurantDonation } from '../../types';
 import {
   colors, spacing, radius, fontSizes, fontFamilies, letterSpacings, layout,
 } from '../../constants/theme';
 import { DonationsStackParamList } from '../../navigation/RestaurantTabs';
+import { buildTodayPickupRange, formatAvailabilityLabel } from '../../utils/availability';
 
 type Props = {
   navigation: NativeStackNavigationProp<DonationsStackParamList, 'PostDonation'>;
@@ -34,70 +38,48 @@ type Props = {
 
 type ScheduleType = 'one-time' | 'every-day' | 'custom-days';
 
-const CATEGORIES: { key: FoodCategory; label: string }[] = [
-  { key: 'RICE',    label: 'Rice' },
-  { key: 'NOODLES', label: 'Noodles' },
-  { key: 'BREAD',   label: 'Bread' },
-  { key: 'SNACKS',  label: 'Snacks' },
-  { key: 'DRINKS',  label: 'Drinks' },
-  { key: 'OTHER',   label: 'Other' },
-];
-
-const UNITS = ['packs', 'portions', 'boxes', 'bags', 'items'] as const;
-
 const SCHEDULES: { key: ScheduleType; label: string }[] = [
   { key: 'one-time',    label: 'One-time' },
   { key: 'every-day',   label: 'Every day' },
   { key: 'custom-days', label: 'Custom days' },
 ];
 
-// 30-min slots 00:00 → 23:30
-const TIME_SLOTS: string[] = Array.from({ length: 48 }, (_, i) => {
-  const h = Math.floor(i / 2);
-  const m = i % 2 === 0 ? '00' : '30';
-  return `${String(h).padStart(2, '0')}:${m}`;
-});
-
-function isoToHHMM(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
-
-function buildPickupIso(fromStr: string, untilStr: string): { start: string; end: string } {
-  const parseHM = (t: string): [number, number] => {
-    const parts = t.split(':');
-    return [parseInt(parts[0] ?? '0', 10), parseInt(parts[1] ?? '0', 10)];
-  };
-  const now = new Date();
-  const [fh, fm] = parseHM(fromStr);
-  const startDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), fh, fm, 0);
-  if (startDt <= now) startDt.setDate(startDt.getDate() + 1);
-  const [uh, um] = parseHM(untilStr);
-  const endDt = new Date(startDt.getFullYear(), startDt.getMonth(), startDt.getDate(), uh, um, 0);
-  return { start: startDt.toISOString(), end: endDt.toISOString() };
-}
+/** Weekday chips for Custom days — indices match API Mon=0 … Sun=6 */
+const WEEKDAYS: { key: number; label: string }[] = [
+  { key: 0, label: 'Mon' },
+  { key: 1, label: 'Tue' },
+  { key: 2, label: 'Wed' },
+  { key: 3, label: 'Thu' },
+  { key: 4, label: 'Fri' },
+  { key: 5, label: 'Sat' },
+  { key: 6, label: 'Sun' },
+];
 
 export default function PostDonationScreen({ navigation, route }: Props) {
   const donationId = route.params?.donationId;
   const isEditMode = !!donationId;
   const [name,         setName]         = useState('');
-  const [category,     setCategory]     = useState<FoodCategory>('RICE');
+  const [nameError,    setNameError]    = useState('');
+  const [categories,   setCategories]   = useState<DonationCategory[]>([]);
+  const [category,     setCategory]     = useState('');
   const [quantity,     setQuantity]     = useState('');
-  const [unitIndex,    setUnitIndex]    = useState(0);
-  const [pickupFrom,   setPickupFrom]   = useState('');
-  const [pickupUntil,  setPickupUntil]  = useState('');
+  const [quantityError, setQuantityError] = useState('');
+  const [unit,         setUnit]         = useState('');
+  const [categoriesError, setCategoriesError] = useState('');
+  const [loadKey,      setLoadKey]      = useState(0);
   const [schedule,     setSchedule]     = useState<ScheduleType>('one-time');
+  const [customDays,   setCustomDays]   = useState<number[]>([]);
+  const [scheduleError, setScheduleError] = useState('');
   const [notes,        setNotes]        = useState('');
   const [photoUri,     setPhotoUri]     = useState<string | null>(null);
   const [submitting,   setSubmitting]   = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const [photoChanged,  setPhotoChanged]  = useState(false);
-  const [initializing,  setInitializing]  = useState(isEditMode);
+  const [initializing,  setInitializing]  = useState(true);
 
   const [showUnitModal, setShowUnitModal] = useState(false);
-  const [showTimeModal, setShowTimeModal] = useState(false);
-  const [timeTarget,    setTimeTarget]    = useState<'from' | 'until'>('from');
+  const [photoSheetVisible, setPhotoSheetVisible] = useState(false);
 
   const [showQrModal,       setShowQrModal]       = useState(false);
   const [qrData,            setQrData]            = useState('');
@@ -106,88 +88,200 @@ export default function PostDonationScreen({ navigation, route }: Props) {
   const [postedPickupWindow, setPostedPickupWindow] = useState('');
   const [postedReachLabel,  setPostedReachLabel]  = useState('');
 
-  const unit = UNITS[unitIndex]!;
-  const flatListRef = useRef<FlatList<string>>(null);
+  const units = useMemo(
+    () => categories.find((item) => item.code === category)?.units ?? [],
+    [categories, category],
+  );
+
+  const applyDonation = useCallback((donation: RestaurantDonation, cats: DonationCategory[]) => {
+    setName(donation.name);
+    setQuantity(String(donation.quantityOriginal));
+    const match = cats.find((item) => item.code === donation.category) ?? cats[0];
+    if (match) {
+      setCategory(match.code);
+      setUnit(match.units.includes(donation.unit) ? donation.unit : match.defaultUnit);
+    }
+    const rt = donation.recurrenceType;
+    if (rt === 'DAILY') {
+      setSchedule('every-day');
+      setCustomDays([]);
+    } else if (rt === 'CUSTOM' || rt === 'WEEKLY') {
+      setSchedule('custom-days');
+      setCustomDays(donation.recurrenceDays ?? []);
+    } else {
+      setSchedule('one-time');
+      setCustomDays([]);
+    }
+    setNotes(donation.description ?? '');
+    setPhotoUri(donation.photoUrl || null);
+  }, []);
 
   useEffect(() => {
-    if (!donationId) return;
-    getDonationDetail(donationId)
-      .then((d) => {
-        setName(d.name);
-        setCategory(d.category);
-        setQuantity(String(d.quantityOriginal));
-        const unitIdx = (UNITS as readonly string[]).indexOf(d.unit);
-        setUnitIndex(unitIdx >= 0 ? unitIdx : 0);
-        setPickupFrom(isoToHHMM(d.pickupStart));
-        setPickupUntil(isoToHHMM(d.pickupEnd));
-        setSchedule(d.isRepeating ? 'every-day' : 'one-time');
-        setNotes(d.description ?? '');
-        setPhotoUri(d.photoUrl || null);
-      })
-      .catch(() => {})
-      .finally(() => setInitializing(false));
-  }, [donationId]);
+    let cancelled = false;
+    setInitializing(true);
+    setCategoriesError('');
+
+    (async () => {
+      try {
+        const cats = await getDonationCategories();
+        if (cancelled) return;
+        if (cats.length === 0) {
+          setCategories([]);
+          setCategoriesError('No categories are available right now.');
+          return;
+        }
+        const donation = donationId ? await getDonationDetail(donationId) : null;
+        if (cancelled) return;
+        setCategories(cats);
+        if (donation) {
+          applyDonation(donation, cats);
+        } else {
+          const first = cats[0]!;
+          setCategory(first.code);
+          setUnit(first.defaultUnit);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setCategories([]);
+        setCategoriesError(getUserFacingErrorMessage(
+          err,
+          donationId
+            ? 'Could not load this listing. Please try again.'
+            : 'Could not load categories. Please try again.',
+        ));
+      } finally {
+        if (!cancelled) setInitializing(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [donationId, loadKey, applyDonation]);
 
   const bc = (field: string) =>
     focusedField === field ? colors.accentPrimary : colors.borderDefault;
 
-  const openTimePicker = useCallback((target: 'from' | 'until') => {
-    setTimeTarget(target);
-    setShowTimeModal(true);
-    if (target === 'until' && pickupFrom) {
-      const idx = TIME_SLOTS.findIndex((s) => s > pickupFrom);
-      if (idx > 0) {
-        setTimeout(() => {
-          flatListRef.current?.scrollToIndex({ index: idx, animated: false });
-        }, 150);
-      }
-    }
-  }, [pickupFrom]);
+  const retryLoad = useCallback(() => {
+    setLoadKey((key) => key + 1);
+  }, []);
 
-  const selectTime = useCallback((time: string) => {
-    if (timeTarget === 'from') {
-      setPickupFrom(time);
-      setPickupUntil((prev) => (prev && prev > time ? prev : ''));
-    } else {
-      setPickupUntil(time);
-    }
-    setShowTimeModal(false);
-  }, [timeTarget]);
+  const handleSelectCategory = useCallback((code: string) => {
+    setCategory(code);
+    const next = categories.find((item) => item.code === code);
+    if (next) setUnit(next.defaultUnit);
+  }, [categories]);
 
-  const selectUnit = useCallback((index: number) => {
-    setUnitIndex(index);
+  const selectUnit = useCallback((nextUnit: string) => {
+    setUnit(nextUnit);
     setShowUnitModal(false);
   }, []);
 
-  const handlePickPhoto = useCallback(async () => {
-    const result = await launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setPhotoUri(result.assets[0].uri);
-      setPhotoChanged(true);
-    }
+  const handleScheduleChange = useCallback((key: ScheduleType) => {
+    setSchedule(key);
+    setScheduleError('');
+    if (key !== 'custom-days') setCustomDays([]);
   }, []);
 
+  const toggleCustomDay = useCallback((day: number) => {
+    setCustomDays((prev) => {
+      const next = prev.includes(day)
+        ? prev.filter((d) => d !== day)
+        : [...prev, day].sort((a, b) => a - b);
+      return next;
+    });
+    setScheduleError('');
+  }, []);
+
+  const applyPhoto = useCallback((uri: string) => {
+    setPhotoUri(uri);
+    setPhotoChanged(true);
+  }, []);
+
+  const handleTakePhoto = useCallback(() => {
+    setPhotoSheetVisible(false);
+    setTimeout(async () => {
+      const { status } = await requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Camera access needed', 'Allow camera access to take a photo of this food.');
+        return;
+      }
+      const result = await launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        applyPhoto(result.assets[0].uri);
+      }
+    }, 350);
+  }, [applyPhoto]);
+
+  const handleChooseGallery = useCallback(() => {
+    setPhotoSheetVisible(false);
+    setTimeout(async () => {
+      const { status } = await requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Photo access needed', 'Allow photo access to choose an image from your gallery.');
+        return;
+      }
+      const result = await launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        applyPhoto(result.assets[0].uri);
+      }
+    }, 350);
+  }, [applyPhoto]);
+
+  const handleNameChange = useCallback((text: string) => {
+    setName(text);
+    if (nameError) setNameError('');
+  }, [nameError]);
+
+  const handleQuantityChange = useCallback((text: string) => {
+    setQuantity(text);
+    if (quantityError) setQuantityError('');
+  }, [quantityError]);
+
   const handleSubmit = useCallback(async () => {
-    if (!name.trim()) {
-      Alert.alert('Missing field', 'Please enter a food name.');
+    const nextNameError = !name.trim() ? 'Food name is required' : '';
+    const nextQuantityError =
+      !quantity.trim() || isNaN(Number(quantity)) || Number(quantity) <= 0
+        ? 'Enter a valid quantity'
+        : '';
+    const nextScheduleError =
+      schedule === 'custom-days' && customDays.length === 0
+        ? 'Select at least one day'
+        : '';
+
+    setNameError(nextNameError);
+    setQuantityError(nextQuantityError);
+    setScheduleError(nextScheduleError);
+
+    if (
+      nextNameError ||
+      nextQuantityError ||
+      nextScheduleError ||
+      !category ||
+      !unit
+    ) {
       return;
     }
-    if (!quantity.trim() || isNaN(Number(quantity)) || Number(quantity) <= 0) {
-      Alert.alert('Missing field', 'Please enter a valid quantity.');
-      return;
-    }
-    if (!pickupFrom || !pickupUntil) {
-      Alert.alert('Missing field', 'Please select pickup start and end times.');
-      return;
-    }
+
     setSubmitting(true);
     try {
-      const { start, end } = buildPickupIso(pickupFrom, pickupUntil);
+      const { start, end } = buildTodayPickupRange();
+      const recurrenceType =
+        schedule === 'every-day'
+          ? 'DAILY' as const
+          : schedule === 'custom-days'
+            ? 'CUSTOM' as const
+            : 'NONE' as const;
       const payload = {
         name:             name.trim(),
         description:      notes.trim(),
@@ -196,7 +290,8 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         quantityOriginal: Number(quantity),
         pickupStart:      start,
         pickupEnd:        end,
-        isRepeating:      schedule === 'every-day',
+        recurrenceType,
+        recurrenceDays:   schedule === 'custom-days' ? customDays : undefined,
         localPhotoUri:    photoChanged ? photoUri : undefined,
       };
       if (isEditMode && donationId) {
@@ -207,19 +302,22 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         setQrData(result.foodQrData);
         setPostedName(result.name);
         setPostedId(result.id);
-        setPostedPickupWindow(result.pickupWindow);
+        setPostedPickupWindow(formatAvailabilityLabel(
+          recurrenceType,
+          schedule === 'custom-days' ? customDays : undefined,
+        ));
         setPostedReachLabel(result.estimatedReachLabel ?? '');
         setShowQrModal(true);
       }
     } catch (err) {
-      const msg = err instanceof ApiError
-        ? `${err.code}: ${err.message}\n${JSON.stringify(err.details ?? {})}`
-        : String(err);
-      Alert.alert('Error', msg);
+      Alert.alert(
+        isEditMode ? "Couldn't save" : "Couldn't post",
+        getUserFacingErrorMessage(err, 'Could not save this listing. Please try again.'),
+      );
     } finally {
       setSubmitting(false);
     }
-  }, [name, notes, category, unit, quantity, pickupFrom, pickupUntil, photoUri, photoChanged, isEditMode, donationId, navigation]);
+  }, [name, notes, category, unit, quantity, schedule, customDays, photoUri, photoChanged, isEditMode, donationId, navigation]);
 
   if (initializing) {
     return (
@@ -227,8 +325,25 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={styles.statusBody}>
           <ActivityIndicator color={colors.accentPrimary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (categoriesError) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <View style={styles.statusBody}>
+          <Text style={styles.statusTitle}>Couldn&apos;t open this form</Text>
+          <Text style={styles.statusSub}>{categoriesError}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={retryLoad} activeOpacity={0.85}>
+            <Text style={styles.submitText}>Try again</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -252,20 +367,28 @@ export default function PostDonationScreen({ navigation, route }: Props) {
       >
         {/* Header */}
         <Text style={styles.eyebrow}>{isEditMode ? 'Edit listing' : 'New listing'}</Text>
-        <Text style={styles.title}>{isEditMode ? 'Update your\ndonation' : "What are you\ndonating?"}</Text>
+        <Text style={styles.title}>{isEditMode ? 'Update your donation' : 'What are you donating?'}</Text>
 
         {/* FOOD NAME */}
-        <Text style={styles.fieldLabel}>FOOD NAME</Text>
+        <Text style={styles.fieldLabel}>
+          FOOD NAME
+          <Text style={styles.requiredMark}> *</Text>
+        </Text>
         <TextInput
-          style={[styles.input, { borderColor: bc('name') }]}
+          style={[
+            styles.input,
+            focusedField === 'name' && !nameError && styles.inputFocused,
+            !!nameError && styles.inputError,
+          ]}
           placeholder="e.g. Chicken Rice"
           placeholderTextColor={colors.textMuted}
           value={name}
-          onChangeText={setName}
+          onChangeText={handleNameChange}
           onFocus={() => setFocusedField('name')}
           onBlur={() => setFocusedField(null)}
           returnKeyType="next"
         />
+        {nameError ? <Text style={styles.fieldError}>{nameError}</Text> : null}
 
         {/* CATEGORY */}
         <Text style={[styles.fieldLabel, styles.sectionTop]}>CATEGORY</Text>
@@ -274,15 +397,15 @@ export default function PostDonationScreen({ navigation, route }: Props) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipRow}
         >
-          {CATEGORIES.map(({ key, label }) => (
+          {categories.map((item) => (
             <TouchableOpacity
-              key={key}
-              style={[styles.chip, category === key && styles.chipActive]}
-              onPress={() => setCategory(key)}
+              key={item.code}
+              style={[styles.chip, category === item.code && styles.chipActive]}
+              onPress={() => handleSelectCategory(item.code)}
               activeOpacity={0.8}
             >
-              <Text style={[styles.chipText, category === key && styles.chipTextActive]}>
-                {label}
+              <Text style={[styles.chipText, category === item.code && styles.chipTextActive]}>
+                {item.label}
               </Text>
             </TouchableOpacity>
           ))}
@@ -291,20 +414,31 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         {/* QUANTITY + UNIT */}
         <View style={[styles.row, styles.sectionTop]}>
           <View style={styles.half}>
-            <Text style={styles.fieldLabel}>QUANTITY</Text>
+            <Text style={styles.fieldLabel}>
+              QUANTITY
+              <Text style={styles.requiredMark}> *</Text>
+            </Text>
             <TextInput
-              style={[styles.input, { borderColor: bc('qty') }]}
+              style={[
+                styles.input,
+                focusedField === 'qty' && !quantityError && styles.inputFocused,
+                !!quantityError && styles.inputError,
+              ]}
               placeholder="0"
               placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               value={quantity}
-              onChangeText={setQuantity}
+              onChangeText={handleQuantityChange}
               onFocus={() => setFocusedField('qty')}
               onBlur={() => setFocusedField(null)}
             />
+            {quantityError ? <Text style={styles.fieldError}>{quantityError}</Text> : null}
           </View>
           <View style={styles.half}>
-            <Text style={styles.fieldLabel}>UNIT</Text>
+            <Text style={styles.fieldLabel}>
+              UNIT
+              <Text style={styles.requiredMark}> *</Text>
+            </Text>
             <TouchableOpacity
               style={[styles.inputWrap, styles.inlineRow]}
               onPress={() => setShowUnitModal(true)}
@@ -316,48 +450,17 @@ export default function PostDonationScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        {/* PICKUP FROM + UNTIL */}
-        <View style={[styles.row, styles.sectionTop]}>
-          <View style={styles.half}>
-            <Text style={styles.fieldLabel}>PICKUP FROM</Text>
-            <TouchableOpacity
-              style={[styles.inputWrap, styles.inlineRow,
-                { borderColor: pickupFrom ? colors.accentPrimary : colors.borderDefault }]}
-              onPress={() => openTimePicker('from')}
-              activeOpacity={0.8}
-            >
-              <Text style={pickupFrom ? styles.pickerValue : styles.pickerPlaceholder}>
-                {pickupFrom || '18:00'}
-              </Text>
-              <Ionicons name="time" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.half}>
-            <Text style={styles.fieldLabel}>UNTIL</Text>
-            <TouchableOpacity
-              style={[styles.inputWrap, styles.inlineRow,
-                !pickupFrom && styles.inputDisabled,
-                { borderColor: pickupUntil ? colors.accentPrimary : colors.borderDefault }]}
-              onPress={() => openTimePicker('until')}
-              disabled={!pickupFrom}
-              activeOpacity={0.8}
-            >
-              <Text style={pickupUntil ? styles.pickerValue : styles.pickerPlaceholder}>
-                {pickupUntil || '—'}
-              </Text>
-              <Ionicons name="time" size={18} color={!pickupFrom ? colors.borderDefault : colors.textMuted} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* SCHEDULE */}
-        <Text style={[styles.fieldLabel, styles.sectionTop]}>SCHEDULE</Text>
+        <Text style={[styles.fieldLabel, styles.sectionTop]}>
+          SCHEDULE
+          <Text style={styles.requiredMark}> *</Text>
+        </Text>
         <View style={styles.schedRow}>
           {SCHEDULES.map(({ key, label }) => (
             <TouchableOpacity
               key={key}
               style={[styles.schedBtn, schedule === key && styles.schedBtnActive]}
-              onPress={() => setSchedule(key)}
+              onPress={() => handleScheduleChange(key)}
               activeOpacity={0.8}
             >
               <Text style={[styles.schedText, schedule === key && styles.schedTextActive]}>
@@ -366,6 +469,26 @@ export default function PostDonationScreen({ navigation, route }: Props) {
             </TouchableOpacity>
           ))}
         </View>
+        {schedule === 'custom-days' ? (
+          <View style={styles.dayRow}>
+            {WEEKDAYS.map(({ key, label }) => {
+              const selected = customDays.includes(key);
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.dayBtn, selected && styles.dayBtnActive]}
+                  onPress={() => toggleCustomDay(key)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.dayText, selected && styles.dayTextActive]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : null}
+        {scheduleError ? <Text style={styles.fieldError}>{scheduleError}</Text> : null}
 
         {/* NOTES (OPTIONAL) */}
         <Text style={[styles.fieldLabel, styles.sectionTop]}>NOTES (OPTIONAL)</Text>
@@ -382,7 +505,11 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         />
 
         {/* PHOTO */}
-        <TouchableOpacity style={styles.photoBox} onPress={handlePickPhoto} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.photoBox}
+          onPress={() => setPhotoSheetVisible(true)}
+          activeOpacity={0.8}
+        >
           {photoUri ? (
             <>
               <ImageWithSkeleton source={{ uri: photoUri }} style={styles.photoPreview} resizeMode="cover" />
@@ -458,6 +585,35 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         </View>
       </Modal>
 
+      <Modal
+        visible={photoSheetVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPhotoSheetVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => setPhotoSheetVisible(false)}
+        >
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>Add a photo</Text>
+            <TouchableOpacity style={styles.sheetOption} onPress={handleTakePhoto} activeOpacity={0.7}>
+              <View style={styles.sheetOptionLead}>
+                <Ionicons name="camera-outline" size={20} color={colors.textPrimary} />
+                <Text style={styles.sheetOptionText}>Take a photo</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.sheetOption} onPress={handleChooseGallery} activeOpacity={0.7}>
+              <View style={styles.sheetOptionLead}>
+                <Ionicons name="images-outline" size={20} color={colors.textPrimary} />
+                <Text style={styles.sheetOptionText}>Choose from gallery</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* ── Unit picker modal ─────────────────────────────────────────────── */}
       <Modal
         visible={showUnitModal}
@@ -472,79 +628,25 @@ export default function PostDonationScreen({ navigation, route }: Props) {
         >
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>Select unit</Text>
-            {UNITS.map((u, i) => (
+            <ScrollView style={styles.sheetList} bounces={false}>
+            {units.map((option) => (
               <TouchableOpacity
-                key={u}
+                key={option}
                 style={styles.sheetOption}
-                onPress={() => selectUnit(i)}
+                onPress={() => selectUnit(option)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.sheetOptionText, unitIndex === i && styles.sheetOptionActive]}>
-                  {u}
+                <Text style={[styles.sheetOptionText, unit === option && styles.sheetOptionActive]}>
+                  {option}
                 </Text>
-                {unitIndex === i && (
+                {unit === option && (
                   <Ionicons name="checkmark" size={20} color={colors.accentPrimary} />
                 )}
               </TouchableOpacity>
             ))}
+            </ScrollView>
           </View>
         </TouchableOpacity>
-      </Modal>
-
-      {/* ── Time picker modal ─────────────────────────────────────────────── */}
-      <Modal
-        visible={showTimeModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowTimeModal(false)}
-      >
-        <View style={styles.overlay}>
-          {/* Backdrop — tap outside sheet to dismiss */}
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowTimeModal(false)} />
-          {/* Sheet sits above backdrop so FlatList scroll is never intercepted */}
-          <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>
-              {timeTarget === 'from' ? 'Pickup from' : 'Until'}
-            </Text>
-            <FlatList
-              ref={flatListRef}
-              data={TIME_SLOTS}
-              keyExtractor={(item) => item}
-              style={styles.timeList}
-              showsVerticalScrollIndicator={false}
-              removeClippedSubviews
-              maxToRenderPerBatch={24}
-              windowSize={10}
-              extraData={{ pickupFrom, pickupUntil, timeTarget }}
-              onScrollToIndexFailed={({ index }) => {
-                flatListRef.current?.scrollToOffset({ offset: index * 50, animated: false });
-              }}
-              renderItem={({ item }) => {
-                const selected = timeTarget === 'from' ? pickupFrom === item : pickupUntil === item;
-                const disabled = timeTarget === 'until' && item <= pickupFrom;
-                return (
-                  <TouchableOpacity
-                    style={styles.sheetOption}
-                    onPress={() => selectTime(item)}
-                    disabled={disabled}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[
-                      styles.sheetOptionText,
-                      selected && styles.sheetOptionActive,
-                      disabled && styles.sheetOptionDisabled,
-                    ]}>
-                      {item}
-                    </Text>
-                    {selected && (
-                      <Ionicons name="checkmark" size={20} color={colors.accentPrimary} />
-                    )}
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </View>
-        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -554,6 +656,34 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: colors.surface,
+  },
+  statusBody: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing['2xl'],
+  },
+  statusTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: fontSizes.lg,
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  statusSub: {
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes.sm,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+  },
+  retryBtn: {
+    height: layout.buttonHeight,
+    borderRadius: radius.card,
+    backgroundColor: colors.accentPrimary,
+    paddingHorizontal: spacing['2xl'],
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backBtn: {
     marginTop: spacing.md,
@@ -593,6 +723,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 8,
   },
+  requiredMark: {
+    color: colors.errorRed,
+  },
   sectionTop: {
     marginTop: spacing.xl,
   },
@@ -606,6 +739,18 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
+  },
+  inputFocused: {
+    borderColor: colors.accentPrimary,
+  },
+  inputError: {
+    borderColor: colors.errorRed,
+  },
+  fieldError: {
+    marginTop: spacing.sm,
+    fontFamily: fontFamilies.regular,
+    fontSize: fontSizes.xs,
+    color: colors.errorRed,
   },
   inputWrap: {
     height: layout.inputHeight,
@@ -629,12 +774,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.md,
     color: colors.textPrimary,
-  },
-  pickerPlaceholder: {
-    flex: 1,
-    fontFamily: fontFamilies.regular,
-    fontSize: fontSizes.md,
-    color: colors.textMuted,
   },
   chipRow: {
     flexDirection: 'row',
@@ -690,6 +829,33 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   schedTextActive: {
+    color: colors.accentPrimary,
+  },
+  dayRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  dayBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: radius.input,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dayBtnActive: {
+    backgroundColor: colors.avatarBg,
+    borderColor: colors.accentPrimary,
+  },
+  dayText: {
+    fontFamily: fontFamilies.semiBold,
+    fontSize: fontSizes['12'],
+    color: colors.textPrimary,
+  },
+  dayTextActive: {
     color: colors.accentPrimary,
   },
   photoBox: {
@@ -773,6 +939,9 @@ const styles = StyleSheet.create({
     paddingTop: spacing['2xl'],
     paddingBottom: spacing['4xl'],
   },
+  sheetList: {
+    maxHeight: 360,
+  },
   sheetTitle: {
     fontFamily: fontFamilies.bold,
     fontSize: fontSizes['16'],
@@ -787,6 +956,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.borderDefault,
   },
+  sheetOptionLead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
   sheetOptionText: {
     fontFamily: fontFamilies.regular,
     fontSize: fontSizes.md,
@@ -795,16 +969,6 @@ const styles = StyleSheet.create({
   sheetOptionActive: {
     fontFamily: fontFamilies.semiBold,
     color: colors.accentPrimary,
-  },
-  sheetOptionDisabled: {
-    color: colors.borderDefault,
-  },
-  inputDisabled: {
-    backgroundColor: colors.surfaceSecondary,
-    opacity: 0.6,
-  },
-  timeList: {
-    maxHeight: 300,
   },
   qrSheet: {
     backgroundColor: colors.surface,
